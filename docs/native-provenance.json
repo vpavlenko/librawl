@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "repository": "https://github.com/vpavlenko/rawl",
+  "commit": "c5c9bb0407534d9b7eb9a8267078c006fa340ee6",
+  "license": "GPL-3.0-only",
+  "sources": [
+    {
+      "path": "src/components/rawl/getNoteRectangles.tsx",
+      "sha256": "43e846e36142f0b967a43d9fbc55d408a32927c4b8e208687a2b5ec94ba32f8b"
+    },
+    {
+      "path": "src/components/rawl/notePlayback.ts",
+      "sha256": "eeba7549e94bf4962c9850996ad6ee392e2e75cca4a1fa694f5ffbda6ac8b0e0"
+    },
+    {
+      "path": "src/components/rawl/drumPlayback.ts",
+      "sha256": "d4e66f5ecc552bc0dc693fd79549bb972b47fd847f06ec0a5b2b1db8b72f7740"
+    },
+    {
+      "path": "src/components/rawl/strumContext.ts",
+      "sha256": "d0cdbd92c4111eb9cb878b4ff11ccc9877a3c6b33f44cf73d011834bdea008f7"
+    },
+    {
+      "path": "src/components/rawl/playbackIndex.ts",
+      "sha256": "23c9eed0bae28b6b790fbd3ed6fb17ae4310d6cc2d73155907c04f3fee078d0d"
+    },
+    {
+      "path": "src/components/rawl/pitchBend.ts",
+      "sha256": "1c76ce4286e607e28d27caa39e8568014cb9e39c065e0799b2b0833253054287"
+    },
+    {
+      "path": "src/components/rawl/colors.ts",
+      "sha256": "e6dc321cfdc2eb8327c0c51a2bdd6f126f91758de58083ea755eeea89dce8efb"
+    },
+    {
+      "path": "src/components/rawl/voiceOrder.ts",
+      "sha256": "a70a67be78fbe685bdc9236c3194e58601e7edf39ad69a31b57696f76f728c47"
+    },
+    {
+      "path": "src/components/rawl/instrumentVoiceGroups.ts",
+      "sha256": "bf7734d2bdba6de2f924f76fa7b39f35ca94eff437073e38a6c1364c7c0fc6ed"
+    }
+  ],
+  "runtimeChanges": [
+    "Type-only imports route to structurally copied native types.",
+    "Pure color helpers share the existing canonical library palette.",
+    "VoiceHover helper extracted without instrument-grouping application policy.",
+    "VoiceZIndicesContext extracted without host sorting policy.",
+    "Optional getNoteAttributes.className is appended only when supplied; original default markup remains exact."
+  ],
+  "noteModel": "Seconds-based original Note and ColoredNote, with separate source spans/pitches and optional display spans/pitches.",
+  "contexts": "All native consumers must import the same compiled librawl/native module; never instantiate duplicate context copies.",
+  "typeModel": {
+    "path": "src/components/rawl/parseMidi.ts",
+    "sourceSha256": "9679bf082c44171bcffc73443c05d2f37da48c34131b6f3309d1b794aedf6b2c",
+    "excerpt": "tests/fixtures/native/note-types.ts",
+    "excerptSha256": "5a9edfee836402369ab8f73bb33221bd21e5dbf28f3d10faad71c4def4f14841"
+  },
+  "verification": {
+    "staticCasesPerReactVersion": 102,
+    "reactVersions": [
+      "16.14.0",
+      "19.3.1"
+    ],
+    "tests": 8,
+    "portableOracles": true,
+    "runtimeDependencies": [
+      "react"
+    ],
+    "remainingHostResponsibilities": [
+      "CSS palette/voice-shape styles must be loaded by the host.",
+      "Audio backend and source parsing stay in the host.",
+      "Seconds-to-pixels and pitch-to-pixels remain explicit callback inputs."
+    ],
+    "colorStyles": "nativeColorStyles output equals original Rawl createGlobalStyle template exactly"
+  },
+  "voiceStyles": {
+    "source": "src/index.css",
+    "sourceSha256": "3bd852c81fdb479935042901866ea6b5a5d81ecea9b6d149ea95846cbc77a3ae",
+    "excerpt": "src/rawlnative/voice-shapes.css",
+    "excerptSha256": "84fd2408c40d394a998e93fed8c0c3a4aa104e37cf987146f2efd43dd4629f8f",
+    "selectors": "voiceShape-0 through voiceShape-15, unchanged"
+  }
+}

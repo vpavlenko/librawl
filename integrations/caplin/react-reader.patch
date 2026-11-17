@@ -1,0 +1,58 @@
+--- a/dist/reader.js
++++ b/dist/reader.js
+@@ -590,7 +590,7 @@
+   if(playing){const current=playing;playing=null;midiIcon(current.button,'play');current.button.setAttribute('aria-label','Воспроизвести');showStop(current.state);current.state.mixers?.forEach(m=>m.disconnect());current.state.output?.disconnect();current.state.output=null;current.state.mixers=null;}playing=null;
+  }
+  function destroyAnnotations(){instances.forEach(state=>{state.learnerAnnotations?.destroy();state.learnerAnnotations=null;});}
+- function reset(){stop();destroyAnnotations();instances.forEach(state=>state.annotationCleanup?.());instances.clear();legendInstances.clear();}
++ function reset(){stop();destroyAnnotations();instances.forEach(state=>{state.noteLayers?.forEach(layer=>layer.destroy());state.annotationCleanup?.();});instances.clear();legendInstances.clear();}
+  function refresh(state){
+ 
+   state.wrap.querySelectorAll('.rawl-voice').forEach(row=>{
+@@ -611,11 +611,6 @@
+  }
+  function hover(state,index){state.hover=index;refresh(state);}
+  window.addEventListener('blur',()=>{stopAudition();instances.forEach(state=>hover(state,null));});
+- function tonicAt(data,beat){
+-  let tonic=data.tonic;
+-  for(const change of data.tonalityChanges??[])if(beat>change.beat)tonic=change.tonic;
+-  return tonic;
+- }
+  function measureSize(data){
+   if(data.timeSignature)return data.timeSignature[0]*4/data.timeSignature[1];
+   const spans=data.groups.slice(1).map((g,i)=>g-data.groups[i]).sort((a,b)=>a-b);
+@@ -661,21 +656,15 @@
+     const line=document.createElement('div');line.className='rawl-beat';line.dataset.beat=beat;line.style.left=x(beat);score.append(line);
+    }}
+   });
+-  function noteElement(n,grace=false){
+-   const note=document.createElement('div'),staff=groupFor.get(n.voice);note.className='rawl-note voice-shape-'+staff+(grace?' grace':'');
+-   note.dataset.voice=n.voice;note.dataset.staff=staff;note.dataset.pitch=n.pitch;note.dataset.tonic=tonicAt(data,n.start+(grace?0:n.duration/2));note.dataset.pitchClass=((n.pitch-Number(note.dataset.tonic))%12+12)%12;
+-   note.style.cssText=`left:${`max(0px, calc(${n.start/data.beats*100}% - ${grace?5:0}px))`};top:${geometry.pitchToY(n.pitch)}px;width:${grace?'4px':`max(1px, calc(${n.duration/data.beats*100}% - 1px))`};background:${palette[((n.pitch-tonicAt(data,n.start+(grace?0:n.duration/2)))%12+12)%12]};z-index:${stacking.get(n)??10}`;
+-   if(n.ornament){note.dataset.ornament=n.ornament;note.dataset.turnIndex=n.turnIndex;}
+-   if(!grace){note.dataset.start=n.start;note.dataset.end=n.start+n.duration;}bindNoteInteraction(state,note,n);score.append(note);
+-  }
+-  notes.forEach(n=>noteElement(n));graces.forEach(n=>noteElement(n,true));
+-  RawlLayout.fitStave(score);
+   button.onclick=()=>toggle(state);wrap.querySelector('.rawl-stop').onclick=()=>{state.recording?.stop();stopState(state);};
+   wrap.querySelector('.rawl-scroll').onclick=event=>{const rect=score.getBoundingClientRect();const sectionBeat=state.sections?.seek(event);if(state.sections&&sectionBeat===null)return;seek(state,sectionBeat??Math.max(0,Math.min(data.beats,(event.clientX-rect.left)/rect.width*data.beats)));};
+   phase('build');const staged=parent.closest('[data-rawl-stage]'),buildWidth=staged?0:parent.clientWidth;
+   if(buildWidth)Object.assign(wrap.style,{position:'fixed',left:'-20000px',top:'0',width:buildWidth+'px',visibility:'hidden',contain:'layout style'});
+   if(staged?.dataset.rawlStageCaption){wrap.classList.add('rawl-caption-controls');state.controls.style.display='none';state.controls.dataset.stagedCaption='true';wrap.querySelector('.rawl-number').hidden=true;}
+-  parent.append(wrap);RawlLayout.configure(wrap,data,{stretch:true});if(!staged)RawlLayout.captionControls(wrap);phase('attach');state.sections=window.PeriodSections?.mount(score,data,{notes,bindNote:(el,n)=>bindNoteInteraction(state,el,n),annotationOptions:{english,renderHarmony:(text,a,data)=>HarmonicNotation.markup(text,{colorRoots:true,mode:a.mode??data.mode}),renderDegree:text=>scaleDegreesHTML(esc(text))}});phase('sections');state.preview=RawlMeasurePreview.mount(score,data,{onPreview:preview=>paintTonicGrid(state,preview??data)});if(transposeSemitones)applyTranspose(state);phase('transpose');
++  parent.append(wrap);RawlLayout.configure(wrap,data,{stretch:true});if(!staged)RawlLayout.captionControls(wrap);phase('attach');state.sections=window.PeriodSections?.mount(score,data,{notes,bindNote:(note,n)=>bindNoteInteraction(state,note,n),annotationOptions:{english,renderHarmony:(text,a,data)=>HarmonicNotation.markup(text,{colorRoots:true,mode:a.mode??data.mode}),renderDegree:text=>scaleDegreesHTML(esc(text))}});phase('sections');
++  const noteRows=state.sections?.rows??[{start:0,end:data.beats,pad:0,span:data.beats,score,axis:geometry}];
++  state.noteLayers=noteRows.map(row=>{const layer=window.LibrawlCaplinNotes.mount(row.score,{data,notes,row,axis:row.axis,stacking,bindNote:(note,n)=>bindNoteInteraction(state,note,n)});RawlLayout.fitStave(row.score);return layer;});
++  phase('notes');state.preview=RawlMeasurePreview.mount(score,data,{onPreview:preview=>paintTonicGrid(state,preview??data)});if(transposeSemitones)applyTranspose(state);phase('transpose');
+   state.annotationCleanup=state.sections?()=>state.sections.destroy():ScoreAnnotations.mount(score,data,{english,notesTop:noteTop,notesBottom,renderHarmony:(text,a,data)=>HarmonicNotation.markup(text,{colorRoots:true,mode:a.mode??data.mode}),renderDegree:text=>scaleDegreesHTML(esc(text))});
+   if(buildWidth)for(const property of ['position','left','top','width','visibility','contain'])wrap.style.removeProperty(property);
+   phase('annotations');wrap.dataset.mountPhases=JSON.stringify(phases);
+@@ -684,7 +673,7 @@
+  }
+  function playbackHandle(state){
+   const {wrap,data}=state;
+-  return {destroy(){if(state.recording){state.recording.pause();state.recording.onChange=null;}if(playing?.state===state||pendingPlayback?.state===state)stop();else if([...auditions].some(a=>a.state===state)){stopAudition();if(!playing&&!pendingPlayback)SoundFontPlayback.stop();}state.annotationCleanup?.();state.learnerAnnotations?.destroy();state.preview?.destroy();instances.delete(state);state.controls.remove();wrap.remove();},play(){return toggle(state);},stop(){stopState(state);},isPlaying(){return playing?.state===state;},getPosition(){return playing?.state===state?Math.max(0,Math.min(data.beats,playing.clock.position())):(state.position??0);},getPlaybackBeat(){return playing?.state===state?playing.clock.beat():null;},isSounding(note,beat=playing?.state===state?playing.clock.beat():null){if(playing?.state!==state)return false;return beat!==null&&SoundFontPlayback.soundingIntervals(playing.plan,{group:state.groupFor.get(note.voice),pitch:note.pitch+transposeSemitones,start:note.start,end:note.start+note.duration}).some(([start,end])=>beat>=start&&beat<end);}};
++  return {destroy(){if(state.recording){state.recording.pause();state.recording.onChange=null;}if(playing?.state===state||pendingPlayback?.state===state)stop();else if([...auditions].some(a=>a.state===state)){stopAudition();if(!playing&&!pendingPlayback)SoundFontPlayback.stop();}state.annotationCleanup?.();state.learnerAnnotations?.destroy();state.preview?.destroy();state.noteLayers?.forEach(layer=>layer.destroy());instances.delete(state);state.controls.remove();wrap.remove();},play(){return toggle(state);},stop(){stopState(state);},isPlaying(){return playing?.state===state;},getPosition(){return playing?.state===state?Math.max(0,Math.min(data.beats,playing.clock.position())):(state.position??0);},getPlaybackBeat(){return playing?.state===state?playing.clock.beat():null;},isSounding(note,beat=playing?.state===state?playing.clock.beat():null){if(playing?.state!==state)return false;return beat!==null&&SoundFontPlayback.soundingIntervals(playing.plan,{group:state.groupFor.get(note.voice),pitch:note.pitch+transposeSemitones,start:note.start,end:note.start+note.duration}).some(([start,end])=>beat>=start&&beat<end);}};
+  }
+  function stopState(state){if(playing?.state===state||pendingPlayback?.state===state)stop();else if([...auditions].some(a=>a.state===state))stopAudition();state.position=0;showStop(state);}
+  function seek(state,beat){

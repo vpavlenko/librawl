@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "repository": "https://github.com/vpavlenko/rawl",
+  "commit": "c5c9bb0407534d9b7eb9a8267078c006fa340ee6",
+  "license": "GPL-3.0-only",
+  "sources": [
+    {
+      "path": "src/players/ThreadedMIDIPlayer.ts",
+      "sha256": "c77c65c6f051750c5c625458d5dd5632340413a8636bb03b88a19ca5d1f45dac"
+    },
+    {
+      "path": "public/midi-output-worklet.js",
+      "sha256": "c0d987933f339e99de72ad77b79f75fffb7dd82b6800cb2558387d6df88a6e13"
+    },
+    {
+      "path": "scripts/rawl/check-midi-output.cjs",
+      "sha256": "1d779afd099525d25947b7e4c58af0a44ee5b28261300273336b2b4287c13464"
+    }
+  ],
+  "runtimeChanges": [
+    "ThreadedMIDIPlayer is returned by a class factory with injected EventEmitter, synth-worker factory, asset base, AudioWorkletNode, MessageChannel and optional console.",
+    "Only initialization seams change; class methods, generation protocol, consumed-PCM clock, state, error strings and cleanup retain their pinned source bodies.",
+    "Output worklet is byte-identical; its existing protocol gate is pinned and run unchanged."
+  ],
+  "retainedHostOwnership": [
+    "MIDI sequencer and synthesis worker",
+    "WASM, soundfonts and instrument samples",
+    "Worker-loader build and asset URL policy",
+    "Application transport UI and saved state"
+  ]
+}

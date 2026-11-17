@@ -1,1 +1,1 @@
-module.exports = require('./dist/geometry.cjs');
+export * from './dist/geometry.js';

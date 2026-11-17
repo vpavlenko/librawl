@@ -1,6 +1,6 @@
 {
   "name": "librawl",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Shared Rawl React notation primitives and MIDI playback adapters",
   "type": "module",
   "license": "GPL-3.0-only",
@@ -28,9 +28,9 @@
       "require": "./dist/geometry.cjs"
     },
     "./palette": {
+      "types": "./dist/palette.d.ts",
       "import": "./dist/palette.js",
-      "require": "./dist/palette.cjs",
-      "types": "./dist/palette.d.ts"
+      "require": "./dist/palette.cjs"
     },
     "./audio": {
       "types": "./dist/audio.d.ts",
@@ -40,7 +40,20 @@
     "./style.css": "./dist/style.css",
     "./browser/*": "./dist/browser/*",
     "./legacy-style.css": "./dist/legacy-style.css",
-    "./harmony.css": "./dist/harmony.css"
+    "./harmony.css": "./dist/harmony.css",
+    "./native": {
+      "types": "./dist/native.d.ts",
+      "import": "./dist/native.js",
+      "require": "./dist/native.cjs"
+    },
+    "./native.css": "./dist/native.css",
+    "./voice-shapes.css": "./dist/voice-shapes.css",
+    "./native-audio": {
+      "types": "./dist/native-audio.d.ts",
+      "import": "./dist/native-audio.js",
+      "require": "./dist/native-audio.cjs"
+    },
+    "./midi-output-worklet.js": "./dist/browser/midi-output-worklet.js"
   },
   "files": [
     "dist",
@@ -54,7 +67,11 @@
     "geometry.js",
     "geometry.d.ts",
     "palette.js",
-    "palette.d.ts"
+    "palette.d.ts",
+    "native.js",
+    "native.d.ts",
+    "native-audio.js",
+    "native-audio.d.ts"
   ],
   "sideEffects": [
     "**/*.css"
@@ -72,7 +89,7 @@
   },
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node --test tests/*.test.mjs",
+    "test": "node --test tests/*.test.mjs integrations/caplin/*.test.mjs",
     "check": "npm run build && npm test"
   }
 }

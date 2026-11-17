@@ -1,1 +1,1 @@
-module.exports = require('./dist/audio.cjs');
+export * from './dist/audio.js';

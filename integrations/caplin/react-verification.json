@@ -1,0 +1,42 @@
+{
+  "date": "2026-11-17",
+  "libraryVersion": "0.2.0",
+  "scope": "isolated local Caplin reader integration; no original checkout or production edits",
+  "isolatedReader": "/Users/chipfocus/repos/lego/caplin-librawl-reader",
+  "nativeReactEntry": "src/rawlnative/index.ts",
+  "adapterEntry": "integrations/caplin/react-notes.jsx",
+  "artifact": "dist/browser/caplin-notes.js",
+  "artifactSha256": "77c9a0263403a5ecf80a1123a83b168ef45b255938937216381221c67ca0f747",
+  "readerSha256": "8bd0301d13d9b3e8a112ecb3db9f91b4a5cda7de610f76b0a9ee85c807d6c314",
+  "artifactCopyVerified": true,
+  "syncCheck": "passed; idempotent; source and startup-shell guarded; textVersion preserved",
+  "adapterTests": {"passed": 7, "failed": 0, "skipped": 0},
+  "corpus": {
+    "datasets": 364,
+    "rows": 712,
+    "sourceNotes": 43476,
+    "displayRectangles": 43492,
+    "ornamentRectangles": 1912,
+    "rowClippedRectangles": 32,
+    "sourceSha256": "b3f4c63f717c3b79499f6d54c460c9fdc778427689a9b94bb8d3f607f6e14cb2",
+    "sourceMutations": 0,
+    "realizedNoteMutations": 0
+  },
+  "hostChecksPassed": [
+    "check-note-interaction.cjs: 19 interaction checks",
+    "check-period-sections.cjs: periods, pickup rows, source spans, unchanged MIDI, row analysis bounds",
+    "check-recording-alignment.cjs: 164 mapped recordings, 2704 points, 123 reviewed; existing max error46.4ms",
+    "check-composition-lifecycle.cjs: 6 models, 43 checks; persistence, undo, edits, teardown, cursor-free highlights",
+    "check-rawl-layout.cjs: 364 datasets, 3 caption transport cases",
+    "check-notation-refinements.cjs",
+    "check-startup.cjs: text-before-runtime, saved/hash/fallback page, 164 startup payloads",
+    "check-book-data.cjs: delivery, integrity, startup and lazy cache behavior"
+  ],
+  "retainedHostBoundaries": [
+    "authored row/staff/pickup geometry and annotations",
+    "audition gesture routing and SoundFont sounding interval gates",
+    "existing 5px/10px/12px CSS policies and recoloring",
+    "composition editor editing grid and all saved drafts"
+  ],
+  "notVerifiedByThisAgent": ["visual browser QA", "audio listening", "Safari", "production deployment"]
+}

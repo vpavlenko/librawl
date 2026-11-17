@@ -1,1 +1,1 @@
-module.exports = require('./dist/palette.cjs');
+export * from './dist/palette.js';

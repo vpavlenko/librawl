@@ -2,25 +2,30 @@
 
 Shared React notation and playback modules for [Rawl](https://github.com/vpavlenko/rawl), [Lego](https://github.com/vpavlenko/lego) and Caplin.
 
-The first extraction keeps established behavior and gives subsequent migrations a tested, versioned home. It is not yet a replacement for the entire Rawl application or its native MIDI backend.
+The library owns the actual Rawl note renderer, tonic flags, palette, playback highlight clocks and configurable SoundFont playback. Hosts retain their data, navigation, analysis editing and synthesis assets.
 
 ## Modules
 
 | Export | Current responsibility |
 | --- | --- |
-| `librawl` | Controlled `RawlNotation` and `RawlMeasureHeader`, extracted from Lego; notes, tonic regions, four-bar/custom phrase boundaries, recoloring callbacks, melody layering, note-height playback highlighting, host header/footer slots |
+| `librawl` | Controlled `RawlNotation` and `RawlMeasureHeader`; the beat adapter delegates notes to the native renderer; notes, tonic regions, four-bar/custom phrase boundaries, recoloring callbacks, melody layering, note-height playback highlighting, host header/footer slots |
 | `librawl/components` | `TonicSymbol`, extracted from Rawl's actual `AnalysisGrid.NewTonicSymbol`; original styles, classes and Unicode arrows by default, optional host arrow/attribute slots |
+| `librawl/native` | Actual Rawl `getNoteRectangles`, `NoteLayer`, shared contexts, section-scoped playback indexes, bends, quartertones, drums, strums, voice stacking and source attributes |
+| `librawl/native.css` | Original Rawl pitch variables, dots and voice shapes; opt in where the host does not own recoloring CSS |
 | `librawl/geometry` | Beat-based Lego/Caplin geometry helpers; no changes to audio times |
 | `librawl/palette` | Exact twelve-color Rawl palette and distinguishing dots |
+| `librawl/native-audio` | Rawl threaded transport and consumed-PCM clock; injected worker and browser constructors |
+| `librawl/midi-output-worklet.js` | Byte-identical original output processor; copy to the host asset base |
 | `librawl/audio` | Configurable SoundFont factory and host transport with an injected plan factory |
 | `librawl/style.css` | Notation styles only |
 | `librawl/harmony.css` | Optional host chord/RN overlay styles |
 
-React is a peer dependency and is never bundled. The component defaults are tested against the original Rawl under both React16.14 and React19.3.1. Built ESM/CommonJS and legacy Webpack subpath entries are committed so consumers do not need a JSX or TypeScript compiler for this package.
+React is a peer dependency for package modules. The optional legacy Caplin browser adapter bundles React 19 because its host has no React runtime. The native renderer is compared against the original Rawl in 102 cases under both React16.14 and React19.3.1. Built ESM/CommonJS and legacy Webpack subpath entries are committed so consumers do not need a JSX or TypeScript compiler for this package.
 
 ```jsx
 import {RawlNotation} from 'librawl';
 import 'librawl/style.css';
+import 'librawl/native.css';
 
 <RawlNotation
   notes={notes}
@@ -44,7 +49,7 @@ const engine=await audio.prepare(context);
 
 Assets remain explicitly host-owned. The default profile retains Caplin's bank and URLs. Additional banks and selectable audition programs are opt-in; the generated sax profile is used by Lego. No audio context is created merely by importing this library.
 
-This scheduler consumes prepared note/program/CC plans. It does not claim arbitrary SMF, pitch-bend, aftertouch, multi-port or Rawl WASM backend equivalence. Rawl's existing threaded player remains in Rawl until its worker/asset contracts and consumed-sample clock can be extracted without changing behavior. See [migration status](docs/migration.md).
+This scheduler consumes prepared note/program/CC plans. It does not claim arbitrary SMF, pitch-bend, aftertouch, multi-port or Rawl WASM backend equivalence. Rawl's threaded transport and consumed-sample clock are available through `librawl/native-audio`; the host retains its existing sequencer, worker and synthesis assets. See [migration status](docs/migration.md).
 
 ## Development
 

@@ -1,3 +1,6 @@
 tests/fixtures/** -whitespace
 dist/** -whitespace
 src/notation/style.css -whitespace
+src/rawlnative/colors.mjs -whitespace
+src/rawlnative/types.ts -whitespace
+integrations/caplin/react-reader.patch -whitespace
