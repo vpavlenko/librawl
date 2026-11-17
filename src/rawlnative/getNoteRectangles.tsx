@@ -623,6 +623,7 @@ const NoteRectangle = React.memo(({
   ) : (
     <div
       {...attributes}
+      title={undefined}
       ref={elementRef}
       data-note-id={note.id}
       data-modulation-onset-note={handleNoteClick ? "true" : undefined}

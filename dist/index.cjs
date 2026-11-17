@@ -1,4 +1,4 @@
-/*! librawl version: 0.3.1; audio source sha256: 1950f8ca50b0b94fa1b6151f1a309a2413e8c0643f095f3ce0582bb45234c149; GPL-3.0-only */
+/*! librawl version: 0.3.2; audio source sha256: 1950f8ca50b0b94fa1b6151f1a309a2413e8c0643f095f3ce0582bb45234c149; GPL-3.0-only */
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -374,7 +374,7 @@ function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, hovere
   return /* @__PURE__ */ import_react2.default.createElement("div", { ref: host, style: { display: "contents" } }, /* @__PURE__ */ import_react2.default.createElement(import_native.PlaybackSectionContext.Provider, { value: section }, /* @__PURE__ */ import_react2.default.createElement(import_native.NoteLayer, { notes: nativeNotes, midiNumberToY: (pitch) => axis.pitchToY(pitch) + NOTE_HEIGHT / 2, noteHeight: NOTE_HEIGHT / 2, secondsToX: (beat) => (beat - row.start) / span * pixelWidth, handleNoteClick: (note) => onNote == null ? void 0 : onNote(sourceById.get(note.id)), handleMouseEnter: hover, handleMouseLeave: leave, getNoteAttributes: (note) => {
     var _a;
     const original = sourceById.get(note.id), start = note.displaySpan[0], end = note.displaySpan[1], degree = note.colorPitchClass, muted = mutedVoices.includes(original.voice);
-    return { role: "button", tabIndex: -1, "aria-label": noteName(original.pitch), title: noteName(original.pitch), "data-note": original.id, "data-pitch": original.pitch, "data-degree": degree, "data-voice": original.voice, className: `rawln-note rawln-voice-${original.voice}${muted ? " rawln-muted" : ""}`, style: { left: (start - row.start) / span * 100 + "%", width: (end - start) / span * 100 + "%", ...!((_a = note.pitchBend) == null ? void 0 : _a.length) && RAWL_COLORS[degree] ? { background: RAWL_COLORS[degree].background } : {}, zIndex: 100 + (84 - original.pitch) + (original.voice === 1 ? 128 : 0) } };
+    return { role: "button", tabIndex: -1, "aria-label": noteName(original.pitch), "data-note": original.id, "data-pitch": original.pitch, "data-degree": degree, "data-voice": original.voice, className: `rawln-note rawln-voice-${original.voice}${muted ? " rawln-muted" : ""}`, style: { left: (start - row.start) / span * 100 + "%", width: (end - start) / span * 100 + "%", ...!((_a = note.pitchBend) == null ? void 0 : _a.length) && RAWL_COLORS[degree] ? { background: RAWL_COLORS[degree].background } : {}, zIndex: 100 + (84 - original.pitch) + (original.voice === 1 ? 128 : 0) } };
   } })));
 }
 var RawlNotation = (0, import_react2.forwardRef)(function RawlNotation2({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, position = null, mutedVoices = [], onSeek, onNote, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, renderHeader, renderFooter, className = "", style }, ref) {

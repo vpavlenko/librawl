@@ -63,7 +63,7 @@ function cases(){
 test('native source fixtures retain every recorded upstream source byte and complete renderer body',()=>{
  for(const source of provenance.sources){const filename=path.join(root,'tests/fixtures/native',path.basename(source.path));assert.equal(hash(fs.readFileSync(filename)),source.sha256,source.path);}
  const model=fs.readFileSync(path.join(root,provenance.typeModel.excerpt),'utf8');assert.equal(hash(model),provenance.typeModel.excerptSha256);assert.ok(fs.readFileSync(path.join(root,'src/rawlnative/types.ts'),'utf8').includes(model));
- let extracted=fs.readFileSync(path.join(root,'src/rawlnative/getNoteRectangles.tsx'),'utf8').replace('from "./voiceHover"','from "./instrumentVoiceGroups"').replaceAll('from "./types"','from "./Rawl"').replace('import { ColoredNote, Note, PitchBendPoint } from "./Rawl";','import { ColoredNote, Note, PitchBendPoint } from "./parseMidi";').replace('from "./voiceOrderContext"','from "./voiceOrder"').replace('}${attributes?.className ? ` ${attributes.className}` : ""}`}','}`}');
+ let extracted=fs.readFileSync(path.join(root,'src/rawlnative/getNoteRectangles.tsx'),'utf8').replace('from "./voiceHover"','from "./instrumentVoiceGroups"').replaceAll('from "./types"','from "./Rawl"').replace('import { ColoredNote, Note, PitchBendPoint } from "./Rawl";','import { ColoredNote, Note, PitchBendPoint } from "./parseMidi";').replace('from "./voiceOrderContext"','from "./voiceOrder"').replace('      title={undefined}\n','').replace('}${attributes?.className ? ` ${attributes.className}` : ""}`}','}`}');
  assert.equal(extracted,fs.readFileSync(path.join(root,'tests/fixtures/native/getNoteRectangles.tsx'),'utf8'));
  for(const filename of ['playbackIndex.ts','notePlayback.ts','drumPlayback.ts','strumContext.ts'])assert.equal(fs.readFileSync(path.join(root,'src/rawlnative',filename),'utf8'),fs.readFileSync(path.join(root,'tests/fixtures/native',filename),'utf8'));
 });
@@ -121,4 +121,15 @@ test('React19 native moving ribbons follow playback height while drum onsets pul
   drumClock.advance(0);drumClock.advance(.1);assert.equal(animations.length,1);assert.equal(animations[0].options.duration,1000);assert.equal(animations[0].frames[0].height,'30px');drumClock.advance(.11);assert.equal(animations.length,1);drumClock.advance(1);assert.equal(animations.length,1);drumClock.reset();drumClock.advance(0);drumClock.advance(.1);assert.equal(animations.length,2);
   flushSync(()=>rootView.unmount());assert.ok(cancels>=2);drumClock.reset();drumClock.advance(0);drumClock.advance(.1);assert.equal(animations.length,2);await new Promise(resolve=>setTimeout(resolve,25));
  }finally{try{flushSync(()=>rootView.unmount());}catch{}await new Promise(resolve=>setTimeout(resolve,25));dom.window.close();for(const key of keys){if(saved[key])Object.defineProperty(globalThis,key,saved[key]);else delete globalThis[key];}}
+});
+
+for(const runtime of runtimes)test(runtime.name+' native notes suppress host tooltips through plain, bent, quartertone and drum DOM while retaining labels and source metadata',()=>{
+ const api=load(nativeCode,runtime.React),attributes=Object.freeze({title:'host note tooltip','aria-label':'source pitch','data-source-row':'7'}),notes=[note('plain'),note('bend',{pitchBend:[{time:0,value:8192},{time:1,value:10240}]}),note('quartertone',{note:{midiNumber:63.5},colorPitchClass:3.5}),note('drum',{isDrum:true,note:{midiNumber:38}})],before=JSON.stringify(notes);
+ const markup=staticMarkup(runtime,api,notes,{attributes:()=>attributes,source:true});
+ const dom=new JSDOM('<!doctype html><body>'+markup+'</body>');
+ try{
+  const pitched=dom.window.document.querySelectorAll('[data-note-id]');assert.equal(pitched.length,3);
+  for(const element of pitched){assert.equal(element.hasAttribute('title'),false);assert.equal(element.querySelector('[title],title'),null);assert.equal(element.getAttribute('aria-label'),'source pitch');assert.equal(element.getAttribute('data-source-row'),'7');}
+  assert.equal(dom.window.document.querySelector('[title],svg title'),null);assert.ok(dom.window.document.querySelector('svg path'));assert.match(dom.window.document.body.textContent,/🥁/);assert.equal(attributes.title,'host note tooltip');assert.equal(JSON.stringify(notes),before);
+ }finally{dom.window.close();}
 });

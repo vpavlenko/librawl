@@ -1,4 +1,4 @@
-/*! librawl version: 0.3.1; audio source sha256: 1950f8ca50b0b94fa1b6151f1a309a2413e8c0643f095f3ce0582bb45234c149; GPL-3.0-only */
+/*! librawl version: 0.3.2; audio source sha256: 1950f8ca50b0b94fa1b6151f1a309a2413e8c0643f095f3ce0582bb45234c149; GPL-3.0-only */
 var LibrawlCaplinNotes = (() => {
   var __create = Object.create;
   var __defProp = Object.defineProperty;
@@ -35,9 +35,9 @@ var LibrawlCaplinNotes = (() => {
   ));
   var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-  // ../librawl/node_modules/react/cjs/react.production.js
+  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/react/cjs/react.production.js
   var require_react_production = __commonJS({
-    "../librawl/node_modules/react/cjs/react.production.js"(exports) {
+    "../../../Users/chipfocus/repos/lego/librawl/node_modules/react/cjs/react.production.js"(exports) {
       "use strict";
       var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.transitional.element");
       var REACT_PORTAL_TYPE = /* @__PURE__ */ Symbol.for("react.portal");
@@ -487,9 +487,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../librawl/node_modules/react/index.js
+  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/react/index.js
   var require_react = __commonJS({
-    "../librawl/node_modules/react/index.js"(exports, module) {
+    "../../../Users/chipfocus/repos/lego/librawl/node_modules/react/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_production();
@@ -499,9 +499,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../librawl/node_modules/scheduler/cjs/scheduler.production.js
+  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/scheduler/cjs/scheduler.production.js
   var require_scheduler_production = __commonJS({
-    "../librawl/node_modules/scheduler/cjs/scheduler.production.js"(exports) {
+    "../../../Users/chipfocus/repos/lego/librawl/node_modules/scheduler/cjs/scheduler.production.js"(exports) {
       "use strict";
       function push(heap, node) {
         var index = heap.length;
@@ -772,9 +772,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../librawl/node_modules/scheduler/index.js
+  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/scheduler/index.js
   var require_scheduler = __commonJS({
-    "../librawl/node_modules/scheduler/index.js"(exports, module) {
+    "../../../Users/chipfocus/repos/lego/librawl/node_modules/scheduler/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_scheduler_production();
@@ -784,9 +784,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../librawl/node_modules/react-dom/cjs/react-dom.production.js
+  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/cjs/react-dom.production.js
   var require_react_dom_production = __commonJS({
-    "../librawl/node_modules/react-dom/cjs/react-dom.production.js"(exports) {
+    "../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/cjs/react-dom.production.js"(exports) {
       "use strict";
       var React3 = require_react();
       function formatProdErrorMessage(code) {
@@ -941,9 +941,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../librawl/node_modules/react-dom/index.js
+  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/index.js
   var require_react_dom = __commonJS({
-    "../librawl/node_modules/react-dom/index.js"(exports, module) {
+    "../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/index.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -967,9 +967,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../librawl/node_modules/react-dom/cjs/react-dom-client.production.js
+  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/cjs/react-dom-client.production.js
   var require_react_dom_client_production = __commonJS({
-    "../librawl/node_modules/react-dom/cjs/react-dom-client.production.js"(exports) {
+    "../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/cjs/react-dom-client.production.js"(exports) {
       "use strict";
       var Scheduler = require_scheduler();
       var React3 = require_react();
@@ -14511,9 +14511,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../librawl/node_modules/react-dom/client.js
+  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/client.js
   var require_client = __commonJS({
-    "../librawl/node_modules/react-dom/client.js"(exports, module) {
+    "../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/client.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -15098,6 +15098,7 @@ var LibrawlCaplinNotes = (() => {
       "div",
       {
         ...attributes,
+        title: void 0,
         ref: elementRef,
         "data-note-id": note.id,
         "data-modulation-onset-note": handleNoteClick ? "true" : void 0,

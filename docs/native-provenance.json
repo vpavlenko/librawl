@@ -80,5 +80,11 @@
     "excerpt": "src/rawlnative/voice-shapes.css",
     "excerptSha256": "84fd2408c40d394a998e93fed8c0c3a4aa104e37cf987146f2efd43dd4629f8f",
     "selectors": "voiceShape-0 through voiceShape-15, unchanged"
+  },
+  "noteTooltips": {
+    "policy": "Individual native note title attributes are suppressed, including host-supplied titles; accessibility labels, source attributes and note interactions are retained.",
+    "requestedChange": "No individual note tooltips",
+    "version": "0.3.2",
+    "fixturePolicy": "Original upstream renderer fixture bytes stay unchanged. Source parity ignores only the added title suppression line."
   }
 }
