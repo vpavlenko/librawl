@@ -1,12 +1,13 @@
 {
   "version": 1,
-  "scope": "Isolated worktrees only; no publication or changes to current Caplin checkouts",
+  "scope": "Final librawl 0.2.0 committed in isolated canonical and reader worktrees only; no original working-file edits, push or publication",
   "library": {
-    "version": "0.1.0",
+    "version": "0.2.0",
     "source": "src/audio/soundfont-playback.js",
     "sourceSha256": "1950f8ca50b0b94fa1b6151f1a309a2413e8c0643f095f3ce0582bb45234c149",
     "artifact": "dist/browser/soundfont-playback.js",
-    "artifactSha256": "3705eab097fc3cf8e7ce3b02eeaad74b976d635e580429ca38e52fdb61d08485"
+    "artifactSha256": "0cd36813fa90de8c754628b0829529063166e95e41b1eb9193a4f3c85a63fb09",
+    "publicCommit": "342f0ea"
   },
   "sync": {
     "canonicalRepo": "../caplin-librawl",
@@ -14,7 +15,7 @@
     "canonicalModule": "packages/music/soundfont-playback.js",
     "readerMirror": "dist/soundfont-playback.js",
     "previousSha256": "ff8d94ca51fd09645c459f7c17ca054d675f0211c43c12c9c4a9119585ddedbf",
-    "installedSha256": "3705eab097fc3cf8e7ce3b02eeaad74b976d635e580429ca38e52fdb61d08485",
+    "installedSha256": "0cd36813fa90de8c754628b0829529063166e95e41b1eb9193a4f3c85a63fb09",
     "byteIdentical": true,
     "manifestFingerprintOnly": true,
     "canonicalChanged": [
@@ -22,8 +23,14 @@
       "packages/shared-modules.json"
     ],
     "readerChanged": [
-      "dist/soundfont-playback.js"
-    ]
+      "content/startup-shell.html",
+      "dist/index.html",
+      "dist/reader.js",
+      "dist/soundfont-playback.js",
+      "dist/librawl-caplin-notes.js"
+    ],
+    "upgradePreviousSha256": "3705eab097fc3cf8e7ce3b02eeaad74b976d635e580429ca38e52fdb61d08485",
+    "sharedReactEvidence": "react-verification.json"
   },
   "legacyChecks": [
     {
@@ -127,11 +134,37 @@
         "physical output listening",
         "publication"
       ],
-      "reason": "Outside this isolated synchronization task"
+      "reason": "Browser CUA is unavailable in this session. No browser/audio listening or production claim; isolated integration awaits browser QA before host release."
     }
   ],
   "untouchedCurrentCaplin": {
     "canonicalEngineSha256": "ff8d94ca51fd09645c459f7c17ca054d675f0211c43c12c9c4a9119585ddedbf",
     "readerEngineSha256": "ff8d94ca51fd09645c459f7c17ca054d675f0211c43c12c9c4a9119585ddedbf"
+  },
+  "date": "2026-11-17",
+  "finalRerun": {
+    "soundfontSyncCheck": "passed; exact final artifact, canonical mirror and manifest hash",
+    "reactSyncCheck": "passed; exact final bridge and ordered startup hooks",
+    "legacyChecks": "All six rerun passed on final 0.2.0",
+    "reactHostChecks": "All eight rerun passed",
+    "adapterAndSyncTests": {
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    "privateCorpus": {
+      "datasets": 364,
+      "rows": 712,
+      "sourceNotes": 43476,
+      "displayRectangles": 43492,
+      "mutations": 0
+    }
+  },
+  "localCommits": {
+    "canonical": "c1aa7d7243b155de8e7ff728d9a75e4943ea3172",
+    "reader": "250513b668c485affd6cf9d3accab0b1277710aa",
+    "pushed": false,
+    "deployed": false,
+    "worktreesClean": true
   }
 }

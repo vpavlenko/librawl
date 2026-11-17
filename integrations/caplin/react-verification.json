@@ -10,7 +10,11 @@
   "readerSha256": "8bd0301d13d9b3e8a112ecb3db9f91b4a5cda7de610f76b0a9ee85c807d6c314",
   "artifactCopyVerified": true,
   "syncCheck": "passed; idempotent; source and startup-shell guarded; textVersion preserved",
-  "adapterTests": {"passed": 7, "failed": 0, "skipped": 0},
+  "adapterTests": {
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0
+  },
   "corpus": {
     "datasets": 364,
     "rows": 712,
@@ -38,5 +42,20 @@
     "existing 5px/10px/12px CSS policies and recoloring",
     "composition editor editing grid and all saved drafts"
   ],
-  "notVerifiedByThisAgent": ["visual browser QA", "audio listening", "Safari", "production deployment"]
+  "notVerifiedByThisAgent": [
+    "visual browser QA",
+    "audio listening",
+    "Safari",
+    "production deployment"
+  ],
+  "publicLibraryCommit": "342f0ea",
+  "finalRerun": "Seven adapter tests, exact bridge sync, full 364-dataset corpus and all eight listed host gates passed against final 0.2.0",
+  "browserBlocker": "Browser CUA unavailable in this session; browser and audio QA remain required before host release",
+  "localCommits": {
+    "canonical": "c1aa7d7243b155de8e7ff728d9a75e4943ea3172",
+    "reader": "250513b668c485affd6cf9d3accab0b1277710aa",
+    "pushed": false,
+    "deployed": false,
+    "worktreesClean": true
+  }
 }
