@@ -50,3 +50,16 @@ test('Lego adapter carries the original native moving-bend implementation and sc
   api.flushSync(()=>ref.current.setPosition(1));assert.equal(element.style.height,'10px');assert.equal(element.querySelector('svg').getAttribute('height'),'10');env.setWidth(1200);w.dispatchEvent(new w.Event('resize'));await wait(()=>element.querySelector('svg').getAttribute('width')==='600');assert.equal(element.style.width,'50%');
  }finally{await env.close();}
 });
+
+test('standalone score recolors from a measure number with hover, commit, escape and per-instance source reset',async()=>{
+ const env=setup(),{host,w}=env,notes=[{id:'C',pitch:60,start:0,duration:4,voice:0},{id:'F',pitch:65,start:4,duration:4,voice:0},{id:'G',pitch:67,start:8,duration:4,voice:0}],changes=[{beat:0,tonic:0,root:'C'},{beat:4,tonic:5,root:'F'},{beat:8,tonic:7,root:'G'}],commits=[],auditions=[],source=JSON.stringify({notes,changes}),props={notes,beats:12,changes,onChangesChange:next=>commits.push(next),onNote:note=>auditions.push(note)};
+ const note=id=>host.querySelector('[data-note="'+id+'"]'),measure=beat=>host.querySelector('.rawln-measure-number[data-beat="'+beat+'"]');
+ try{
+  env.render(props);measure(4).click();await wait(()=>measure(4).getAttribute('aria-pressed')==='true');
+  note('G').dispatchEvent(new w.MouseEvent('mouseover',{bubbles:true}));await wait(()=>note('F').dataset.degree==='10');assert.equal(note('C').dataset.degree,'0');assert.equal(note('G').dataset.degree,'0');
+  note('G').dispatchEvent(new w.MouseEvent('mouseout',{bubbles:true,relatedTarget:w.document.body}));await wait(()=>note('F').dataset.degree==='0');
+  note('G').click();await wait(()=>measure(4).getAttribute('aria-pressed')==='false');assert.equal(note('F').dataset.degree,'10');assert.deepEqual(commits[0].map(c=>[c.beat,c.tonic]),[[0,0],[4,7]]);assert.deepEqual(auditions,[]);
+  measure(0).dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));await wait(()=>measure(0).getAttribute('aria-pressed')==='true');w.document.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));await wait(()=>measure(0).getAttribute('aria-pressed')==='false');note('C').click();assert.equal(auditions[0],notes[0]);
+  env.render({...props,changes:[{beat:0,tonic:0,root:'C'}]});assert.equal(note('F').dataset.degree,'5');assert.equal(JSON.stringify({notes,changes}),source);
+ }finally{await env.close();}
+});

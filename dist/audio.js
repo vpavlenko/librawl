@@ -1,4 +1,4 @@
-/*! librawl version: 0.2.0; audio source sha256: 1950f8ca50b0b94fa1b6151f1a309a2413e8c0643f095f3ce0582bb45234c149; GPL-3.0-only */
+/*! librawl version: 0.3.0; audio source sha256: 1950f8ca50b0b94fa1b6151f1a309a2413e8c0643f095f3ce0582bb45234c149; GPL-3.0-only */
 
 // src/audio/soundfont-playback.js
 var import_meta = {};
@@ -756,7 +756,23 @@ function createTransport({ makePlan, audio: providedAudio, onState = () => {
     }
   };
 }
+
+// src/audio/tempo-keys.js
+function bindTempoKeys({ target = globalThis.document, adjustTempo, enabled = () => true }) {
+  const deltas = { "-": -0.1, "=": 0.1, "_": -0.01, "+": 0.01 };
+  const keydown = (event) => {
+    var _a, _b;
+    const delta = deltas[event.key], element = event.target;
+    if (delta === void 0 || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || event.isComposing || !enabled()) return;
+    if ((_a = element == null ? void 0 : element.closest) == null ? void 0 : _a.call(element, 'input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"],dialog[open]')) return;
+    if ((_b = target.querySelector) == null ? void 0 : _b.call(target, "dialog[open]")) return;
+    if (adjustTempo(delta, event) !== false) event.preventDefault();
+  };
+  target.addEventListener("keydown", keydown);
+  return () => target.removeEventListener("keydown", keydown);
+}
 export {
+  bindTempoKeys,
   createSoundFontPlayback,
   createTransport
 };

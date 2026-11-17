@@ -1,4 +1,4 @@
-/*! librawl version: 0.2.0; audio source sha256: 1950f8ca50b0b94fa1b6151f1a309a2413e8c0643f095f3ce0582bb45234c149; GPL-3.0-only */
+/*! librawl version: 0.3.0; audio source sha256: 1950f8ca50b0b94fa1b6151f1a309a2413e8c0643f095f3ce0582bb45234c149; GPL-3.0-only */
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -34,16 +34,20 @@ __export(index_exports, {
   RawlMeasureHeader: () => RawlMeasureHeader,
   RawlNotation: () => RawlNotation,
   TonicSymbol: () => TonicSymbol,
+  bindTempoKeys: () => bindTempoKeys,
   createSoundFontPlayback: () => createSoundFontPlayback,
   createTransport: () => createTransport,
   modulationLabelOffset: () => modulationLabelOffset,
   pitchRange: () => pitchRange,
-  staveGeometry: () => staveGeometry
+  recolorBoundary: () => recolorBoundary,
+  recolorModulation: () => recolorModulation,
+  staveGeometry: () => staveGeometry,
+  useTonicRecoloring: () => useTonicRecoloring
 });
 module.exports = __toCommonJS(index_exports);
 
 // src/notation/RawlNotation.jsx
-var import_react = __toESM(require("react"), 1);
+var import_react2 = __toESM(require("react"), 1);
 
 // src/notation/geometry.mjs
 var PITCH_STEP = 3;
@@ -68,10 +72,10 @@ function tonicAt(tonic, changes, beat) {
   }
   return result;
 }
-function modulationLabelOffset(beat, barBeats, { initial = beat === 0, onsetOverride, continued = false } = {}) {
+function modulationLabelOffset(beat, barBeats, { initial: initial2 = beat === 0, onsetOverride, continued = false } = {}) {
   const measure = beat / barBeats, override = onsetOverride != null ? onsetOverride : Number.isFinite(measure) && Math.abs(measure - Math.round(measure)) > 1e-7;
   if (override && !continued) return 0;
-  return initial ? String(Math.floor(measure) + 1).length * 8 + 10 : 30;
+  return initial2 ? String(Math.floor(measure) + 1).length * 8 + 10 : 30;
 }
 function keyMarkers(tonic, changes) {
   var _a;
@@ -85,25 +89,37 @@ function keyMarkers(tonic, changes) {
     return { ...event, previousTonic, delta: delta !== null && delta > 6 ? delta - 12 : delta };
   });
 }
-function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatBeats = 1, phraseStarts, width = 0, selectedMeasure = null, hideInitialTonic = false }) {
+function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatBeats = 1, phraseStarts, measureMap, width = 0, selectedMeasure = null, hideInitialTonic = false }) {
   const EPS = 1e-7, span = row.end - row.start, ppb = width / span, x = (beat) => (beat - row.start) / span * 100;
+  const explicit = measureMap === void 0 ? null : validateMeasureMap(measureMap);
+  const numberAt = (beat) => {
+    var _a, _b;
+    return (_b = (_a = explicit == null ? void 0 : explicit.findLast((measure) => measure.start <= beat + EPS)) == null ? void 0 : _a.sourceNumber) != null ? _b : Math.floor(beat / barBeats) + 1;
+  };
   const boundary = (beat) => phraseStarts === void 0 ? Math.abs(beat / (4 * barBeats) - Math.round(beat / (4 * barBeats))) < EPS : phraseStarts.some((start) => Math.abs(start - beat) < EPS);
   const selectedPhrase = selectedMeasure !== null && boundary(selectedMeasure), measures = [], barlines = [], beats = [];
-  for (let beat = Math.max(0, Math.ceil((row.start - EPS) / barBeats) * barBeats); beat <= row.end + EPS; beat += barBeats) {
+  const grid = explicit ? explicit.map((measure) => ({ beat: measure.start, number: measure.sourceNumber })).concat([{ beat: explicit.at(-1).start + explicit.at(-1).duration, number: null }]) : Array.from({ length: Math.max(0, Math.floor((row.end - Math.max(0, Math.ceil((row.start - EPS) / barBeats) * barBeats) + EPS) / barBeats) + 1) }, (_, i) => {
+    const beat = Math.max(0, Math.ceil((row.start - EPS) / barBeats) * barBeats) + i * barBeats;
+    return { beat, number: Math.round(beat / barBeats) + 1 };
+  });
+  for (const { beat, number } of grid) {
+    if (beat < row.start - EPS || beat > row.end + EPS) continue;
     barlines.push(beat);
     const terminal = Math.abs(beat - row.end) < EPS, isPhraseStart = boundary(beat);
-    if (!terminal || isPhraseStart) measures.push({ beat, number: Math.round(beat / barBeats) + 1, left: x(beat), terminal, isPhraseStart, color: selectedMeasure === beat ? "red" : selectedPhrase && Math.abs(beat - selectedMeasure) <= 4 * barBeats + EPS ? "orange" : "#666" });
+    if (!terminal || isPhraseStart) measures.push({ beat, number, left: x(beat), terminal, isPhraseStart, color: selectedMeasure === beat ? "red" : selectedPhrase && Math.abs(beat - selectedMeasure) <= 4 * barBeats + EPS ? "orange" : "#666" });
   }
   if (beatBeats > 0) {
-    for (let beat = Math.ceil((row.start - EPS) / beatBeats) * beatBeats; beat <= row.end + EPS; beat += beatBeats) if (Math.abs(beat / barBeats - Math.round(beat / barBeats)) > EPS) beats.push(beat);
+    if (explicit) {
+      for (const measure of explicit) for (let beat = measure.start + beatBeats; beat < measure.start + measure.duration - EPS; beat += beatBeats) if (beat >= row.start - EPS && beat <= row.end + EPS) beats.push(beat);
+    } else for (let beat = Math.ceil((row.start - EPS) / beatBeats) * beatBeats; beat <= row.end + EPS; beat += beatBeats) if (Math.abs(beat / barBeats - Math.round(beat / barBeats)) > EPS) beats.push(beat);
   }
   const relevant = [...barlines, ...beats].filter((beat) => beat !== 0).sort((a, b) => a - b), showBeats = relevant.length > 1 && (relevant.at(-1) - relevant[0]) * ppb / (relevant.length + 1) >= 10;
   const markers = keyMarkers(tonic, changes).flatMap((marker) => {
     var _a;
     if (marker.delta === 0 || hideInitialTonic && marker.previousTonic === null || marker.beat >= row.end) return [];
-    const initial = marker.previousTonic === null, measure = marker.beat / barBeats, onsetOverride = !initial && ((_a = marker.onsetOverride) != null ? _a : Math.abs(measure - Math.round(measure)) > EPS), badgeLeft = (marker.beat - row.start) * ppb - (onsetOverride ? 0 : 1), continued = marker.beat < row.start && width > 0 && badgeLeft + 80 > 0;
+    const initial2 = marker.previousTonic === null, measure = marker.beat / barBeats, onsetOverride = !initial2 && ((_a = marker.onsetOverride) != null ? _a : explicit ? !explicit.some((m) => Math.abs(m.start - marker.beat) < EPS) : Math.abs(measure - Math.round(measure)) > EPS), badgeLeft = (marker.beat - row.start) * ppb - (onsetOverride ? 0 : 1), continued = marker.beat < row.start && width > 0 && badgeLeft + 80 > 0;
     if (marker.beat < row.start && !continued) return [];
-    return [{ ...marker, initial, onsetOverride, continued, left: continued ? 0 : x(marker.beat), pixelOffset: continued || !onsetOverride ? -1 : 0, labelOffset: modulationLabelOffset(marker.beat, barBeats, { initial, onsetOverride, continued }) }];
+    return [{ ...marker, number: numberAt(marker.beat), initial: initial2, onsetOverride, continued, left: continued ? 0 : x(marker.beat), pixelOffset: continued || !onsetOverride ? -1 : 0, labelOffset: initial2 && explicit ? String(numberAt(marker.beat)).length * 8 + 10 : modulationLabelOffset(marker.beat, barBeats, { initial: initial2, onsetOverride, continued }) }];
   });
   for (const measure of measures) {
     measure.hasModulation = markers.some((marker) => marker.beat === measure.beat && marker.delta !== null);
@@ -138,6 +154,15 @@ function tonalLines(range, axis, tonic) {
     if (midi - 7 >= range.low && midi - 7 <= range.high) result.push({ kind: "fifth", y: rawlY(midi - 6) - 0.5 });
   }
   return result;
+}
+function validateMeasureMap(measures) {
+  if (!Array.isArray(measures) || !measures.length) throw Error("Invalid measure map");
+  let cursor = 0;
+  for (const measure of measures) {
+    if (!Number.isFinite(measure.start) || Math.abs(measure.start - cursor) > 1e-7 || !Number.isFinite(measure.duration) || measure.duration <= 0 || !["number", "string"].includes(typeof measure.sourceNumber)) throw Error("Invalid measure map");
+    cursor = measure.start + measure.duration;
+  }
+  return measures;
 }
 
 // src/notation/palette.mjs
@@ -212,11 +237,66 @@ function TonicSymbol({ left, number, previousTonic, modulationDiff, tonicStart, 
 
 // src/notation/RawlNotation.jsx
 var import_native = require("librawl/native");
+
+// src/notation/recolor.jsx
+var import_react = require("react");
+var ROOTS = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+function recolorModulation(changes, beat, pitch) {
+  if (!Number.isFinite(beat) || beat < 0 || !Number.isFinite(pitch)) return changes;
+  const tonic = (Math.round(pitch) % 12 + 12) % 12, existing = changes.find((change) => Math.abs(change.beat - beat) < 1e-7), choice = { ...existing != null ? existing : { beat }, tonic, root: ROOTS[tonic] };
+  const events = [...changes.filter((change) => Math.abs(change.beat - beat) >= 1e-7).map((change) => ({ ...change })), choice].sort((a, b) => a.beat - b.beat), result = [];
+  for (const event of events) if (!result.length || result.at(-1).tonic !== event.tonic) result.push(event);
+  return result;
+}
+function recolorBoundary(changes, measureBeat, barBeats, measureMap) {
+  var _a, _b;
+  const measure = measureMap == null ? void 0 : measureMap.find((measure2) => Math.abs(measure2.start - measureBeat) < 1e-7), end = measure ? measure.start + measure.duration : measureBeat + barBeats;
+  return (_b = (_a = changes.find((change) => change.beat >= measureBeat - 1e-7 && change.beat < end - 1e-7)) == null ? void 0 : _a.beat) != null ? _b : measureBeat;
+}
+var initial = (source) => ({ source, committed: source, selectedMeasure: null, boundary: null, preview: null });
+function useTonicRecoloring({ changes, barBeats = 4, measureMap, onChange }) {
+  var _a;
+  const [stored, setStored] = (0, import_react.useState)(() => initial(changes)), state = stored.source === changes ? stored : initial(changes);
+  const cancel = () => setStored((previous) => ({ ...previous, selectedMeasure: null, boundary: null, preview: null }));
+  (0, import_react.useEffect)(() => {
+    if (state.selectedMeasure === null) return;
+    const escape = (event) => {
+      if (event.key === "Escape") cancel();
+    };
+    document.addEventListener("keydown", escape);
+    return () => document.removeEventListener("keydown", escape);
+  }, [state.selectedMeasure]);
+  return {
+    changes: (_a = state.preview) != null ? _a : state.committed,
+    selectedMeasure: state.selectedMeasure,
+    selectMeasure(beat) {
+      setStored((previous) => {
+        const current = previous.source === changes ? previous : initial(changes), selectedMeasure = current.selectedMeasure === beat ? null : beat;
+        return { ...current, selectedMeasure, boundary: selectedMeasure === null ? null : recolorBoundary(current.committed, beat, barBeats, measureMap), preview: null };
+      });
+    },
+    hoverNote(note) {
+      if (state.boundary === null) return;
+      setStored((previous) => ({ ...previous, preview: note ? recolorModulation(state.committed, state.boundary, note.pitch) : null }));
+    },
+    chooseNote(note) {
+      if (state.boundary === null) return false;
+      const committed = recolorModulation(state.committed, state.boundary, note.pitch);
+      setStored({ ...state, committed, preview: null, selectedMeasure: null, boundary: null });
+      onChange == null ? void 0 : onChange(committed);
+      return true;
+    },
+    cancel
+  };
+}
+
+// src/notation/RawlNotation.jsx
+var EMPTY_CHANGES = [];
 var names = ["C", "D\u266D", "D", "E\u266D", "E", "F", "F\u266F", "G", "A\u266D", "A", "B\u266D", "B"];
 var noteName = (p) => names[mod(p)] + (Math.floor(p / 12) - 1);
-function RawlMeasureHeader({ row, height = "100%", tonic = 0, changes = [], barBeats = 4, beatBeats = 1, phraseStarts, selectedMeasure = null, onMeasureSelect, hideInitialTonic = false }) {
-  const element = (0, import_react.useRef)(null), [width, setWidth] = (0, import_react.useState)(0);
-  (0, import_react.useLayoutEffect)(() => {
+function RawlMeasureHeader({ row, height = "100%", tonic = 0, changes = EMPTY_CHANGES, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, selectedMeasure = null, onMeasureSelect, hideInitialTonic = false }) {
+  const element = (0, import_react2.useRef)(null), [width, setWidth] = (0, import_react2.useState)(0);
+  (0, import_react2.useLayoutEffect)(() => {
     var _a;
     const el = element.current, view = el.ownerDocument.defaultView, fit = () => {
       const next = el.getBoundingClientRect().width || el.clientWidth;
@@ -231,9 +311,9 @@ function RawlMeasureHeader({ row, height = "100%", tonic = 0, changes = [], barB
       view == null ? void 0 : view.removeEventListener("resize", fit);
     };
   }, []);
-  const { measures, beats, markers } = (0, import_react.useMemo)(() => measureHeaderLayout({ row, tonic, changes, barBeats, beatBeats, phraseStarts, width, selectedMeasure, hideInitialTonic }), [row, tonic, changes, barBeats, beatBeats, phraseStarts, width, selectedMeasure, hideInitialTonic]);
+  const { measures, beats, markers } = (0, import_react2.useMemo)(() => measureHeaderLayout({ row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic }), [row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic]);
   const x = (beat) => (beat - row.start) / (row.end - row.start) * 100;
-  return /* @__PURE__ */ import_react.default.createElement("div", { ref: element, className: "rawln-measure-grid", style: { height } }, measures.map((measure) => /* @__PURE__ */ import_react.default.createElement("div", { className: "rawln-bar" + (measure.isPhraseStart ? " rawln-phrase-bar" : ""), key: "bar-" + measure.beat, "data-beat": measure.beat, "data-phrase-boundary": measure.isPhraseStart ? "true" : void 0, "data-terminal": measure.terminal ? "true" : void 0, style: { left: `calc(${measure.left}% - 1px)`, backgroundColor: measure.isPhraseStart ? "#bbb" : "#444" } })), beats.map((beat) => /* @__PURE__ */ import_react.default.createElement("div", { className: "rawln-beat-bar", key: "beat-" + beat, "data-beat": beat, style: { left: x(beat) + "%" } })), /* @__PURE__ */ import_react.default.createElement("div", { className: "rawln-modulations" }, markers.map((marker) => /* @__PURE__ */ import_react.default.createElement("div", { key: marker.beat, className: "rawln-modulation", "data-beat": marker.beat, "data-tonic": marker.tonic, "data-join": marker.join ? marker.name : void 0, "data-onset-override": marker.onsetOverride ? "true" : void 0, "data-continued": marker.continued ? "true" : void 0, style: { left: marker.pixelOffset ? `calc(${marker.left}% - 1px)` : marker.left + "%" }, title: marker.name }, /* @__PURE__ */ import_react.default.createElement(TonicSymbol, { left: 0, number: Math.floor(marker.beat / barBeats) + 1, previousTonic: marker.previousTonic, modulationDiff: marker.delta === null ? null : mod(marker.delta), tonicStart: marker.tonic, alignToOnset: marker.onsetOverride && !marker.continued, labelClassName: "rawln-modulation-label", flagClassName: "rawln-modulation-flag", labelAttributes: { style: { left: marker.labelOffset } }, flagAttributes: { "data-degree": marker.delta === null ? void 0 : mod(marker.delta), style: { background: marker.delta === null ? void 0 : RAWL_COLORS[mod(marker.delta)].background } }, renderArrow: ({ direction }) => /* @__PURE__ */ import_react.default.createElement("svg", { viewBox: "0 0 24 24", "aria-hidden": "true" }, direction === "down" ? /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("path", { d: "M12 5v14" }), /* @__PURE__ */ import_react.default.createElement("path", { d: "m19 12-7 7-7-7" })) : /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("path", { d: "m5 12 7-7 7 7" }), /* @__PURE__ */ import_react.default.createElement("path", { d: "M12 19V5" }))) })))), /* @__PURE__ */ import_react.default.createElement("div", { className: "rawln-measure-labels", "aria-hidden": onMeasureSelect ? void 0 : true }, measures.filter((measure) => !measure.terminal).map((measure) => /* @__PURE__ */ import_react.default.createElement("div", { className: "rawln-measure-number", role: onMeasureSelect ? "button" : void 0, tabIndex: onMeasureSelect ? 0 : void 0, "aria-pressed": onMeasureSelect ? selectedMeasure === measure.beat : void 0, onClick: onMeasureSelect ? (event) => {
+  return /* @__PURE__ */ import_react2.default.createElement("div", { ref: element, className: "rawln-measure-grid", style: { height } }, measures.map((measure) => /* @__PURE__ */ import_react2.default.createElement("div", { className: "rawln-bar" + (measure.isPhraseStart ? " rawln-phrase-bar" : ""), key: "bar-" + measure.beat, "data-beat": measure.beat, "data-phrase-boundary": measure.isPhraseStart ? "true" : void 0, "data-terminal": measure.terminal ? "true" : void 0, style: { left: `calc(${measure.left}% - 1px)`, backgroundColor: measure.isPhraseStart ? "#bbb" : "#444" } })), beats.map((beat) => /* @__PURE__ */ import_react2.default.createElement("div", { className: "rawln-beat-bar", key: "beat-" + beat, "data-beat": beat, style: { left: x(beat) + "%" } })), /* @__PURE__ */ import_react2.default.createElement("div", { className: "rawln-modulations" }, markers.map((marker) => /* @__PURE__ */ import_react2.default.createElement("div", { key: marker.beat, className: "rawln-modulation", "data-beat": marker.beat, "data-tonic": marker.tonic, "data-join": marker.join ? marker.name : void 0, "data-onset-override": marker.onsetOverride ? "true" : void 0, "data-continued": marker.continued ? "true" : void 0, style: { left: marker.pixelOffset ? `calc(${marker.left}% - 1px)` : marker.left + "%" }, title: marker.name }, /* @__PURE__ */ import_react2.default.createElement(TonicSymbol, { left: 0, number: marker.number, previousTonic: marker.previousTonic, modulationDiff: marker.delta === null ? null : mod(marker.delta), tonicStart: marker.tonic, alignToOnset: marker.onsetOverride && !marker.continued, labelClassName: "rawln-modulation-label", flagClassName: "rawln-modulation-flag", labelAttributes: { style: { left: marker.labelOffset } }, flagAttributes: { "data-degree": marker.delta === null ? void 0 : mod(marker.delta), style: { background: marker.delta === null ? void 0 : RAWL_COLORS[mod(marker.delta)].background } }, renderArrow: ({ direction }) => /* @__PURE__ */ import_react2.default.createElement("svg", { viewBox: "0 0 24 24", "aria-hidden": "true" }, direction === "down" ? /* @__PURE__ */ import_react2.default.createElement(import_react2.default.Fragment, null, /* @__PURE__ */ import_react2.default.createElement("path", { d: "M12 5v14" }), /* @__PURE__ */ import_react2.default.createElement("path", { d: "m19 12-7 7-7-7" })) : /* @__PURE__ */ import_react2.default.createElement(import_react2.default.Fragment, null, /* @__PURE__ */ import_react2.default.createElement("path", { d: "m5 12 7-7 7 7" }), /* @__PURE__ */ import_react2.default.createElement("path", { d: "M12 19V5" }))) })))), /* @__PURE__ */ import_react2.default.createElement("div", { className: "rawln-measure-labels", "aria-hidden": onMeasureSelect ? void 0 : true }, measures.filter((measure) => !measure.terminal).map((measure) => /* @__PURE__ */ import_react2.default.createElement("div", { className: "rawln-measure-number", role: onMeasureSelect ? "button" : void 0, tabIndex: onMeasureSelect ? 0 : void 0, "aria-pressed": onMeasureSelect ? selectedMeasure === measure.beat : void 0, onClick: onMeasureSelect ? (event) => {
     event.stopPropagation();
     onMeasureSelect(measure.beat);
   } : void 0, onKeyDown: onMeasureSelect ? (event) => {
@@ -242,11 +322,11 @@ function RawlMeasureHeader({ row, height = "100%", tonic = 0, changes = [], barB
       event.stopPropagation();
       onMeasureSelect(measure.beat);
     }
-  } : void 0, key: measure.beat, "data-beat": measure.beat, "data-modulation": measure.hasModulation ? "true" : void 0, style: { left: `calc(${measure.left}% + 6px)`, color: measure.color, pointerEvents: onMeasureSelect ? "auto" : void 0, cursor: onMeasureSelect ? "pointer" : void 0 } }, /* @__PURE__ */ import_react.default.createElement("span", null, measure.number)))));
+  } : void 0, key: measure.beat, "data-beat": measure.beat, "data-modulation": measure.hasModulation ? "true" : void 0, style: { left: `calc(${measure.left}% + 6px)`, color: measure.color, pointerEvents: onMeasureSelect ? "auto" : void 0, cursor: onMeasureSelect ? "pointer" : void 0 } }, /* @__PURE__ */ import_react2.default.createElement("span", null, measure.number)))));
 }
 function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, hoveredKey, setHoveredKey, hoveredRef, onNote, onNoteHover, clock }) {
-  const host = (0, import_react.useRef)(null), [pixelWidth, setPixelWidth] = (0, import_react.useState)(100), span = row.end - row.start, section = (0, import_react.useMemo)(() => [row.start, row.end], [row.start, row.end]);
-  (0, import_react.useLayoutEffect)(() => {
+  const host = (0, import_react2.useRef)(null), [pixelWidth, setPixelWidth] = (0, import_react2.useState)(100), span = row.end - row.start, section = (0, import_react2.useMemo)(() => [row.start, row.end], [row.start, row.end]);
+  (0, import_react2.useLayoutEffect)(() => {
     var _a;
     const element = host.current.parentElement, view = element.ownerDocument.defaultView, fit = () => {
       const width = element.getBoundingClientRect().width || element.clientWidth || 100;
@@ -261,13 +341,13 @@ function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, hovere
       view == null ? void 0 : view.removeEventListener("resize", fit);
     };
   }, []);
-  const sourceById = (0, import_react.useMemo)(() => new Map(visible.map((note) => [String(note.id), note])), [visible]);
-  const nativeNotes = (0, import_react.useMemo)(() => visible.map((note) => {
+  const sourceById = (0, import_react2.useMemo)(() => new Map(visible.map((note) => [String(note.id), note])), [visible]);
+  const nativeNotes = (0, import_react2.useMemo)(() => visible.map((note) => {
     var _a, _b;
     const degree = mod(note.pitch - tonicAt(tonic, changes, note.start + note.duration / 2)), muted = mutedVoices.includes(note.voice);
     return { id: String(note.id), note: { midiNumber: note.pitch }, span: [note.start, note.start + note.duration], displaySpan: [Math.max(row.start, note.start), Math.min(row.end, note.start + note.duration)], voiceIndex: (_a = note.voice) != null ? _a : 0, displayVoiceIndex: (_b = note.voice) != null ? _b : 0, isDrum: false, isActive: !muted, color: `noteColor_${degree}_colors`, colorPitchClass: degree, noteUnderCursor: hoveredKey === `${note.id}:${row.start}`, velocity: note.velocity, ...note.pitchBend ? { pitchBend: note.pitchBend } : {}, ...note.sourceLocation ? { sourceLocation: note.sourceLocation } : {} };
   }), [visible, row.start, row.end, tonic, changes, mutedVoices, hoveredKey]);
-  (0, import_react.useLayoutEffect)(() => {
+  (0, import_react2.useLayoutEffect)(() => {
     const unregister = [...host.current.querySelectorAll("[data-note]")].map((element) => {
       const note = sourceById.get(element.dataset.note), muted = mutedVoices.includes(note.voice);
       return clock.register(note.start, note.start + note.duration, (active) => element.classList.toggle("rawln-sounding", active && !muted), section);
@@ -287,31 +367,45 @@ function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, hovere
     setHoveredKey(null);
     onNoteHover == null ? void 0 : onNoteHover(null);
   };
-  return /* @__PURE__ */ import_react.default.createElement("div", { ref: host, style: { display: "contents" } }, /* @__PURE__ */ import_react.default.createElement(import_native.PlaybackSectionContext.Provider, { value: section }, /* @__PURE__ */ import_react.default.createElement(import_native.NoteLayer, { notes: nativeNotes, midiNumberToY: (pitch) => axis.pitchToY(pitch) + NOTE_HEIGHT / 2, noteHeight: NOTE_HEIGHT / 2, secondsToX: (beat) => (beat - row.start) / span * pixelWidth, handleNoteClick: (note) => onNote == null ? void 0 : onNote(sourceById.get(note.id)), handleMouseEnter: hover, handleMouseLeave: leave, getNoteAttributes: (note) => {
+  return /* @__PURE__ */ import_react2.default.createElement("div", { ref: host, style: { display: "contents" } }, /* @__PURE__ */ import_react2.default.createElement(import_native.PlaybackSectionContext.Provider, { value: section }, /* @__PURE__ */ import_react2.default.createElement(import_native.NoteLayer, { notes: nativeNotes, midiNumberToY: (pitch) => axis.pitchToY(pitch) + NOTE_HEIGHT / 2, noteHeight: NOTE_HEIGHT / 2, secondsToX: (beat) => (beat - row.start) / span * pixelWidth, handleNoteClick: (note) => onNote == null ? void 0 : onNote(sourceById.get(note.id)), handleMouseEnter: hover, handleMouseLeave: leave, getNoteAttributes: (note) => {
     var _a;
     const original = sourceById.get(note.id), start = note.displaySpan[0], end = note.displaySpan[1], degree = note.colorPitchClass, muted = mutedVoices.includes(original.voice);
     return { role: "button", tabIndex: -1, "aria-label": noteName(original.pitch), title: noteName(original.pitch), "data-note": original.id, "data-pitch": original.pitch, "data-degree": degree, "data-voice": original.voice, className: `rawln-note rawln-voice-${original.voice}${muted ? " rawln-muted" : ""}`, style: { left: (start - row.start) / span * 100 + "%", width: (end - start) / span * 100 + "%", ...!((_a = note.pitchBend) == null ? void 0 : _a.length) && RAWL_COLORS[degree] ? { background: RAWL_COLORS[degree].background } : {}, zIndex: 100 + (84 - original.pitch) + (original.voice === 1 ? 128 : 0) } };
   } })));
 }
-var RawlNotation = (0, import_react.forwardRef)(function RawlNotation2({ notes, beats, rows, tonic = 0, changes = [], barBeats = 4, beatBeats = 1, phraseStarts, hideInitialTonic = false, position = null, mutedVoices = [], onSeek, onNote, onNoteHover, onMeasureSelect, selectedMeasure = null, renderHeader, renderFooter, className = "", style }, ref) {
-  const root = (0, import_react.useRef)(null), hoveredRef = (0, import_react.useRef)(null), [hoveredKey, setHoveredKey] = (0, import_react.useState)(null), clock = (0, import_react.useMemo)(import_native.createSectionPlaybackClock, []);
+var RawlNotation = (0, import_react2.forwardRef)(function RawlNotation2({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, position = null, mutedVoices = [], onSeek, onNote, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, renderHeader, renderFooter, className = "", style }, ref) {
+  const editor = useTonicRecoloring({ changes, barBeats, measureMap, onChange: onChangesChange }), automatic = recolorable && !onMeasureSelect;
+  if (automatic) {
+    changes = editor.changes;
+    selectedMeasure = editor.selectedMeasure;
+    onMeasureSelect = editor.selectMeasure;
+    const originalClick = onNote, originalHover = onNoteHover;
+    onNote = (note) => {
+      if (!editor.chooseNote(note)) originalClick == null ? void 0 : originalClick(note);
+    };
+    onNoteHover = (note) => {
+      editor.hoverNote(note);
+      originalHover == null ? void 0 : originalHover(note);
+    };
+  }
+  const root = (0, import_react2.useRef)(null), hoveredRef = (0, import_react2.useRef)(null), [hoveredKey, setHoveredKey] = (0, import_react2.useState)(null), clock = (0, import_react2.useMemo)(import_native.createSectionPlaybackClock, []);
   const spans = (rows == null ? void 0 : rows.length) ? rows : [{ start: 0, end: beats, label: 1 }];
-  const prepared = (0, import_react.useMemo)(() => spans.map((row) => {
+  const prepared = (0, import_react2.useMemo)(() => spans.map((row) => {
     const visible = notes.filter((n) => n.start < row.end - 1e-6 && n.start + n.duration > row.start + 1e-6), range = pitchRange(visible), axis = staveGeometry(range);
     return { row, visible, range, axis, regions: tonalSegments(tonic, changes, row.start, row.end) };
   }), [notes, rows, beats, tonic, changes]);
   const setPosition = (beat) => Number.isFinite(beat) ? clock.advance(beat) : clock.reset();
-  (0, import_react.useImperativeHandle)(ref, () => ({ setPosition, element: root.current }), [clock]);
-  (0, import_react.useLayoutEffect)(() => {
+  (0, import_react2.useImperativeHandle)(ref, () => ({ setPosition, element: root.current }), [clock]);
+  (0, import_react2.useLayoutEffect)(() => {
     setPosition(position);
   }, [position]);
-  (0, import_react.useLayoutEffect)(() => () => clock.reset(), [clock]);
-  return /* @__PURE__ */ import_react.default.createElement(import_native.NotePlaybackContext.Provider, { value: clock.register }, /* @__PURE__ */ import_react.default.createElement("div", { className: "rawln" + (className ? " " + className : ""), style, ref: root }, prepared.map(({ row, visible, range, axis, regions }) => {
+  (0, import_react2.useLayoutEffect)(() => () => clock.reset(), [clock]);
+  return /* @__PURE__ */ import_react2.default.createElement(import_native.NotePlaybackContext.Provider, { value: clock.register }, /* @__PURE__ */ import_react2.default.createElement("div", { className: "rawln" + (className ? " " + className : ""), style, ref: root }, prepared.map(({ row, visible, range, axis, regions }) => {
     const span = row.end - row.start, x = (beat) => (beat - row.start) / span * 100;
-    return /* @__PURE__ */ import_react.default.createElement("div", { className: "rawln-row", "data-section": row.section, key: `${row.start}-${row.end}`, "data-start": row.start, "data-end": row.end, style: row.style }, renderHeader && /* @__PURE__ */ import_react.default.createElement("div", { className: "rawln-header" }, renderHeader(row)), /* @__PURE__ */ import_react.default.createElement("div", { className: "rawln-score", role: "group", "aria-label": "Rawl notation", style: { height: axis.notesBottom }, onClick: (e) => {
+    return /* @__PURE__ */ import_react2.default.createElement("div", { className: "rawln-row", "data-section": row.section, key: `${row.start}-${row.end}`, "data-start": row.start, "data-end": row.end, style: row.style }, renderHeader && /* @__PURE__ */ import_react2.default.createElement("div", { className: "rawln-header" }, renderHeader(row)), /* @__PURE__ */ import_react2.default.createElement("div", { className: "rawln-score", role: "group", "aria-label": "Rawl notation", style: { height: axis.notesBottom }, onClick: (e) => {
       const box = e.currentTarget.getBoundingClientRect();
       if (box.width > 0) onSeek == null ? void 0 : onSeek(row.start + Math.max(0, Math.min(1, (e.clientX - box.left) / box.width)) * span);
-    } }, /* @__PURE__ */ import_react.default.createElement("div", { className: "rawln-grid", "aria-hidden": "true" }, regions.flatMap((region, i) => tonalLines(range, axis, region.tonic).map((line, j) => /* @__PURE__ */ import_react.default.createElement("div", { key: `${i}-${j}`, "data-tonic": region.tonic, className: `rawln-${line.kind}-line`, style: { left: x(region.start) + "%", width: (region.end - region.start) / span * 100 + "%", top: line.y } })))), /* @__PURE__ */ import_react.default.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, selectedMeasure, onMeasureSelect, hideInitialTonic }), /* @__PURE__ */ import_react.default.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, hoveredKey, setHoveredKey, hoveredRef, onNote, onNoteHover, clock })), renderFooter && /* @__PURE__ */ import_react.default.createElement("div", { className: "rawln-footer" }, renderFooter(row)));
+    } }, /* @__PURE__ */ import_react2.default.createElement("div", { className: "rawln-grid", "aria-hidden": "true" }, regions.flatMap((region, i) => tonalLines(range, axis, region.tonic).map((line, j) => /* @__PURE__ */ import_react2.default.createElement("div", { key: `${i}-${j}`, "data-tonic": region.tonic, className: `rawln-${line.kind}-line`, style: { left: x(region.start) + "%", width: (region.end - region.start) / span * 100 + "%", top: line.y } })))), /* @__PURE__ */ import_react2.default.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic }), /* @__PURE__ */ import_react2.default.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, hoveredKey, setHoveredKey, hoveredRef, onNote, onNoteHover, clock })), renderFooter && /* @__PURE__ */ import_react2.default.createElement("div", { className: "rawln-footer" }, renderFooter(row, { changes, selectedMeasure })));
   })));
 });
 
@@ -1070,4 +1164,19 @@ function createTransport({ makePlan, audio: providedAudio, onState = () => {
       return [...muted];
     }
   };
+}
+
+// src/audio/tempo-keys.js
+function bindTempoKeys({ target = globalThis.document, adjustTempo, enabled = () => true }) {
+  const deltas = { "-": -0.1, "=": 0.1, "_": -0.01, "+": 0.01 };
+  const keydown = (event) => {
+    var _a, _b;
+    const delta = deltas[event.key], element = event.target;
+    if (delta === void 0 || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || event.isComposing || !enabled()) return;
+    if ((_a = element == null ? void 0 : element.closest) == null ? void 0 : _a.call(element, 'input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"],dialog[open]')) return;
+    if ((_b = target.querySelector) == null ? void 0 : _b.call(target, "dialog[open]")) return;
+    if (adjustTempo(delta, event) !== false) event.preventDefault();
+  };
+  target.addEventListener("keydown", keydown);
+  return () => target.removeEventListener("keydown", keydown);
 }

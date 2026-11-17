@@ -4,25 +4,28 @@ import {RAWL_COLORS} from './palette.mjs';
 import {TonicSymbol} from '../components/TonicSymbol.jsx';
 import {NoteLayer,NotePlaybackContext,PlaybackSectionContext,createSectionPlaybackClock} from 'librawl/native';
 
+import {useTonicRecoloring} from './recolor.jsx';
+
+const EMPTY_CHANGES=[];
 const names=['C','D♭','D','E♭','E','F','F♯','G','A♭','A','B♭','B'];
 const noteName=p=>names[mod(p)]+(Math.floor(p/12)-1);
 
 /** Rawl AnalysisGrid's header and vertical grid, shared by all host views. */
-export function RawlMeasureHeader({row,height='100%',tonic=0,changes=[],barBeats=4,beatBeats=1,phraseStarts,selectedMeasure=null,onMeasureSelect,hideInitialTonic=false}){
+export function RawlMeasureHeader({row,height='100%',tonic=0,changes=EMPTY_CHANGES,barBeats=4,beatBeats=1,phraseStarts,measureMap,selectedMeasure=null,onMeasureSelect,hideInitialTonic=false}){
  const element=useRef(null),[width,setWidth]=useState(0);
  useLayoutEffect(()=>{
   const el=element.current,view=el.ownerDocument.defaultView,fit=()=>{const next=el.getBoundingClientRect().width||el.clientWidth;setWidth(previous=>previous===next?previous:next);},Observer=view?.ResizeObserver??globalThis.ResizeObserver;
   fit();const observer=Observer?new Observer(fit):null;observer?.observe(el);view?.addEventListener('resize',fit);
   return()=>{observer?.disconnect();view?.removeEventListener('resize',fit);};
  },[]);
- const {measures,beats,markers}=useMemo(()=>measureHeaderLayout({row,tonic,changes,barBeats,beatBeats,phraseStarts,width,selectedMeasure,hideInitialTonic}),[row,tonic,changes,barBeats,beatBeats,phraseStarts,width,selectedMeasure,hideInitialTonic]);
+ const {measures,beats,markers}=useMemo(()=>measureHeaderLayout({row,tonic,changes,barBeats,beatBeats,phraseStarts,measureMap,width,selectedMeasure,hideInitialTonic}),[row,tonic,changes,barBeats,beatBeats,phraseStarts,measureMap,width,selectedMeasure,hideInitialTonic]);
  const x=beat=>(beat-row.start)/(row.end-row.start)*100;
  return <div ref={element} className="rawln-measure-grid" style={{height}}>
   {measures.map(measure=><div className={'rawln-bar'+(measure.isPhraseStart?' rawln-phrase-bar':'')} key={'bar-'+measure.beat} data-beat={measure.beat} data-phrase-boundary={measure.isPhraseStart?'true':undefined} data-terminal={measure.terminal?'true':undefined} style={{left:`calc(${measure.left}% - 1px)`,backgroundColor:measure.isPhraseStart?'#bbb':'#444'}}/>)}
   {beats.map(beat=><div className="rawln-beat-bar" key={'beat-'+beat} data-beat={beat} style={{left:x(beat)+'%'}}/>)}
   <div className="rawln-modulations">
    {markers.map(marker=><div key={marker.beat} className="rawln-modulation" data-beat={marker.beat} data-tonic={marker.tonic} data-join={marker.join?marker.name:undefined} data-onset-override={marker.onsetOverride?'true':undefined} data-continued={marker.continued?'true':undefined} style={{left:marker.pixelOffset?`calc(${marker.left}% - 1px)`:marker.left+'%'}} title={marker.name}>
-    <TonicSymbol left={0} number={Math.floor(marker.beat/barBeats)+1} previousTonic={marker.previousTonic} modulationDiff={marker.delta===null?null:mod(marker.delta)} tonicStart={marker.tonic} alignToOnset={marker.onsetOverride&&!marker.continued} labelClassName="rawln-modulation-label" flagClassName="rawln-modulation-flag" labelAttributes={{style:{left:marker.labelOffset}}} flagAttributes={{'data-degree':marker.delta===null?undefined:mod(marker.delta),style:{background:marker.delta===null?undefined:RAWL_COLORS[mod(marker.delta)].background}}} renderArrow={({direction})=><svg viewBox="0 0 24 24" aria-hidden="true">{direction==='down'?<><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></>:<><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></>}</svg>}/>
+    <TonicSymbol left={0} number={marker.number} previousTonic={marker.previousTonic} modulationDiff={marker.delta===null?null:mod(marker.delta)} tonicStart={marker.tonic} alignToOnset={marker.onsetOverride&&!marker.continued} labelClassName="rawln-modulation-label" flagClassName="rawln-modulation-flag" labelAttributes={{style:{left:marker.labelOffset}}} flagAttributes={{'data-degree':marker.delta===null?undefined:mod(marker.delta),style:{background:marker.delta===null?undefined:RAWL_COLORS[mod(marker.delta)].background}}} renderArrow={({direction})=><svg viewBox="0 0 24 24" aria-hidden="true">{direction==='down'?<><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></>:<><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></>}</svg>}/>
    </div>)}
   </div>
   <div className="rawln-measure-labels" aria-hidden={onMeasureSelect?undefined:true}>
@@ -66,7 +69,9 @@ function BeatNoteLayer({visible,row,axis,tonic,changes,mutedVoices,hoveredKey,se
 }
 
 /** A host-independent Rawl score. Times are quarter-note beats, pitches MIDI. */
-export const RawlNotation=forwardRef(function RawlNotation({notes,beats,rows,tonic=0,changes=[],barBeats=4,beatBeats=1,phraseStarts,hideInitialTonic=false,position=null,mutedVoices=[],onSeek,onNote,onNoteHover,onMeasureSelect,selectedMeasure=null,renderHeader,renderFooter,className='',style},ref){
+export const RawlNotation=forwardRef(function RawlNotation({notes,beats,rows,tonic=0,changes=EMPTY_CHANGES,barBeats=4,beatBeats=1,phraseStarts,measureMap,hideInitialTonic=false,position=null,mutedVoices=[],onSeek,onNote,onNoteHover,onMeasureSelect,selectedMeasure=null,onChangesChange,recolorable=true,renderHeader,renderFooter,className='',style},ref){
+ const editor=useTonicRecoloring({changes,barBeats,measureMap,onChange:onChangesChange}),automatic=recolorable&&!onMeasureSelect;
+ if(automatic){changes=editor.changes;selectedMeasure=editor.selectedMeasure;onMeasureSelect=editor.selectMeasure;const originalClick=onNote,originalHover=onNoteHover;onNote=note=>{if(!editor.chooseNote(note))originalClick?.(note);};onNoteHover=note=>{editor.hoverNote(note);originalHover?.(note);};}
  const root=useRef(null),hoveredRef=useRef(null),[hoveredKey,setHoveredKey]=useState(null),clock=useMemo(createSectionPlaybackClock,[]);
  const spans=rows?.length?rows:[{start:0,end:beats,label:1}];
  const prepared=useMemo(()=>spans.map(row=>{
@@ -86,10 +91,10 @@ export const RawlNotation=forwardRef(function RawlNotation({notes,beats,rows,ton
      <div className="rawln-grid" aria-hidden="true">
       {regions.flatMap((region,i)=>tonalLines(range,axis,region.tonic).map((line,j)=><div key={`${i}-${j}`} data-tonic={region.tonic} className={`rawln-${line.kind}-line`} style={{left:x(region.start)+'%',width:(region.end-region.start)/span*100+'%',top:line.y}}/>))}
      </div>
-     <RawlMeasureHeader row={row} height={axis.notesBottom} tonic={tonic} changes={changes} barBeats={barBeats} beatBeats={beatBeats} phraseStarts={phraseStarts} selectedMeasure={selectedMeasure} onMeasureSelect={onMeasureSelect} hideInitialTonic={hideInitialTonic}/>
+     <RawlMeasureHeader row={row} height={axis.notesBottom} tonic={tonic} changes={changes} barBeats={barBeats} beatBeats={beatBeats} phraseStarts={phraseStarts} measureMap={measureMap} selectedMeasure={selectedMeasure} onMeasureSelect={onMeasureSelect} hideInitialTonic={hideInitialTonic}/>
      <BeatNoteLayer visible={visible} row={row} axis={axis} tonic={tonic} changes={changes} mutedVoices={mutedVoices} hoveredKey={hoveredKey} setHoveredKey={setHoveredKey} hoveredRef={hoveredRef} onNote={onNote} onNoteHover={onNoteHover} clock={clock}/>
     </div>
-    {renderFooter&&<div className="rawln-footer">{renderFooter(row)}</div>}
+    {renderFooter&&<div className="rawln-footer">{renderFooter(row,{changes,selectedMeasure})}</div>}
    </div>;
   })}
  </div></NotePlaybackContext.Provider>;

@@ -25,6 +25,7 @@ const profiles={
  'soundfont-playback-sax':base+",allowAuditionPrograms:true,additionalBanks:[{url:'assets/soundfonts/GeneralUser-GS-alto-sax.sf2',name:'alto-sax',bytes:505140,sha256:'d7079d82a5fb6c985770578a89db8db153c20cefff38ed94270bb790bf3378e6'}]});})("+environment+");"
 };
 fs.mkdirSync(path.join(out,'browser'),{recursive:true});
+await build({entryPoints:[path.join(root,'src/audio/tempo-keys.js')],outfile:path.join(out,'browser/tempo-keys.js'),bundle:true,format:'iife',globalName:'LibrawlTempoKeys',platform:'browser',target:'es2018',banner:{js:banner},logLevel:'error'});
 fs.copyFileSync(path.join(root,'src/audio/native/midi-output-worklet.js'),path.join(out,'browser/midi-output-worklet.js'));
 for(const [name,footer]of Object.entries(profiles))await build({entryPoints:[path.join(root,'src/audio/soundfont-playback.js')],outfile:path.join(out,'browser',`${name}.js`),bundle:true,format:'iife',globalName:'LibrawlAudio',platform:'browser',target:'es2018',banner:{js:banner},footer:{js:footer},logLevel:'error'});
 fs.writeFileSync(path.join(out,'provenance.json'),JSON.stringify({version:pkg.version,audioSourceSha256:digest,files:Object.fromEntries(fs.readdirSync(out).filter(n=>n!=='provenance.json'&&fs.statSync(path.join(out,n)).isFile()).map(n=>[n,createHash('sha256').update(fs.readFileSync(path.join(out,n))).digest('hex')]))},null,2)+'\n');

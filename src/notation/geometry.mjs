@@ -30,22 +30,29 @@ export function keyMarkers(tonic,changes){
  * Terminal phrase boundaries retain their bar without acquiring a number.
  * Pixel width is needed only for Rawl's 80px carried flag and beat density.
  */
-export function measureHeaderLayout({row,tonic=0,changes=[],barBeats=4,beatBeats=1,phraseStarts,width=0,selectedMeasure=null,hideInitialTonic=false}){
+export function measureHeaderLayout({row,tonic=0,changes=[],barBeats=4,beatBeats=1,phraseStarts,measureMap,width=0,selectedMeasure=null,hideInitialTonic=false}){
  const EPS=1e-7,span=row.end-row.start,ppb=width/span,x=beat=>(beat-row.start)/span*100;
+ const explicit=measureMap===undefined?null:validateMeasureMap(measureMap);
+ const numberAt=beat=>explicit?.findLast(measure=>measure.start<=beat+EPS)?.sourceNumber??Math.floor(beat/barBeats)+1;
  const boundary=beat=>phraseStarts===undefined?Math.abs(beat/(4*barBeats)-Math.round(beat/(4*barBeats)))<EPS:phraseStarts.some(start=>Math.abs(start-beat)<EPS);
  const selectedPhrase=selectedMeasure!==null&&boundary(selectedMeasure),measures=[],barlines=[],beats=[];
- for(let beat=Math.max(0,Math.ceil((row.start-EPS)/barBeats)*barBeats);beat<=row.end+EPS;beat+=barBeats){
+ const grid=explicit?explicit.map(measure=>({beat:measure.start,number:measure.sourceNumber})).concat([{beat:explicit.at(-1).start+explicit.at(-1).duration,number:null}]):Array.from({length:Math.max(0,Math.floor((row.end-Math.max(0,Math.ceil((row.start-EPS)/barBeats)*barBeats)+EPS)/barBeats)+1)},(_,i)=>{const beat=Math.max(0,Math.ceil((row.start-EPS)/barBeats)*barBeats)+i*barBeats;return {beat,number:Math.round(beat/barBeats)+1};});
+ for(const {beat,number} of grid){
+  if(beat<row.start-EPS||beat>row.end+EPS)continue;
   barlines.push(beat);
   const terminal=Math.abs(beat-row.end)<EPS,isPhraseStart=boundary(beat);
-  if(!terminal||isPhraseStart)measures.push({beat,number:Math.round(beat/barBeats)+1,left:x(beat),terminal,isPhraseStart,color:selectedMeasure===beat?'red':selectedPhrase&&Math.abs(beat-selectedMeasure)<=4*barBeats+EPS?'orange':'#666'});
+  if(!terminal||isPhraseStart)measures.push({beat,number,left:x(beat),terminal,isPhraseStart,color:selectedMeasure===beat?'red':selectedPhrase&&Math.abs(beat-selectedMeasure)<=4*barBeats+EPS?'orange':'#666'});
  }
- if(beatBeats>0)for(let beat=Math.ceil((row.start-EPS)/beatBeats)*beatBeats;beat<=row.end+EPS;beat+=beatBeats)if(Math.abs(beat/barBeats-Math.round(beat/barBeats))>EPS)beats.push(beat);
+ if(beatBeats>0){
+  if(explicit){for(const measure of explicit)for(let beat=measure.start+beatBeats;beat<measure.start+measure.duration-EPS;beat+=beatBeats)if(beat>=row.start-EPS&&beat<=row.end+EPS)beats.push(beat);}
+  else for(let beat=Math.ceil((row.start-EPS)/beatBeats)*beatBeats;beat<=row.end+EPS;beat+=beatBeats)if(Math.abs(beat/barBeats-Math.round(beat/barBeats))>EPS)beats.push(beat);
+ }
  const relevant=[...barlines,...beats].filter(beat=>beat!==0).sort((a,b)=>a-b),showBeats=relevant.length>1&&(relevant.at(-1)-relevant[0])*ppb/(relevant.length+1)>=10;
  const markers=keyMarkers(tonic,changes).flatMap(marker=>{
   if(marker.delta===0||(hideInitialTonic&&marker.previousTonic===null)||marker.beat>=row.end)return [];
-  const initial=marker.previousTonic===null,measure=marker.beat/barBeats,onsetOverride=!initial&&(marker.onsetOverride??Math.abs(measure-Math.round(measure))>EPS),badgeLeft=(marker.beat-row.start)*ppb-(onsetOverride?0:1),continued=marker.beat<row.start&&width>0&&badgeLeft+80>0;
+  const initial=marker.previousTonic===null,measure=marker.beat/barBeats,onsetOverride=!initial&&(marker.onsetOverride??(explicit?!explicit.some(m=>Math.abs(m.start-marker.beat)<EPS):Math.abs(measure-Math.round(measure))>EPS)),badgeLeft=(marker.beat-row.start)*ppb-(onsetOverride?0:1),continued=marker.beat<row.start&&width>0&&badgeLeft+80>0;
   if(marker.beat<row.start&&!continued)return [];
-  return [{...marker,initial,onsetOverride,continued,left:continued?0:x(marker.beat),pixelOffset:continued||!onsetOverride?-1:0,labelOffset:modulationLabelOffset(marker.beat,barBeats,{initial,onsetOverride,continued})}];
+  return [{...marker,number:numberAt(marker.beat),initial,onsetOverride,continued,left:continued?0:x(marker.beat),pixelOffset:continued||!onsetOverride?-1:0,labelOffset:initial&&explicit?String(numberAt(marker.beat)).length*8+10:modulationLabelOffset(marker.beat,barBeats,{initial,onsetOverride,continued})}];
  });
  for(const measure of measures){measure.hasModulation=markers.some(marker=>marker.beat===measure.beat&&marker.delta!==null);if(measure.color==='#666'&&measure.hasModulation)measure.color='black';}
  return {measures,beats:showBeats?beats:[],markers};
@@ -64,4 +71,14 @@ export function tonalLines(range,axis,tonic){
   if(midi-7>=range.low&&midi-7<=range.high)result.push({kind:'fifth',y:rawlY(midi-6)-.5});
  }
  return result;
+}
+
+/** Authored boundaries are geometry only: note/playback times are unchanged. */
+export function validateMeasureMap(measures){
+ if(!Array.isArray(measures)||!measures.length)throw Error('Invalid measure map');
+ let cursor=0;for(const measure of measures){
+  if(!Number.isFinite(measure.start)||Math.abs(measure.start-cursor)>1e-7||!Number.isFinite(measure.duration)||measure.duration<=0||!['number','string'].includes(typeof measure.sourceNumber))throw Error('Invalid measure map');
+  cursor=measure.start+measure.duration;
+ }
+ return measures;
 }
