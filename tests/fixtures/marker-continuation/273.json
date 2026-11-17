@@ -1,0 +1,124 @@
+{
+  "index": 273,
+  "title": "Ain't Misbehavin'",
+  "provenance": {
+    "repository": "https://github.com/vpavlenko/lego",
+    "consumerCommit": "22290ae22927c5e703de2f5ba9c5ac4b2c1dd967",
+    "sourcePath": "dist/data/standards.json",
+    "sourceSha256": "dce3230a948a047e5998b204bdc5682eab3194e9f0b84c921436be55ab25d41e",
+    "performancePath": "dist/data/performances/273.json",
+    "performanceSha256": "fde85f57395654d0119433ba4e71417a54852a954dfeddf2fc9e8186838fd6b8",
+    "policy": "Only measure/key/row geometry; no chord or melody notes"
+  },
+  "tonic": 0,
+  "barBeats": 4,
+  "beats": 128,
+  "changes": [
+    {
+      "beat": 0,
+      "tonic": 0
+    },
+    {
+      "beat": 12,
+      "tonic": 5
+    },
+    {
+      "beat": 18,
+      "tonic": 0
+    },
+    {
+      "beat": 44,
+      "tonic": 5
+    },
+    {
+      "beat": 50,
+      "tonic": 0
+    },
+    {
+      "beat": 62,
+      "tonic": 9
+    },
+    {
+      "beat": 76,
+      "tonic": 2
+    },
+    {
+      "beat": 84,
+      "tonic": 7
+    },
+    {
+      "beat": 88,
+      "tonic": 0
+    },
+    {
+      "beat": 108,
+      "tonic": 5
+    },
+    {
+      "beat": 114,
+      "tonic": 0
+    }
+  ],
+  "sourceRows": [
+    {
+      "start": 0,
+      "end": 32
+    },
+    {
+      "start": 32,
+      "end": 64
+    },
+    {
+      "start": 64,
+      "end": 96
+    },
+    {
+      "start": 96,
+      "end": 128
+    }
+  ],
+  "performanceRows": [
+    {
+      "start": 0,
+      "end": 32,
+      "label": 1
+    },
+    {
+      "start": 32,
+      "end": 64,
+      "label": 9
+    },
+    {
+      "start": 64,
+      "end": 96,
+      "label": 17
+    },
+    {
+      "start": 96,
+      "end": 128,
+      "label": 25
+    }
+  ],
+  "alignedRows": [
+    {
+      "start": 0,
+      "end": 32,
+      "section": "A"
+    },
+    {
+      "start": 32,
+      "end": 64,
+      "section": "A"
+    },
+    {
+      "start": 64,
+      "end": 96,
+      "section": "B"
+    },
+    {
+      "start": 96,
+      "end": 128,
+      "section": "A"
+    }
+  ]
+}

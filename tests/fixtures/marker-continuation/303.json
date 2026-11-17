@@ -1,0 +1,212 @@
+{
+  "index": 303,
+  "title": "Honeysuckle Rose",
+  "provenance": {
+    "repository": "https://github.com/vpavlenko/lego",
+    "consumerCommit": "22290ae22927c5e703de2f5ba9c5ac4b2c1dd967",
+    "sourcePath": "dist/data/standards.json",
+    "sourceSha256": "dce3230a948a047e5998b204bdc5682eab3194e9f0b84c921436be55ab25d41e",
+    "performancePath": "dist/data/performances/303.json",
+    "performanceSha256": "8f61f04cf09766ca6dfb078456e6067c5d0b3a4756da24af91872c783231ed6a",
+    "policy": "Only measure/key/row geometry; no chord or melody notes"
+  },
+  "tonic": 0,
+  "barBeats": 4,
+  "beats": 256,
+  "changes": [
+    {
+      "beat": 0,
+      "tonic": 0
+    },
+    {
+      "beat": 28,
+      "tonic": 10
+    },
+    {
+      "beat": 36,
+      "tonic": 0
+    },
+    {
+      "beat": 66,
+      "tonic": 7
+    },
+    {
+      "beat": 70,
+      "tonic": 5
+    },
+    {
+      "beat": 82,
+      "tonic": 9
+    },
+    {
+      "beat": 86,
+      "tonic": 0
+    },
+    {
+      "beat": 92,
+      "tonic": 7
+    },
+    {
+      "beat": 96,
+      "tonic": 0
+    },
+    {
+      "beat": 124,
+      "tonic": 10
+    },
+    {
+      "beat": 132,
+      "tonic": 0
+    },
+    {
+      "beat": 156,
+      "tonic": 10
+    },
+    {
+      "beat": 164,
+      "tonic": 0
+    },
+    {
+      "beat": 194,
+      "tonic": 7
+    },
+    {
+      "beat": 198,
+      "tonic": 5
+    },
+    {
+      "beat": 210,
+      "tonic": 9
+    },
+    {
+      "beat": 214,
+      "tonic": 0
+    },
+    {
+      "beat": 220,
+      "tonic": 7
+    },
+    {
+      "beat": 224,
+      "tonic": 0
+    }
+  ],
+  "sourceRows": [
+    {
+      "start": 0,
+      "end": 32
+    },
+    {
+      "start": 32,
+      "end": 64
+    },
+    {
+      "start": 64,
+      "end": 96
+    },
+    {
+      "start": 96,
+      "end": 128
+    },
+    {
+      "start": 128,
+      "end": 160
+    },
+    {
+      "start": 160,
+      "end": 192
+    },
+    {
+      "start": 192,
+      "end": 224
+    },
+    {
+      "start": 224,
+      "end": 256
+    }
+  ],
+  "performanceRows": [
+    {
+      "start": 0,
+      "end": 32,
+      "label": 1
+    },
+    {
+      "start": 32,
+      "end": 64,
+      "label": 9
+    },
+    {
+      "start": 64,
+      "end": 96,
+      "label": 17
+    },
+    {
+      "start": 96,
+      "end": 128,
+      "label": 25
+    },
+    {
+      "start": 128,
+      "end": 160,
+      "label": 33
+    },
+    {
+      "start": 160,
+      "end": 192,
+      "label": 41
+    },
+    {
+      "start": 192,
+      "end": 224,
+      "label": 49
+    },
+    {
+      "start": 224,
+      "end": 256,
+      "label": 57
+    }
+  ],
+  "alignedRows": [
+    {
+      "start": 0,
+      "end": 32,
+      "section": "A"
+    },
+    {
+      "start": 32,
+      "end": 64,
+      "section": "A"
+    },
+    {
+      "start": 64,
+      "end": 96,
+      "section": "B"
+    },
+    {
+      "start": 96,
+      "end": 128,
+      "section": "A"
+    },
+    {
+      "start": 128,
+      "end": 160,
+      "section": "A"
+    },
+    {
+      "start": 160,
+      "end": 192,
+      "section": "A"
+    },
+    {
+      "start": 192,
+      "end": 224,
+      "section": "B"
+    },
+    {
+      "start": 224,
+      "end": 256,
+      "section": "A"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-/*! librawl version: 0.3.4; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
+/*! librawl version: 0.3.5; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
 
 // src/notation/geometry.mjs
 var PITCH_STEP = 3;
@@ -70,12 +70,15 @@ function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatB
     } else for (let beat = Math.ceil((row.start - EPS) / beatBeats) * beatBeats; beat <= row.end + EPS; beat += beatBeats) if (Math.abs(beat / barBeats - Math.round(beat / barBeats)) > EPS) beats.push(beat);
   }
   const relevant = [...barlines, ...beats].filter((beat) => beat !== 0).sort((a, b) => a - b), showBeats = relevant.length > 1 && (relevant.at(-1) - relevant[0]) * ppb / (relevant.length + 1) >= 10;
-  const markers = keyMarkers(tonic, changes).flatMap((marker) => {
+  const events = keyMarkers(tonic, changes).filter((marker) => marker.delta !== 0);
+  const activeAtStart = events.findLast((marker) => marker.beat <= row.start);
+  const markers = events.flatMap((marker) => {
     var _a2;
-    if (marker.delta === 0 || hideInitialTonic && marker.previousTonic === null || marker.beat >= row.end) return [];
-    const initial = marker.previousTonic === null, measure = marker.beat / barBeats, onsetOverride = !initial && ((_a2 = marker.onsetOverride) != null ? _a2 : explicit ? !explicit.some((m) => Math.abs(m.start - marker.beat) < EPS) : Math.abs(measure - Math.round(measure)) > EPS), badgeLeft = (marker.beat - row.start) * ppb - (onsetOverride ? 0 : 1), continued = marker.beat < row.start && width > 0 && badgeLeft + 80 > 0;
+    if (hideInitialTonic && marker.previousTonic === null || marker.beat >= row.end) return [];
+    const initial = marker.previousTonic === null, measure = marker.beat / barBeats, onsetOverride = !initial && ((_a2 = marker.onsetOverride) != null ? _a2 : explicit ? !explicit.some((m) => Math.abs(m.start - marker.beat) < EPS) : Math.abs(measure - Math.round(measure)) > EPS), badgeLeft = (marker.beat - row.start) * ppb - (onsetOverride ? 0 : 1), continued = marker.beat < row.start && marker === activeAtStart && width > 0 && badgeLeft + 80 > 0;
     if (marker.beat < row.start && !continued) return [];
-    return [{ ...marker, number: numberAt(marker.beat), initial, onsetOverride, continued, left: continued ? 0 : x(marker.beat), pixelOffset: continued || !onsetOverride ? -1 : 0, labelOffset: initial && explicit ? String(numberAt(marker.beat)).length * 8 + 10 : modulationLabelOffset(marker.beat, barBeats, { initial, onsetOverride, continued }) }];
+    if (continued) return [{ ...marker, originBeat: marker.beat, beat: row.start, number: numberAt(row.start), previousTonic: null, delta: null, join: false, name: void 0, initial: true, onsetOverride: false, continued: true, left: 0, pixelOffset: -1, labelOffset: String(numberAt(row.start)).length * 8 + 10 }];
+    return [{ ...marker, number: numberAt(marker.beat), initial, onsetOverride, continued: false, left: x(marker.beat), pixelOffset: !onsetOverride ? -1 : 0, labelOffset: initial && explicit ? String(numberAt(marker.beat)).length * 8 + 10 : modulationLabelOffset(marker.beat, barBeats, { initial, onsetOverride }) }];
   });
   for (const measure of measures) {
     measure.hasModulation = markers.some((marker) => marker.beat === measure.beat && marker.delta !== null);
