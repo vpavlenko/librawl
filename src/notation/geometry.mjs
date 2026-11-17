@@ -44,7 +44,7 @@ export function measureHeaderLayout({row,tonic=0,changes=[],barBeats=4,beatBeats
   if(!terminal||isPhraseStart)measures.push({beat,number,left:x(beat),terminal,isPhraseStart,color:selectedMeasure===beat?'red':selectedPhrase&&Math.abs(beat-selectedMeasure)<=4*barBeats+EPS?'orange':'#666'});
  }
  if(beatBeats>0){
-  if(explicit){for(const measure of explicit)for(let beat=measure.start+beatBeats;beat<measure.start+measure.duration-EPS;beat+=beatBeats)if(beat>=row.start-EPS&&beat<=row.end+EPS)beats.push(beat);}
+  if(explicit){for(const measure of explicit){const unit=measure.beatBeats??beatBeats;for(let beat=measure.start+unit;beat<measure.start+measure.duration-EPS;beat+=unit)if(beat>=row.start-EPS&&beat<=row.end+EPS)beats.push(beat);}}
   else for(let beat=Math.ceil((row.start-EPS)/beatBeats)*beatBeats;beat<=row.end+EPS;beat+=beatBeats)if(Math.abs(beat/barBeats-Math.round(beat/barBeats))>EPS)beats.push(beat);
  }
  const relevant=[...barlines,...beats].filter(beat=>beat!==0).sort((a,b)=>a-b),showBeats=relevant.length>1&&(relevant.at(-1)-relevant[0])*ppb/(relevant.length+1)>=10;
@@ -77,7 +77,7 @@ export function tonalLines(range,axis,tonic){
 export function validateMeasureMap(measures){
  if(!Array.isArray(measures)||!measures.length)throw Error('Invalid measure map');
  let cursor=0;for(const measure of measures){
-  if(!Number.isFinite(measure.start)||Math.abs(measure.start-cursor)>1e-7||!Number.isFinite(measure.duration)||measure.duration<=0||!['number','string'].includes(typeof measure.sourceNumber))throw Error('Invalid measure map');
+  if(!Number.isFinite(measure.start)||Math.abs(measure.start-cursor)>1e-7||!Number.isFinite(measure.duration)||measure.duration<=0||!['number','string'].includes(typeof measure.sourceNumber)||measure.beatBeats!==undefined&&(!Number.isFinite(measure.beatBeats)||measure.beatBeats<=0))throw Error('Invalid measure map');
   cursor=measure.start+measure.duration;
  }
  return measures;

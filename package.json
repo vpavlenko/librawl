@@ -1,6 +1,6 @@
 {
   "name": "librawl",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Shared Rawl React notation primitives and MIDI playback adapters",
   "type": "module",
   "license": "GPL-3.0-only",

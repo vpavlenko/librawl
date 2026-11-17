@@ -26,3 +26,10 @@ test('regular authored boundaries have identical header geometry to default grid
 test('gaps, overlaps, zero durations and missing labels are rejected',()=>{
  for(const map of [[],[{start:1,duration:4,sourceNumber:1}],[{start:0,duration:0,sourceNumber:1}],[{start:0,duration:4}],[pickup[0],{start:2,duration:4,sourceNumber:1}]])assert.throws(()=>validateMeasureMap(map),/Invalid measure map/);
 });
+
+test('authored cut/common meter changes retain exact boundaries and per-measure beat grouping',()=>{
+ const map=[{start:0,duration:4,sourceNumber:1,beatBeats:2},{start:4,duration:4,sourceNumber:2,beatBeats:1},{start:8,duration:3,sourceNumber:3,beatBeats:1}];
+ const grid=measureHeaderLayout({row:{start:0,end:11},barBeats:4,beatBeats:2,measureMap:map,width:1100,phraseStarts:[]});
+ assert.deepEqual(grid.measures.map(m=>[m.beat,m.number]),[[0,1],[4,2],[8,3]]);assert.deepEqual(grid.beats,[2,5,6,7,9,10]);
+ for(const beatBeats of [0,-1,NaN,Infinity])assert.throws(()=>validateMeasureMap([{start:0,duration:4,sourceNumber:1,beatBeats}]),/Invalid measure map/);
+});
