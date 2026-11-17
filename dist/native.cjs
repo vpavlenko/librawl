@@ -1,4 +1,4 @@
-/*! librawl version: 0.3.2; audio source sha256: 1950f8ca50b0b94fa1b6151f1a309a2413e8c0643f095f3ce0582bb45234c149; GPL-3.0-only */
+/*! librawl version: 0.3.3; audio source sha256: 1950f8ca50b0b94fa1b6151f1a309a2413e8c0643f095f3ce0582bb45234c149; GPL-3.0-only */
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -42,6 +42,7 @@ __export(index_exports, {
   VoiceZIndicesContext: () => VoiceZIndicesContext,
   createNotePlaybackIndex: () => createNotePlaybackIndex,
   createSectionPlaybackClock: () => createSectionPlaybackClock,
+  createShiftHoverAudition: () => createShiftHoverAudition,
   findPlaybackMeasure: () => findPlaybackMeasure,
   getNotePitchAtTime: () => getNotePitchAtTime,
   getNoteRectangles: () => getNoteRectangles,
@@ -892,10 +893,61 @@ var NoteRectangle = React.memo(({
 
 // src/rawlnative/NoteLayer.tsx
 var React2 = __toESM(require("react"), 1);
+
+// src/shift-hover-audition.js
+function createShiftHoverAudition({ audition, isEnabled = () => true, keyForNote = (note) => {
+  var _a;
+  return (_a = note == null ? void 0 : note.id) != null ? _a : note;
+} } = {}) {
+  let visiting = null, played = false;
+  const leave = () => {
+    visiting = null;
+    played = false;
+  };
+  return {
+    enter(note, event, time) {
+      if (!note || !event || event.type === "mousemove" || event.type === "pointermove") return false;
+      const key = keyForNote(note);
+      if (visiting !== key) {
+        visiting = key;
+        played = false;
+      }
+      if (played || !event.shiftKey || typeof audition !== "function" || !isEnabled(note, event, time)) return false;
+      played = true;
+      audition(note, event, time);
+      return true;
+    },
+    leave,
+    reset: leave
+  };
+}
+
+// src/rawlnative/NoteLayer.tsx
 var noop = () => {
 };
-function NoteLayer({ notes, midiNumberToY, noteHeight, handleNoteClick = null, handleMouseEnter = noop, handleMouseLeave = noop, secondsToX, enableManualRemeasuring = false, hoveredColors = null, showSourceLocation = false, drumNoteToY, hoveredVoiceIndex = null, sectionEndX, sectionStartX, getNoteAttributes }) {
-  return /* @__PURE__ */ React2.createElement(React2.Fragment, null, getNoteRectangles(notes, midiNumberToY, noteHeight, handleNoteClick, handleMouseEnter, handleMouseLeave, secondsToX, enableManualRemeasuring, hoveredColors, showSourceLocation, drumNoteToY, hoveredVoiceIndex, sectionEndX, sectionStartX, getNoteAttributes));
+function NoteLayer({ notes, midiNumberToY, noteHeight, handleNoteClick = null, handleMouseEnter = noop, handleMouseLeave = noop, onNoteAudition, auditionEnabled = true, secondsToX, enableManualRemeasuring = false, hoveredColors = null, showSourceLocation = false, drumNoteToY, hoveredVoiceIndex = null, sectionEndX, sectionStartX, getNoteAttributes }) {
+  const onsetEditing = React2.useContext(ModulationOnsetEditingContext);
+  const current = React2.useRef({ onNoteAudition, auditionEnabled, enableManualRemeasuring, onsetEditing });
+  current.current = { onNoteAudition, auditionEnabled, enableManualRemeasuring, onsetEditing };
+  const gesture = React2.useMemo(() => createShiftHoverAudition({
+    audition: (note, event, time) => {
+      var _a, _b;
+      return (_b = (_a = current.current).onNoteAudition) == null ? void 0 : _b.call(_a, note, event, time);
+    },
+    isEnabled: (note, event, time) => {
+      const state = current.current;
+      return !!state.onNoteAudition && !state.enableManualRemeasuring && !state.onsetEditing.active && note.isActive !== false && (typeof state.auditionEnabled === "function" ? state.auditionEnabled(note, event, time) : state.auditionEnabled);
+    }
+  }), []);
+  const enter = (note, event, time) => {
+    gesture.enter(note, event, time);
+    handleMouseEnter(note, event, time);
+  };
+  const leave = () => {
+    gesture.leave();
+    handleMouseLeave();
+  };
+  return /* @__PURE__ */ React2.createElement(React2.Fragment, null, getNoteRectangles(notes, midiNumberToY, noteHeight, handleNoteClick, enter, leave, secondsToX, enableManualRemeasuring, hoveredColors, showSourceLocation, drumNoteToY, hoveredVoiceIndex, sectionEndX, sectionStartX, getNoteAttributes));
 }
 
 // src/rawlnative/native-style.mjs

@@ -7,7 +7,7 @@ export interface RawlNotationHandle { setPosition(beat:number|null):void; elemen
 export interface RawlNotationProps {
  notes:MidiNote[]; beats:number; rows?:ScoreRow[]; tonic?:number; changes?:TonicChange[];
  barBeats?:number; beatBeats?:number; phraseStarts?:number[]; measureMap?:SourceMeasure[]; hideInitialTonic?:boolean; position?:number|null; mutedVoices?:number[]; className?:string; style?:React.CSSProperties;
- onSeek?:(beat:number)=>void; onNote?:(note:MidiNote)=>void; onNoteHover?:(note:MidiNote|null)=>void;
+ onSeek?:(beat:number)=>void; onNote?:(note:MidiNote)=>void; onNoteAudition?:(note:MidiNote)=>void; onNoteHover?:(note:MidiNote|null)=>void;
  onMeasureSelect?:(beat:number)=>void; selectedMeasure?:number|null;
  onChangesChange?:(changes:TonicChange[])=>void; recolorable?:boolean;
  renderHeader?:(row:ScoreRow)=>React.ReactNode; renderFooter?:(row:ScoreRow,context:{changes:TonicChange[];selectedMeasure:number|null})=>React.ReactNode;

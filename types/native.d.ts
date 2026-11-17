@@ -56,6 +56,8 @@ export interface NoteLayerProps {
  handleNoteClick?:((note:Note,event?:React.MouseEvent,time?:number)=>void)|null;
  handleMouseEnter?:(note:Note,event?:React.MouseEvent,time?:number)=>void;
  handleMouseLeave?:()=>void;
+ onNoteAudition?:(note:Note,event?:React.MouseEvent,time?:number)=>void;
+ auditionEnabled?:boolean|((note:Note,event?:React.MouseEvent,time?:number)=>boolean);
  secondsToX:SecondsConverter;
  enableManualRemeasuring?:boolean;
  hoveredColors?:string[]|null;
@@ -102,3 +104,7 @@ export type VoiceHover=number|number[]|null;
 export function voiceHoverContains(hover:VoiceHover,index:number):boolean;
 
 export function nativeColorStyles():string;
+
+export interface ShiftHoverAuditionOptions<N,E={shiftKey?:boolean;type?:string}> {audition?:(note:N,event:E,time?:number)=>void;isEnabled?:(note:N,event:E,time?:number)=>boolean;keyForNote?:(note:N)=>unknown;}
+export interface ShiftHoverAudition<N,E={shiftKey?:boolean;type?:string}> {enter(note:N,event?:E,time?:number):boolean;leave():void;reset():void;}
+export function createShiftHoverAudition<N,E={shiftKey?:boolean;type?:string}>(options:ShiftHoverAuditionOptions<N,E>):ShiftHoverAudition<N,E>;

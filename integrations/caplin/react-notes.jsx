@@ -35,3 +35,5 @@ export function mount(score,options){
  observer?.observe(score);
  return {element,update(next){props={...props,...next};render();},destroy(){if(destroyed)return;destroyed=true;observer?.disconnect();root.unmount();element.remove();},get notes(){return [...element.querySelectorAll('.rawl-note')];}};
 }
+
+export {createShiftHoverAudition} from '../../src/shift-hover-audition.js';
