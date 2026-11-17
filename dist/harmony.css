@@ -1,0 +1,11 @@
+/* Both representations occupy the same fixed stripe; hover changes visibility only. */
+.harmony-stripe{position:relative;height:20px;min-height:20px;overflow:visible}
+.harmony-chords,.harmony-rns{position:absolute;inset:0;height:20px;min-height:20px;overflow:visible}
+.harmony-rns{visibility:hidden}
+body.harmony-rn .harmony-chords{visibility:hidden}
+body.harmony-rn .harmony-rns{visibility:visible}
+.harmony-stripe .harmony-cell{position:absolute;top:0;height:20px;min-height:20px;padding:0 4px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:clip;background:none}
+.harmony-stripe .rawln-chord{font-size:12px}
+.harmony-stripe .rawln-rn{font:10px/20px monospace;margin:0;padding-top:0}
+.harmony-symbol{color:inherit;background:none}
+.harmony-symbol sup{color:inherit}

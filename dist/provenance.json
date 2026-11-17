@@ -1,0 +1,25 @@
+{
+  "version": "0.1.0",
+  "audioSourceSha256": "1950f8ca50b0b94fa1b6151f1a309a2413e8c0643f095f3ce0582bb45234c149",
+  "files": {
+    "audio.cjs": "6df6a63c153f9cac899728639d9749d22e598a02aff13f122fb093b5313d644c",
+    "audio.d.ts": "b4e3d3a364efe49f9e447182336c9d3c82dffe074067e46c1e8a5d2d49671255",
+    "audio.js": "3791189d25ca0f02fa64d1b1646fb038b79009148d4f2225b4e8e0e5102d5b81",
+    "components.cjs": "b695e7a9512177e447cb088c01512ac43a263fdf802a6cf1e0c14e2391131e54",
+    "components.d.ts": "87ecca10107c3bf5a9c42aa7cb3785e0eee691626dbe140ce6a8cb4486ef3e11",
+    "components.js": "7639077db2eaf64d2ee2e8a2de0e0e19859f7c541063df85bdeb80dc3e4afd2a",
+    "geometry.cjs": "3fce4f2de15f2021cdc75dbd6e31e59c8e5436bb8b89c8d308f587f9b4978c9c",
+    "geometry.d.ts": "0e93fd6ba318fe45b3a3cf41746392102f5f840985ed82171c65e82abff41a71",
+    "geometry.js": "5adeb4ecdf21a4af1a8553d6aac9e5bf9386414b74b10a2a84b77698bff6691c",
+    "harmony.css": "7b320ee9be4ab6120ff453907d830b9e5761db133f409e626c6aac3bb630c1ea",
+    "index.cjs": "adc4086a9d7bc1c45fb51814c46e4dda79b435c09502c01171a8182f333a6caa",
+    "index.d.ts": "91c5558e56a9535a5210654fbc7241526f469c9c36aa31aa39e836e4b2724547",
+    "index.js": "69d82511f38109bba09526da55359dbc8f1b1e60216f6862c29ae9adc6e0f5ea",
+    "legacy-style.css": "55bedac690bbd624cbceaecdb5181b0a983b129096a7b3c5c42d4b13c64a1904",
+    "notation.d.ts": "bd56cffaa76472c548fd42574e3cf587dcd717814587b28e5e8dd3eb5dee058c",
+    "palette.cjs": "4bf3d6110cac7c199567937ccb4c6e66657c3d8025ee836f1e7bd25804fcf25f",
+    "palette.d.ts": "771c7d1b52584765efeb67e63f13a1802e0cad046b04c20e4e2df874fd825ebd",
+    "palette.js": "acc6dd7a571bc31e69f5fbe272c4ae452e5f6f0c8938e1680ff435f818484e6f",
+    "style.css": "06e2a7bd35b199d6372a253e422cbd502a1cd1aed882a15483b8ceef28668e2c"
+  }
+}

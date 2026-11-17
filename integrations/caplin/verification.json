@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "scope": "Isolated worktrees only; no publication or changes to current Caplin checkouts",
+  "library": {
+    "version": "0.1.0",
+    "source": "src/audio/soundfont-playback.js",
+    "sourceSha256": "1950f8ca50b0b94fa1b6151f1a309a2413e8c0643f095f3ce0582bb45234c149",
+    "artifact": "dist/browser/soundfont-playback.js",
+    "artifactSha256": "3705eab097fc3cf8e7ce3b02eeaad74b976d635e580429ca38e52fdb61d08485"
+  },
+  "sync": {
+    "canonicalRepo": "../caplin-librawl",
+    "readerDir": "../caplin-librawl-reader",
+    "canonicalModule": "packages/music/soundfont-playback.js",
+    "readerMirror": "dist/soundfont-playback.js",
+    "previousSha256": "ff8d94ca51fd09645c459f7c17ca054d675f0211c43c12c9c4a9119585ddedbf",
+    "installedSha256": "3705eab097fc3cf8e7ce3b02eeaad74b976d635e580429ca38e52fdb61d08485",
+    "byteIdentical": true,
+    "manifestFingerprintOnly": true,
+    "canonicalChanged": [
+      "packages/music/soundfont-playback.js",
+      "packages/shared-modules.json"
+    ],
+    "readerChanged": [
+      "dist/soundfont-playback.js"
+    ]
+  },
+  "legacyChecks": [
+    {
+      "script": "check-soundfont-initialization.cjs",
+      "scriptSha256": "13c952a0590f6ba747e6839c3e0830f6e0115087533f24ae1379467780384e86",
+      "status": "passed",
+      "report": {
+        "cases": 15
+      }
+    },
+    {
+      "script": "check-playback-transport.cjs",
+      "scriptSha256": "c35b594e2d7d5dc44536ad321c531295ac4fb93326999f304f8111dd69d87b91",
+      "status": "passed",
+      "report": {
+        "datasets": 364,
+        "seeks": 1092,
+        "transposes": 728,
+        "heldNoteReattacks": 1206,
+        "corpusGateSamples": 198512,
+        "audibleTraces": 20,
+        "gateSamples": 1134000
+      }
+    },
+    {
+      "script": "check-note-audition.cjs",
+      "scriptSha256": "3bf7686d35861a06bc48f828d9d73e4693349ae7fee94c0e19b57ff5a846f60a",
+      "status": "passed",
+      "report": {
+        "cases": 15,
+        "datasets": 364,
+        "reservedChannel": 9,
+        "instrument": "Piano GM0"
+      }
+    },
+    {
+      "script": "check-reverb.cjs",
+      "scriptSha256": "a50b7b5e8cc197ed9d09ef3d23e7449e1646909f3b0e2180158ad6d24bda8a76",
+      "status": "passed",
+      "report": {
+        "sampleRates": [
+          22050,
+          44100,
+          48000
+        ],
+        "wet": 0.14,
+        "impulseSeconds": 1.1,
+        "decaySeconds": 0.85
+      }
+    },
+    {
+      "script": "check-performance.cjs",
+      "scriptSha256": "3309d8207ee2527943e1e3977a8f6bc521654b859d444d25203f04f759e28ae6",
+      "status": "passed",
+      "report": {
+        "datasets": 140,
+        "soundingNotes": 5456,
+        "scheduledEvents": 15103,
+        "articulatedNotes": 544
+      }
+    },
+    {
+      "script": "check-mfp-performance.cjs",
+      "scriptSha256": "901826ef1f73dcbb2f2b656bb474bd311f5bd431a60504e31c10f2b1a20bab20",
+      "status": "passed",
+      "report": {
+        "newMark": "mfp",
+        "attack": "mf",
+        "continuation": "p",
+        "earlierMidiPlansPreserved": 333
+      },
+      "fixtureAdjustment": {
+        "reason": "Separate reader worktree has no sibling source/chapter11/music-baseline.json",
+        "method": "Unchanged script executed with readFileSync redirect for exactly the absent baseline path; no test or fixture files modified",
+        "sourceFixture": "caplin/source/chapter11/music-baseline.json",
+        "sha256": "a149bbdf35e853f9cdc369e86419e6d1ee87e8107d0e2090fbf9ca2f7e299fc3",
+        "pathBasis": "Original sibling repository; read-only fixture"
+      }
+    }
+  ],
+  "newChecks": {
+    "soundfont": 15,
+    "syncGuards": 3,
+    "status": "all passed",
+    "canonicalReferenceFixture": "tests/fixtures/soundfont-caplin-reference.js",
+    "canonicalReferenceSha256": "ff8d94ca51fd09645c459f7c17ca054d675f0211c43c12c9c4a9119585ddedbf"
+  },
+  "notRun": [
+    {
+      "checks": [
+        "check-soundfont.mjs",
+        "check-soundfont-subset.mjs",
+        "check-note-audition-pcm.mjs",
+        "check-reverb-pcm.mjs"
+      ],
+      "reason": "Require a retained source-compatible SpessaSynth QA core module; no existing QA-core path was available. No PCM equivalence claim added."
+    },
+    {
+      "checks": [
+        "browser playback",
+        "physical output listening",
+        "publication"
+      ],
+      "reason": "Outside this isolated synchronization task"
+    }
+  ],
+  "untouchedCurrentCaplin": {
+    "canonicalEngineSha256": "ff8d94ca51fd09645c459f7c17ca054d675f0211c43c12c9c4a9119585ddedbf",
+    "readerEngineSha256": "ff8d94ca51fd09645c459f7c17ca054d675f0211c43c12c9c4a9119585ddedbf"
+  }
+}

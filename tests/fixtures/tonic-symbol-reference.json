@@ -1,0 +1,13 @@
+{
+  "repository": "https://github.com/vpavlenko/rawl",
+  "commit": "c5c9bb0407534d9b7eb9a8267078c006fa340ee6",
+  "sourcePath": "src/components/rawl/AnalysisGrid.tsx",
+  "license": "GPL-3.0-only",
+  "sourceSha256": "f100812d8a24da1022b99d012540b3be95813abd5c09cb3cd29f4a2f0f84ecf7",
+  "componentSha256": "d14f31fd896d50b757979e4bb794ad2d99293f92daf9e177955c5c55596a84d2",
+  "fixtureSha256": "1180f20f6b3b6d0db85aa3c27736814e1b575f37637e3b349df15429c5f8dbd7",
+  "componentStartLine": 299,
+  "componentEndLine": 359,
+  "fixture": "tonic-symbol-reference.tsx",
+  "harness": "React/useContext imports, the original PitchClass type and AnalysisTransposeContext declaration, and MODULATION_BADGE_WIDTH make the verbatim component standalone. The complete component and PITCH_CLASS_TO_LETTER declaration are copied without modification."
+}

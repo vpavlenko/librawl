@@ -1,0 +1,78 @@
+{
+  "name": "librawl",
+  "version": "0.1.0",
+  "description": "Shared Rawl React notation primitives and MIDI playback adapters",
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vpavlenko/librawl.git"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./components": {
+      "types": "./dist/components.d.ts",
+      "import": "./dist/components.js",
+      "require": "./dist/components.cjs"
+    },
+    "./geometry": {
+      "types": "./dist/geometry.d.ts",
+      "import": "./dist/geometry.js",
+      "require": "./dist/geometry.cjs"
+    },
+    "./palette": {
+      "import": "./dist/palette.js",
+      "require": "./dist/palette.cjs",
+      "types": "./dist/palette.d.ts"
+    },
+    "./audio": {
+      "types": "./dist/audio.d.ts",
+      "import": "./dist/audio.js",
+      "require": "./dist/audio.cjs"
+    },
+    "./style.css": "./dist/style.css",
+    "./browser/*": "./dist/browser/*",
+    "./legacy-style.css": "./dist/legacy-style.css",
+    "./harmony.css": "./dist/harmony.css"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "NOTICE.md",
+    "README.md",
+    "components.js",
+    "components.d.ts",
+    "audio.js",
+    "audio.d.ts",
+    "geometry.js",
+    "geometry.d.ts",
+    "palette.js",
+    "palette.d.ts"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "peerDependencies": {
+    "react": ">=16.14 <20"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "jsdom": "26.1.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react16": "npm:react@16.14.0",
+    "react-dom16": "npm:react-dom@16.14.0"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "npm run build && npm test"
+  }
+}

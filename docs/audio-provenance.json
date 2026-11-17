@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "source": {
+    "caplin": {
+      "path": "packages/music/soundfont-playback.js",
+      "sha256": "ff8d94ca51fd09645c459f7c17ca054d675f0211c43c12c9c4a9119585ddedbf",
+      "mirror": "reader/dist/soundfont-playback.js",
+      "mirrorByteIdentical": true,
+      "fixture": "tests/fixtures/soundfont-caplin-reference.js"
+    },
+    "insights": {
+      "path": "dist/soundfont-playback.js",
+      "sha256": "fa2a0c34bd3af0db08c3b43e00d517e301584ff279b2760016e1520c2db0a4b1",
+      "differencesFromCaplin": [
+        "Additional alto-sax SoundFont bank",
+        "Explicit program selection for ordinary and overlapping auditions"
+      ]
+    },
+    "rawl": {
+      "repository": "https://github.com/vpavlenko/rawl",
+      "rootLicense": "GPL-3.0",
+      "legacyPlayerSourceLicense": "src/LICENSE carries Matt Montag MIT notice",
+      "backend": "ThreadedMIDIPlayer and PCM synthesis worker feed midi-output-worklet; not the scheduled SpessaSynth backend extracted here"
+    }
+  },
+  "factory": {
+    "export": "createSoundFontPlayback",
+    "defaultProfile": "Caplin: original bank, relative asset paths, piano-only audition semantics",
+    "optInProfile": "Insights: additionalBanks with alto-sax descriptor and allowAuditionPrograms=true",
+    "options": [
+      "assetBase",
+      "libraryUrl",
+      "workletUrl",
+      "additionalBanks",
+      "allowAuditionPrograms",
+      "environment",
+      "importLibrary",
+      "fetch"
+    ],
+    "noGlobalInstallation": true,
+    "additionalBankDescriptor": [
+      "url",
+      "name",
+      "bytes",
+      "sha256"
+    ],
+    "preserved": [
+      "Scheduled note/program/controller events",
+      "Presentation-time clock and latency fallback",
+      "Monotonic beat and pre-attack null gate",
+      "Seek reconstruction and queued-event cancellation fence",
+      "Throttled-timer recovery",
+      "Shared-context initialization cancellation/deadlines",
+      "Deterministic room after staff mixer gains",
+      "Latest-note and overlapping audition ownership"
+    ],
+    "limits": [
+      "Not a general Standard MIDI File parser",
+      "Main-score channel9 is reserved for audition",
+      "No new pitch-bend, aftertouch, recording-alignment or worker backend support",
+      "The host owns score realization, tempo policy, transport UI and notation"
+    ]
+  },
+  "protectedRegions": [
+    {
+      "name": "bounded initialization waits",
+      "start": " function bounded(",
+      "end": " // Web Audio",
+      "sha256": "995c6c16b7e9a27e5effd4daec4ae68783eb13effdda4ed1ccd6697db119215b"
+    },
+    {
+      "name": "audible clock, sounding gates and deterministic room",
+      "start": " function presentationTime(",
+      "end": " class PlaybackEngine{",
+      "sha256": "6d163fa5caf2cbd61083622994a4c7d2c647ff1222601e7cad0577a3cb7af7b1"
+    },
+    {
+      "name": "scheduler, clock object, cancellation fences and room cleanup",
+      "start": "  createClock(",
+      "end": "\n async function prepare(",
+      "sha256": "8ebda8833fd6f900aff2e00136bce3ec7cb7483b7c102197376e407e8b7d7802"
+    }
+  ],
+  "assets": [
+    {
+      "file": "vendor/spessasynth/index.js",
+      "sha256": "1a1aca2c3c7622c34dd06e9269159638f4cbb44da5b90296247451517e1baae5",
+      "license": "Apache-2.0",
+      "bytes": 214174
+    },
+    {
+      "file": "vendor/spessasynth/spessasynth_processor.min.js",
+      "sha256": "109ad445931e5c6e17739a994b2694d325577a6cb6fd2b56b39385edfc9e1fb5",
+      "license": "Apache-2.0",
+      "bytes": 402596
+    },
+    {
+      "file": "assets/soundfonts/GeneralUser-GS-v4.sf2.1",
+      "sha256": "f2a57c0c85d3b118b39d6cf6f5eb9447e8a22ec3884e6f616951412d7f5c3460",
+      "license": "GeneralUser GS license v2.0",
+      "bytes": 5758964
+    },
+    {
+      "file": "assets/soundfonts/GeneralUser-GS-alto-sax.sf2",
+      "sha256": "d7079d82a5fb6c985770578a89db8db153c20cefff38ed94270bb790bf3378e6",
+      "license": "GeneralUser GS license v2.0",
+      "bytes": 505140
+    }
+  ],
+  "assetLicenses": {
+    "spessasynthLib": "4.3.14 \u2014 Apache-2.0",
+    "spessasynthCore": "4.3.22 \u2014 Apache-2.0",
+    "stbVorbisWrapper": "0.0.6 \u2014 Apache-2.0; underlying stb_vorbis.c retains its public-domain dedication",
+    "generalUser": "Retain original GeneralUser-GS-LICENSE.txt; do not relabel sample assets as GPL",
+    "code": "Package license and upstream provenance retained separately from sound-bank terms"
+  },
+  "validation": {
+    "standalone": "Deterministic fake AudioContext/Synth tests for both profiles, asset configuration, integrity failures, cancellation and deadlines",
+    "upstreamParity": "Mandatory verbatim tests/fixtures/soundfont-caplin-reference.js compares scheduler/clock event traces without any adjacent project; fixture hash equals the recorded Caplin source hash",
+    "notClaimed": [
+      "New browser or physical-output listening evidence",
+      "Full SF2 synthesis PCM re-verification during this extraction",
+      "Full Rawl player compatibility"
+    ]
+  }
+}

@@ -1,0 +1,3 @@
+tests/fixtures/** -whitespace
+dist/** -whitespace
+src/notation/style.css -whitespace
