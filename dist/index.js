@@ -1,4 +1,4 @@
-/*! librawl version: 0.3.3; audio source sha256: 1950f8ca50b0b94fa1b6151f1a309a2413e8c0643f095f3ce0582bb45234c149; GPL-3.0-only */
+/*! librawl version: 0.3.4; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
 
 // src/notation/RawlNotation.jsx
 import React2, { forwardRef, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState as useState2 } from "react";
@@ -367,6 +367,127 @@ var RawlNotation = forwardRef(function RawlNotation2({ notes, beats, rows, tonic
     } }, /* @__PURE__ */ React2.createElement("div", { className: "rawln-grid", "aria-hidden": "true" }, regions.flatMap((region, i) => tonalLines(range, axis, region.tonic).map((line, j) => /* @__PURE__ */ React2.createElement("div", { key: `${i}-${j}`, "data-tonic": region.tonic, className: `rawln-${line.kind}-line`, style: { left: x(region.start) + "%", width: (region.end - region.start) / span * 100 + "%", top: line.y } })))), /* @__PURE__ */ React2.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic }), /* @__PURE__ */ React2.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, hoveredKey, setHoveredKey, hoveredRef, onNote, onNoteAudition: audition, auditionEnabled: selectedMeasure == null, onNoteHover, clock })), renderFooter && /* @__PURE__ */ React2.createElement("div", { className: "rawln-footer" }, renderFooter(row, { changes, selectedMeasure })));
   })));
 });
+
+// src/audio/continuous-playback.js
+function attachContinuousPlayback(engine, { setInterval, clearInterval, presentationTime, horizon = 0.14, interval = 25 }) {
+  const play = engine.play.bind(engine), stop = engine.stop.bind(engine), createClock = engine.createClock.bind(engine);
+  let session = null;
+  const priority = (e) => e.type === "cc" && [0, 32].includes(e.controller) ? -1 : { program: 0, cc: 1, off: 2, on: 3 }[e.type];
+  function scoreAt(s, time) {
+    var _a;
+    const segment = (_a = [...s.segments].reverse().find((a) => a.time <= time)) != null ? _a : s.segments[0];
+    return segment.score + (time - segment.time) * segment.rate;
+  }
+  function timeAt(s, score) {
+    var _a;
+    const segment = (_a = [...s.segments].reverse().find((a) => a.score <= score + 1e-10)) != null ? _a : s.segments[0];
+    return segment.time + (score - segment.score) / segment.rate;
+  }
+  engine.stop = () => {
+    session = null;
+    stop();
+  };
+  engine.play = (plan, mixers, offset = 0, output = engine.context.destination) => {
+    var _a;
+    const start = play({ ...plan, events: [], notes: [] }, mixers, offset, output), offsetTime = plan.timeAt(offset);
+    const snapshotAt = (beat2) => {
+      var _a2;
+      const snapshot = /* @__PURE__ */ new Map();
+      for (const event of plan.events) if (event.beat <= beat2 && ["program", "cc"].includes(event.type)) snapshot.set([event.channel, event.type, (_a2 = event.controller) != null ? _a2 : ""].join(":"), { ...event, beat: beat2 });
+      return [...snapshot.values()];
+    };
+    const heldAt = (beat2) => plan.notes.filter((n) => n.start < beat2 && n.end > beat2).map((n) => ({ beat: beat2, type: "on", channel: n.channel, pitch: n.pitch, velocity: n.velocity }));
+    const events = [...snapshotAt(offset), ...heldAt(offset), ...plan.events.filter((e) => e.beat >= offset && (e.type === "on" || e.type === "off") || e.beat > offset && e.type === "cc")].sort((a, b) => a.beat - b.beat || priority(a) - priority(b));
+    const s = { plan, start, offset, segments: [{ time: start, score: offsetTime, rate: 1 }], requestedRate: 1, committedUntil: start, cursor: 0, clock: null, pump: null, dynamic: false, sent: [] };
+    session = s;
+    let previous = offset;
+    const end = (_a = plan.beats) != null ? _a : plan.beatAt(plan.duration), endTime = () => timeAt(s, plan.timeAt(end));
+    const beat = () => {
+      const now = presentationTime(engine.context);
+      if (now < start) return null;
+      previous = Math.max(previous, Math.min(end, plan.beatAt(scoreAt(s, now))));
+      return previous;
+    };
+    s.clock = { beat, position: () => {
+      var _a2;
+      return (_a2 = beat()) != null ? _a2 : offset;
+    }, endTime, remaining: () => Math.max(0, endTime() - presentationTime(engine.context)) };
+    const send = (event, time) => {
+      s.committedUntil = Math.max(s.committedUntil, time);
+      engine.fence = Math.max(engine.fence, time);
+      s.sent.push({ event, time });
+      const options = { time }, synth = engine.synth;
+      if (event.type === "program") synth.programChange(event.channel, event.program, options);
+      else if (event.type === "cc") synth.controllerChange(event.channel, event.controller, event.value, options);
+      else if (event.type === "on") synth.noteOn(event.channel, event.pitch, event.velocity, options);
+      else synth.noteOff(event.channel, event.pitch, options);
+    };
+    s.pump = () => {
+      if (session !== s) return;
+      const now = engine.context.currentTime, until = now + horizon;
+      if (s.cursor < events.length && timeAt(s, plan.timeAt(events[s.cursor].beat)) < now - horizon) {
+        const time = now + 0.01, currentBeat = plan.beatAt(scoreAt(s, time));
+        if (s.dynamic) {
+          const active = /* @__PURE__ */ new Map(), settings = /* @__PURE__ */ new Map(), key = (e) => e.channel + ":" + e.pitch, setting = (e) => {
+            var _a2;
+            return [e.channel, e.type, (_a2 = e.controller) != null ? _a2 : ""].join(":");
+          };
+          for (const { event: e, time: at } of s.sent) if (at <= time) {
+            if (e.type === "on") active.set(key(e), e);
+            else if (e.type === "off") active.delete(key(e));
+            else settings.set(setting(e), e);
+          }
+          const expected = heldAt(currentBeat), wanted = new Set(expected.map(key));
+          for (const e of active.values()) if (!wanted.has(key(e))) send({ ...e, beat: currentBeat, type: "off" }, time);
+          for (const e of snapshotAt(currentBeat)) {
+            const old = settings.get(setting(e));
+            if (!old || (e.type === "program" ? old.program !== e.program : old.value !== e.value)) send(e, time);
+          }
+          for (const e of expected) if (!active.has(key(e))) send(e, time);
+        } else {
+          for (const channel of plan.channels) engine.synth.controllerChange(channel.channel, 120, 0, { time });
+          [...snapshotAt(currentBeat), ...heldAt(currentBeat)].sort((a, b) => priority(a) - priority(b)).forEach((event) => send(event, time));
+        }
+        while (s.cursor < events.length && events[s.cursor].beat < currentBeat) s.cursor++;
+      }
+      while (s.cursor < events.length) {
+        const event = events[s.cursor], time = timeAt(s, plan.timeAt(event.beat));
+        if (time > until) break;
+        s.cursor++;
+        send(event, time);
+      }
+      if (s.cursor === events.length) {
+        clearInterval(engine.interval);
+        engine.interval = null;
+      }
+    };
+    engine.interval = setInterval(s.pump, interval);
+    s.pump();
+    return start;
+  };
+  engine.createClock = (plan, start, offset = 0) => (session == null ? void 0 : session.plan) === plan && session.start === start && session.offset === offset ? session.clock : createClock(plan, start, offset);
+  engine.setRate = (rate) => {
+    if (!Number.isFinite(rate) || rate <= 0) throw new RangeError("Playback rate must be positive");
+    const s = session;
+    if (!s) return;
+    if (rate === s.requestedRate) return;
+    const time = Math.max(engine.context.currentTime, s.start, s.committedUntil), score = scoreAt(s, time);
+    s.segments = s.segments.filter((a) => a.time < time);
+    s.segments.push({ time, score, rate });
+    s.requestedRate = rate;
+    s.dynamic = true;
+    s.pump();
+  };
+  engine.getRate = () => {
+    var _a;
+    return (_a = session == null ? void 0 : session.requestedRate) != null ? _a : 1;
+  };
+  engine.remaining = () => {
+    var _a;
+    return (_a = session == null ? void 0 : session.clock.remaining()) != null ? _a : 0;
+  };
+  return engine;
+}
 
 // src/audio/soundfont-playback.js
 var import_meta = {};
@@ -912,7 +1033,7 @@ function createSoundFontPlayback(options = {}) {
         warmup.disconnect();
         attempt.warmup = null;
         for (const cleanup of attempt.cleanup.splice(0)) cleanup();
-        engine = new PlaybackEngine(context, synth);
+        engine = new ContinuousPlaybackEngine(context, synth);
         attempt.synth = null;
         phase = "ready";
         return engine;
@@ -932,6 +1053,12 @@ function createSoundFontPlayback(options = {}) {
       if (pending === attempt) pending = null;
     }
   }
+  class ContinuousPlaybackEngine extends PlaybackEngine {
+    constructor(context, synth) {
+      super(context, synth);
+      attachContinuousPlayback(this, { setInterval, clearInterval, presentationTime, horizon: HORIZON, interval: INTERVAL });
+    }
+  }
   function stop() {
     if (pending) {
       const attempt = pending;
@@ -941,7 +1068,7 @@ function createSoundFontPlayback(options = {}) {
     }
     engine == null ? void 0 : engine.stop();
   }
-  return { prepare, stop, stopAudition: () => engine == null ? void 0 : engine.stopAudition(), getContext: () => audioContext, getPreparationState: () => ({ phase, pending: !!pending, error: lastError }), PlaybackEngine, presentationTime, soundingIntervals, room: ROOM, roomImpulse, masterGain: MASTER_GAIN };
+  return { prepare, stop, stopAudition: () => engine == null ? void 0 : engine.stopAudition(), getContext: () => audioContext, getPreparationState: () => ({ phase, pending: !!pending, error: lastError }), PlaybackEngine: ContinuousPlaybackEngine, presentationTime, soundingIntervals, room: ROOM, roomImpulse, masterGain: MASTER_GAIN };
 }
 
 // src/audio/transport.js
@@ -951,7 +1078,7 @@ function createTransport({ makePlan, audio: providedAudio, onState = () => {
 } } = {}) {
   if (typeof makePlan !== "function") throw new TypeError("makePlan is required");
   const audioEngine = () => providedAudio != null ? providedAudio : globalThis.SoundFontPlayback;
-  let data = null, engine = null, context = null, clock = null, position = 0, tempo = 120, state = "idle", token = 0, frame = null, nodes = [], mixers = [], output = null, muted = /* @__PURE__ */ new Set(), auditionVoice = null, auditionGeneration = 0;
+  let data = null, engine = null, context = null, clock = null, position = 0, tempo = 120, planTempo = 120, state = "idle", token = 0, frame = null, nodes = [], mixers = [], output = null, muted = /* @__PURE__ */ new Set(), auditionVoice = null, auditionGeneration = 0;
   const emit = (s) => {
     state = s;
     onState(s);
@@ -1016,7 +1143,8 @@ function createTransport({ makePlan, audio: providedAudio, onState = () => {
         nodes.push(n);
         return n;
       });
-      const plan = makePlan(data, tempo), start = engine.play(plan, mixers, position, output);
+      planTempo = tempo;
+      const plan = makePlan(data, planTempo), start = engine.play(plan, mixers, position, output);
       clock = engine.createClock(plan, start, position);
       emit("playing");
       tick();
@@ -1065,12 +1193,10 @@ function createTransport({ makePlan, audio: providedAudio, onState = () => {
       else return play();
     },
     setTempo(value) {
-      const next = Math.max(40, Math.min(260, Number(value) || 120)), resume = state === "playing";
+      const next = Math.max(40, Math.min(260, Number(value) || 120));
       if (clock) position = clock.position();
-      if (state === "playing" || state === "loading") cancel();
       tempo = next;
-      if (resume) void play();
-      else if (state === "loading") emit("paused");
+      if (state === "playing") engine.setRate(next / planTempo);
     },
     setMuted(voice, value) {
       var _a;

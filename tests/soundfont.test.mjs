@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {createHash} from 'node:crypto';
 import vm from 'node:vm';
+import {buildSync} from 'esbuild';
 import {createSoundFontPlayback} from '../src/audio/soundfont-playback.js';
 
 const BASE={bytes:5758964,sha256:'f2a57c0c85d3b118b39d6cf6f5eb9447e8a22ec3884e6f616951412d7f5c3460'},SAX={url:'assets/soundfonts/GeneralUser-GS-alto-sax.sf2',name:'alto-sax',bytes:505140,sha256:'d7079d82a5fb6c985770578a89db8db153c20cefff38ed94270bb790bf3378e6'};
@@ -99,7 +100,7 @@ test('factory default profile produces the same scheduler and clock trace as the
 });
 
 test('legacy Caplin VM can install the factory with only outer interval timers and a separate window object',()=>{
- const source=fs.readFileSync(new URL('../src/audio/soundfont-playback.js',import.meta.url),'utf8').replace('export function createSoundFontPlayback','function createSoundFontPlayback').replaceAll('import.meta.url',JSON.stringify('https://example.test/soundfont-playback.js'));
- const callbacks=new Map();let serial=0;const scope={window:{},setInterval:fn=>{callbacks.set(++serial,fn);return serial;},clearInterval:id=>callbacks.delete(id),console};vm.runInNewContext(source+'\nwindow.SoundFontPlayback=createSoundFontPlayback({environment:window});',scope);
+ const source=buildSync({entryPoints:[new URL('../src/audio/soundfont-playback.js',import.meta.url).pathname],bundle:true,write:false,format:'iife',globalName:'LibrawlAudio',define:{'import.meta.url':JSON.stringify('https://example.test/soundfont-playback.js')},logLevel:'silent'}).outputFiles[0].text;
+ const callbacks=new Map();let serial=0;const scope={window:{},setInterval:fn=>{callbacks.set(++serial,fn);return serial;},clearInterval:id=>callbacks.delete(id),console};vm.runInNewContext(source+'\nwindow.SoundFontPlayback=LibrawlAudio.createSoundFontPlayback({environment:window});',scope);
  const engine=new scope.window.SoundFontPlayback.PlaybackEngine({currentTime:0},synthesizer()),p=plan();engine.play(p,[{}]);assert.equal(callbacks.size,1);engine.stop();assert.equal(callbacks.size,0);
 });

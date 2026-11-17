@@ -49,6 +49,10 @@ const engine=await audio.prepare(context);
 
 Assets remain explicitly host-owned. The default profile retains Caplin's bank and URLs. Additional banks and selectable audition programs are opt-in; the generated sax profile is used by Lego. No audio context is created merely by importing this library.
 
+During playback, `engine.setRate(rate)` changes speed without replaying sounding notes, reconnecting mixers, resetting controllers or clearing the room. The rate is an absolute multiplier relative to the original plan passed to `play`, rather than the preceding rate. A plan created at80 BPM needs `setRate(120/80)` to reach120 BPM. Each new `play` starts at rate1; `createTransport.setTempo` performs this conversion automatically, including after pause/resume. A tempo change during preparation keeps loading and uses the latest tempo when constructing the plan.
+
+The same clock object continues reporting the audible beat. `clock.endTime()` returns the revised AudioContext end time; `clock.remaining()` returns seconds from current audible presentation time to that end, including startup/output latency. Hosts with a completion timer must rearm it after changing rate. SpessaSynth cannot cancel already queued MIDI messages through its public API: those messages keep their timing, and the new rate starts at their committed fence, at most one140ms scheduling horizon ahead during playback. Unsent note-offs and attacks use the revised clock. Rapid changes at the same fence coalesce. Stop, pause and seek retain their existing cleanup/reconstruction behavior; the native Rawl worker transport remains unchanged.
+
 This scheduler consumes prepared note/program/CC plans. It does not claim arbitrary SMF, pitch-bend, aftertouch, multi-port or Rawl WASM backend equivalence. Rawl's threaded transport and consumed-sample clock are available through `librawl/native-audio`; the host retains its existing sequencer, worker and synthesis assets. See [migration status](docs/migration.md).
 
 ## Development

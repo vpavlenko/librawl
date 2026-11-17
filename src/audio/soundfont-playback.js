@@ -1,3 +1,4 @@
+import {attachContinuousPlayback} from './continuous-playback.js';
 /* One reusable SF2 synthesizer; independent MIDI voices feed the reader's staff mixers. */
 export function createSoundFontPlayback(options={}){
  const global=options.environment??globalThis;
@@ -311,11 +312,14 @@ export function createSoundFontPlayback(options={}){
     synth.setSystemParameter('effectsEnabled',false);synth.setSystemParameter('gain',.8);
     synth.disconnect(warmup);warmup.disconnect();attempt.warmup=null;
     for(const cleanup of attempt.cleanup.splice(0))cleanup();
-    engine=new PlaybackEngine(context,synth);attempt.synth=null;phase='ready';return engine;
+    engine=new ContinuousPlaybackEngine(context,synth);attempt.synth=null;phase='ready';return engine;
    }catch(error){attempt.controller.abort();dispose();if(pending===attempt){phase=error.name==='AbortError'?'idle':'failed';lastError=String(error);}throw error;}
   })();
   try{return await attempt.promise;}finally{if(pending===attempt)pending=null;}
  }
+ class ContinuousPlaybackEngine extends PlaybackEngine{
+  constructor(context,synth){super(context,synth);attachContinuousPlayback(this,{setInterval,clearInterval,presentationTime,horizon:HORIZON,interval:INTERVAL});}
+ }
  function stop(){if(pending){const attempt=pending;pending=null;attempt.controller.abort();phase='idle';}engine?.stop();}
- return {prepare,stop,stopAudition:()=>engine?.stopAudition(),getContext:()=>audioContext,getPreparationState:()=>({phase,pending:!!pending,error:lastError}),PlaybackEngine,presentationTime,soundingIntervals,room:ROOM,roomImpulse,masterGain:MASTER_GAIN};
+ return {prepare,stop,stopAudition:()=>engine?.stopAudition(),getContext:()=>audioContext,getPreparationState:()=>({phase,pending:!!pending,error:lastError}),PlaybackEngine:ContinuousPlaybackEngine,presentationTime,soundingIntervals,room:ROOM,roomImpulse,masterGain:MASTER_GAIN};
 }
