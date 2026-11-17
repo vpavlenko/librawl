@@ -2,15 +2,17 @@
 
 The ordering is deliberate: protect rawl.rocks behavior, then remove duplicate implementations. Runtime changes are validated in isolated checkouts before being considered for production.
 
-| Area | Current extraction | Remaining work |
+| Area | Shared implementation | Host boundary |
 | --- | --- | --- |
-| Rawl React runtime | React19.3.1 integration is being validated separately from production | Complete compiler, browser, console, playback and persistence gates before release |
-| Tonic flags | Original Rawl component is canonical here; Rawl keeps its context-reading wrapper | Integrate the same primitive into Caplin's annotation/label adapter after DOM parity tests |
-| Lego renderer | Beat adapter uses the shared native note renderer and section clock | Complete the consumer artifact and browser gates before publishing this migration |
-| Caplin audio | Same prepared-plan scheduler, optional banks and unchanged default profile | Keep source realization, ornaments, recording alignment and drafts in the host |
-| Rawl audio | Original threaded UI transport and byte-identical output worklet extracted; injected workers, assets and browser boundary; source/protocol/clock parity checks pass | Validate the host wrapper in Chrome; sequencer and synthesis worker remain host-owned |
-| Complete note visuals | Native source and contexts extracted; 102 cases match the original under React16 and React19; Rawl bridges and Caplin final-row React adapter implemented in isolated checkouts | Finish real-browser consumer validation; preserve host source/time identity |
-| Measure editing | Still host orchestration | Extract visual primitives with editing slots; preserve phrase patches, pickups, expressive measures and saved annotations |
+| Rawl React runtime | React/DOM 19.3.1 integrated and published | Existing app state, corpus, annotations and synthesis workers remain in Rawl |
+| Tonic flags | Original Rawl primitive plus optional host slots | Rawl keeps its context-reading wrapper; source identity and tonic-edit persistence stay host-owned |
+| Note visuals | Native renderer, bends, quartertones, drums, strums, voice stacking and section clock | Lego adapts quarter beats; Caplin mounts final display rows without moving React nodes |
+| SoundFont playback | Original prepared-plan scheduler with optional sax profile | Musical realization, ornaments, recording alignment and drafts stay host-owned |
+| Rawl audio | Original threaded UI transport and consumed-PCM clock; byte-identical output worklet | Sequencer, workers, WASM and assets remain host-owned |
+| Measure recoloring | Automatic per-score selection, hover preview, commit and Escape; exported hook/helpers for controlled hosts | Hosts may persist edits or retain existing analysis orchestration |
+| Measure geometry | Rawl headers/flags/phrase grid, with optional exact source measure maps | Pickup maps preserve authored times and source labels |
+| Tempo shortcuts | One exported keyboard binding for coarse and fine Rawl speed deltas | Hosts connect their existing BPM/rate controls and bounds |
+
 
 Lego now adapts its smaller model to the complete Rawl renderer. Rawl uses seconds-based spans, separate display spans/pitches, pitch bends, quartertones, drum pulses, strumming, grouped instruments, annotation editing and a consumed-PCM playback clock. Caplin adds authored ornaments, dynamics, exact notated measure labels, recording alignment and saved composition drafts. Each must retain its existing identity and timing during extraction.
 
@@ -25,4 +27,4 @@ Required gates for each move:
 
 The legacy Caplin sync script refuses stale manifests or divergent canonical/mirror bytes before writing. It generates distributions from this source; mirrors are not separate editable implementations.
 
-Caplin's React migration is a guarded, idempotent source patch plus a generated browser artifact; its 364-example corpus check covers 712 rows and 43,492 displayed note rectangles without mutating source or realized notes. See [the integration boundary](../integrations/caplin/react-README.md). Both original dirty host checkouts and public production releases stay unchanged until their review and browser gates pass.
+Caplin's React migration is a guarded, idempotent source patch plus a generated browser artifact; its 364-example corpus check covers 712 rows and 43,492 displayed note rectangles without mutating source or realized notes. See [the integration boundary](../integrations/caplin/react-README.md). The original dirty host checkouts preserve unrelated work; see [current source and release evidence](integration-status.md) for completed gates and remaining boundaries.
