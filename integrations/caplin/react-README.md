@@ -28,11 +28,17 @@ classes retain the 5px resting, 10px MIDI/audition and 12px recording policies.
 Resize preserves host classes, hidden state, transpose/preview attributes and
 captured node references.
 
-Do not load `native.css` into Caplin yet. Its `noteColor_* !important` rules would
-override the existing measure-preview inline recoloring. The adapter uses
-Caplin's existing shape CSS and the shared palette, retaining both native and
-compatibility voice class names. This is an explicit retained host boundary,
-not a claim that Caplin's annotation or editable-grid rendering has moved.
+## Host styling
+
+The browser adapter exposes the native note classes. A static host that uses
+librawl's note colors loads `dist/native.css` from the same package as the
+browser adapter. See the [stylesheet import guide](../../README.md#styles).
+
+Caplin's measure preview recolors note rectangles through inline styles. Keep
+Caplin's existing stylesheet for note colors, dots and shapes in that
+integration, since `native.css` sets `noteColor_*` backgrounds with
+`!important`. The adapter retains both native and compatibility voice classes
+so those host styles can continue to apply.
 
 ## Install and verify
 

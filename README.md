@@ -23,7 +23,40 @@ The library owns the actual Rawl note renderer, tonic flags, palette, playback h
 
 React is a peer dependency for package modules. The optional legacy Caplin browser adapter bundles React 19 because its host has no React runtime. The native renderer is compared against the original Rawl in 102 cases under both React16.14 and React19.3.1. Built ESM/CommonJS and legacy Webpack subpath entries are committed so consumers do not need a JSX or TypeScript compiler for this package.
 
-### Roman numerals and score annotations
+## Styles
+
+Load the stylesheets for the components you render. Import each sheet once at the application entry point. For a static reader, link the CSS files from the same pinned librawl package as the JavaScript, then load your host layout styles.
+
+| What you render | Stylesheets to import |
+| --- | --- |
+| `RawlNotation` from `librawl` | `librawl/style.css` and `librawl/native.css` |
+| `RawlMeasureHeader` or `TonicSymbol` on its own | `librawl/style.css` |
+| `NoteLayer` or `getNoteRectangles` inside a host-owned score | `librawl/native.css` and the host's score layout styles |
+| Roman numerals, guitar chord symbols or Roman-numeral tooltips | `librawl/roman-numerals.css` |
+| Beat-aligned harmony annotations | `librawl/roman-numerals.css` and `librawl/harmony-annotations.css` |
+| Playback footer, piano legend or score-size sliders | `librawl/playback-footer.css`, `librawl/piano-legend.css` or `librawl/score-size-sliders.css` for the corresponding widget |
+
+`style.css` lays out notation and measure headers. `native.css` supplies the pitch colors, distinguishing dots and voice shapes for the note rectangles. For the full React score, import both as shown under [React notation](#react-notation).
+
+### Static readers
+
+Copy `dist/native.css` and `dist/browser/caplin-notes.js` from the same package archive into your static assets directory. This example uses the adapter in a host-owned score layout.
+
+```html
+<link rel="stylesheet" href="./vendor/librawl/native.css">
+<link rel="stylesheet" href="./reader.css">
+<script defer src="./vendor/librawl/caplin-notes.js"></script>
+```
+
+If the reader also loads the browser harmony-annotation adapter, add links to `dist/roman-numerals.css` and `dist/harmony-annotations.css` from that archive. A reader that wants the combined stylesheet can link `dist/legacy-style.css` once for notation, native notes, host chord overlays, Roman numerals and harmony annotations. Widget CSS is separate.
+
+If the notes appear but ♭2 and ♯4 lack their dots, check that `native.css` loaded and inspect the computed `::after` on a note with `pitchDot_1` or `pitchDot_6`. The standard dots are white on ♭2 and black on ♯4.
+
+### Hosts that own note recoloring
+
+`native.css` sets the native note backgrounds with `!important`. When a host injects the same palette rules through CSS-in-JS, use `nativeColorStyles()` from `librawl/native` and import `librawl/voice-shapes.css` once, as Rawl does. For hosts that recolor notes through inline styles, follow the [Caplin adapter's styling guidance](integrations/caplin/react-README.md#host-styling) so the preview can keep control of note backgrounds.
+
+## Roman numerals and score annotations
 
 Use `RomanNumeral` from `librawl/components` in React, or `romanNumeralHTML` from `librawl/roman-numerals` in static markup. Both use `librawl/roman-numerals.css`.
 
@@ -48,6 +81,8 @@ const removeAnnotations = mountHarmonyAnnotations(score, {
 Use `guitarChordHTML("Dm7", {tonic: 0})` from `librawl/roman-numerals` for letter-name chords. The tonic pitch class sets the reference for the symbol colors. This uses the same stylesheet.
 
 Static readers can load `librawl/browser/harmony-annotations.js` for `LibrawlHarmony`, which exposes the same chord formatters and annotation renderer.
+
+## React notation
 
 ```jsx
 import {RawlNotation} from 'librawl';
