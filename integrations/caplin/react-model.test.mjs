@@ -21,7 +21,7 @@ test('section clipping keeps original sounding spans and aligns pickup prefixes 
 });
 test('midpoint tonic selection retains the preceding region on an exact modulation boundary',()=>{
  const f=fixture(),model=caplinNoteModel(f),held=model.getAttributes(model.notes[0]),following=model.getAttributes(model.notes[1]);
- assert.equal(held['data-tonic'],'0');assert.equal(held['data-pitch-class'],'0');assert.equal(held.style.backgroundColor,'white');
+ assert.equal(held['data-tonic'],'0');assert.equal(held['data-pitch-class'],'0');assert.equal(held.style.backgroundColor,undefined);
  assert.equal(following['data-tonic'],'5');assert.equal(following['data-pitch-class'],'0');
  const stacking=new Map([[f.notes[0],4501]]);assert.equal(caplinNoteModel({...f,stacking}).getAttributes(model.notes[0]).style.zIndex,4501);
 });

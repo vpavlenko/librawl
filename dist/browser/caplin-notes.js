@@ -15288,7 +15288,7 @@ var LibrawlCaplinNotes = (() => {
     const sectioned = view.start !== 0 || view.end !== data.beats || pad !== 0 || span !== data.beats;
     const sourceById = /* @__PURE__ */ new Map(), attributesById = /* @__PURE__ */ new Map();
     const nativeNotes = notes.flatMap((source, index) => {
-      var _a2, _b2, _c2, _d;
+      var _a2, _b2, _c2;
       const start = Math.max(source.start, view.start), end = Math.min(source.start + source.duration, view.end);
       if (!(end - start > EPS)) return [];
       const staff = groupFor.get(source.voice);
@@ -15310,8 +15310,7 @@ var LibrawlCaplinNotes = (() => {
           left: sectioned ? left + "%" : `max(0px, calc(${left}% - 0px))`,
           width: `max(1px, calc(${width}% - 1px))`,
           top: axis.pitchToY(source.pitch),
-          backgroundColor: (_c2 = RAWL_COLORS[degree]) == null ? void 0 : _c2.background,
-          zIndex: (_d = stacking.get(source)) != null ? _d : 10,
+          zIndex: (_c2 = stacking.get(source)) != null ? _c2 : 10,
           // Caplin's existing classes own 5px resting/10px MIDI or audition/12px recording.
           // Native note geometry still supplies the full Rawl component and interactions.
           height: void 0,

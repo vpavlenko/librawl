@@ -52,9 +52,11 @@ If the reader also loads the browser harmony-annotation adapter, add links to `d
 
 If the notes appear but ♭2 and ♯4 lack their dots, check that `native.css` loaded and inspect the computed `::after` on a note with `pitchDot_1` or `pitchDot_6`. The standard dots are white on ♭2 and black on ♯4.
 
-### Hosts that own note recoloring
+### Hosts that update pitch colors
 
-`native.css` sets the native note backgrounds with `!important`. When a host injects the same palette rules through CSS-in-JS, use `nativeColorStyles()` from `librawl/native` and import `librawl/voice-shapes.css` once, as Rawl does. For hosts that recolor notes through inline styles, follow the [Caplin adapter's styling guidance](integrations/caplin/react-README.md#host-styling) so the preview can keep control of note backgrounds.
+React consumers pass the current tonic-relative pitch through the native note model. A host that updates its own semitone note elements can set `data-pitch-class` to a tonic-relative integer from 0 to 11. Update that attribute during a preview to change both the note color and its dot. The stylesheet uses the native note classes for elements without the attribute.
+
+When a host injects the same palette rules through CSS-in-JS, use `nativeColorStyles()` from `librawl/native` and import `librawl/voice-shapes.css` once, as Rawl does. For the standard CSS cascade, give a colored element its fallback background only when no pitch color applies.
 
 ## Roman numerals and score annotations
 

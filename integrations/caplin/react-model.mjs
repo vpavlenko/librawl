@@ -1,4 +1,3 @@
-import {RAWL_COLORS} from '../../src/notation/palette.mjs';
 import {tonicAt} from '../../src/notation/geometry.mjs';
 
 const EPS=1e-6,pc=n=>((n%12)+12)%12;
@@ -27,7 +26,7 @@ export function caplinNoteModel({data,notes,row,axis,stacking=new Map()}){
    style:{
     left:sectioned?left+'%':`max(0px, calc(${left}% - 0px))`,
     width:`max(1px, calc(${width}% - 1px))`,top:axis.pitchToY(source.pitch),
-    backgroundColor:RAWL_COLORS[degree]?.background,zIndex:stacking.get(source)??10,
+    zIndex:stacking.get(source)??10,
     // Caplin's existing classes own 5px resting/10px MIDI or audition/12px recording.
     // Native note geometry still supplies the full Rawl component and interactions.
     height:undefined,boxShadow:undefined,cursor:undefined,display:undefined,

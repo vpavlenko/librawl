@@ -34,11 +34,9 @@ The browser adapter exposes the native note classes. A static host that uses
 librawl's note colors loads `dist/native.css` from the same package as the
 browser adapter. See the [stylesheet import guide](../../README.md#styles).
 
-Caplin's measure preview recolors note rectangles through inline styles. Keep
-Caplin's existing stylesheet for note colors, dots and shapes in that
-integration, since `native.css` sets `noteColor_*` backgrounds with
-`!important`. The adapter retains both native and compatibility voice classes
-so those host styles can continue to apply.
+Caplin updates `data-pitch-class` during its tonic preview. The shared CSS
+uses that value for the fill and dot, so both reflect the same temporary
+tonic. The adapter retains both native and compatibility voice classes.
 
 ## Install and verify
 

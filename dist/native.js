@@ -888,6 +888,7 @@ function NoteLayer({ notes, midiNumberToY, noteHeight, handleNoteClick = null, h
 }
 
 // src/rawlnative/native-style.mjs
+var nativeFallback = ":where(:not([data-pitch-class]))";
 var nativeColorStyles = () => `
   :root {
     ${RAWL_COLORS.map(
@@ -899,25 +900,29 @@ var nativeColorStyles = () => `
     background-color: ${pitchColor(0)};
   }
 
-  ${RAWL_COLORS.map(({ dot }, pitch) => `
-    .${noteColorClass(pitch)} {
-      background-color: ${pitchColor(pitch)} !important;
+  ${RAWL_COLORS.map(({ dot }, pitch) => {
+  const attribute = `[data-pitch-class="${pitch}"]`;
+  const colorClass = `.${noteColorClass(pitch)}${nativeFallback}`;
+  return `
+    ${attribute}, ${colorClass} {
+      background-color: ${pitchColor(pitch)};
     }
     ${dot ? `
-      .${noteColorClass(pitch)}::after, .pitchDot_${pitch}::after {
+      ${attribute}::after, ${colorClass}::after, .pitchDot_${pitch}${nativeFallback}::after {
         content: "";
         position: absolute;
         top: calc(50% + var(--pitch-dot-offset, 0px));
         left: 50%;
         width: ${dot.size}px;
         height: ${dot.size}px;
-        background-color: ${dot.color} !important;
+        background-color: ${dot.color};
         border-radius: 50%;
         transform: translate(-50%, -50%);
         pointer-events: none;
       }
     ` : ""}
-  `).join("\n")}
+  `;
+}).join("\n")}
 `;
 export {
   DrumPlaybackContext,

@@ -30,24 +30,24 @@
   }
 
   
-    .noteColor_0_colors {
-      background-color: var(--pitch-color-0) !important;
+    [data-pitch-class="0"], .noteColor_0_colors:where(:not([data-pitch-class])) {
+      background-color: var(--pitch-color-0);
     }
     
   
 
-    .noteColor_1_colors {
-      background-color: var(--pitch-color-1) !important;
+    [data-pitch-class="1"], .noteColor_1_colors:where(:not([data-pitch-class])) {
+      background-color: var(--pitch-color-1);
     }
     
-      .noteColor_1_colors::after, .pitchDot_1::after {
+      [data-pitch-class="1"]::after, .noteColor_1_colors:where(:not([data-pitch-class]))::after, .pitchDot_1:where(:not([data-pitch-class]))::after {
         content: "";
         position: absolute;
         top: calc(50% + var(--pitch-dot-offset, 0px));
         left: 50%;
         width: 1px;
         height: 1px;
-        background-color: white !important;
+        background-color: white;
         border-radius: 50%;
         transform: translate(-50%, -50%);
         pointer-events: none;
@@ -55,42 +55,42 @@
     
   
 
-    .noteColor_2_colors {
-      background-color: var(--pitch-color-2) !important;
+    [data-pitch-class="2"], .noteColor_2_colors:where(:not([data-pitch-class])) {
+      background-color: var(--pitch-color-2);
     }
     
   
 
-    .noteColor_3_colors {
-      background-color: var(--pitch-color-3) !important;
+    [data-pitch-class="3"], .noteColor_3_colors:where(:not([data-pitch-class])) {
+      background-color: var(--pitch-color-3);
     }
     
   
 
-    .noteColor_4_colors {
-      background-color: var(--pitch-color-4) !important;
+    [data-pitch-class="4"], .noteColor_4_colors:where(:not([data-pitch-class])) {
+      background-color: var(--pitch-color-4);
     }
     
   
 
-    .noteColor_5_colors {
-      background-color: var(--pitch-color-5) !important;
+    [data-pitch-class="5"], .noteColor_5_colors:where(:not([data-pitch-class])) {
+      background-color: var(--pitch-color-5);
     }
     
   
 
-    .noteColor_6_colors {
-      background-color: var(--pitch-color-6) !important;
+    [data-pitch-class="6"], .noteColor_6_colors:where(:not([data-pitch-class])) {
+      background-color: var(--pitch-color-6);
     }
     
-      .noteColor_6_colors::after, .pitchDot_6::after {
+      [data-pitch-class="6"]::after, .noteColor_6_colors:where(:not([data-pitch-class]))::after, .pitchDot_6:where(:not([data-pitch-class]))::after {
         content: "";
         position: absolute;
         top: calc(50% + var(--pitch-dot-offset, 0px));
         left: 50%;
         width: 2px;
         height: 2px;
-        background-color: black !important;
+        background-color: black;
         border-radius: 50%;
         transform: translate(-50%, -50%);
         pointer-events: none;
@@ -98,32 +98,32 @@
     
   
 
-    .noteColor_7_colors {
-      background-color: var(--pitch-color-7) !important;
+    [data-pitch-class="7"], .noteColor_7_colors:where(:not([data-pitch-class])) {
+      background-color: var(--pitch-color-7);
     }
     
   
 
-    .noteColor_8_colors {
-      background-color: var(--pitch-color-8) !important;
+    [data-pitch-class="8"], .noteColor_8_colors:where(:not([data-pitch-class])) {
+      background-color: var(--pitch-color-8);
     }
     
   
 
-    .noteColor_9_colors {
-      background-color: var(--pitch-color-9) !important;
+    [data-pitch-class="9"], .noteColor_9_colors:where(:not([data-pitch-class])) {
+      background-color: var(--pitch-color-9);
     }
     
   
 
-    .noteColor_10_colors {
-      background-color: var(--pitch-color-10) !important;
+    [data-pitch-class="10"], .noteColor_10_colors:where(:not([data-pitch-class])) {
+      background-color: var(--pitch-color-10);
     }
     
   
 
-    .noteColor_11_colors {
-      background-color: var(--pitch-color-11) !important;
+    [data-pitch-class="11"], .noteColor_11_colors:where(:not([data-pitch-class])) {
+      background-color: var(--pitch-color-11);
     }
     
   

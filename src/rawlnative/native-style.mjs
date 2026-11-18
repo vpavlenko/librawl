@@ -1,5 +1,9 @@
 import {RAWL_COLORS,pitchColor,noteColorClass} from "./colors.mjs";
-/** The exact former Rawl createGlobalStyle template, without a styling-library dependency. */
+
+// The native renderer keeps its pitch classes for bends and fractional notes.
+// A host-owned semitone note can update its current degree without rerendering.
+const nativeFallback = ':where(:not([data-pitch-class]))';
+
 export const nativeColorStyles=()=>`
   :root {
     ${RAWL_COLORS.map(({ background }, pitch) =>
@@ -11,23 +15,27 @@ export const nativeColorStyles=()=>`
     background-color: ${pitchColor(0)};
   }
 
-  ${RAWL_COLORS.map(({ dot }, pitch) => `
-    .${noteColorClass(pitch)} {
-      background-color: ${pitchColor(pitch)} !important;
+  ${RAWL_COLORS.map(({ dot }, pitch) => {
+    const attribute = `[data-pitch-class="${pitch}"]`;
+    const colorClass = `.${noteColorClass(pitch)}${nativeFallback}`;
+    return `
+    ${attribute}, ${colorClass} {
+      background-color: ${pitchColor(pitch)};
     }
     ${dot ? `
-      .${noteColorClass(pitch)}::after, .pitchDot_${pitch}::after {
+      ${attribute}::after, ${colorClass}::after, .pitchDot_${pitch}${nativeFallback}::after {
         content: "";
         position: absolute;
         top: calc(50% + var(--pitch-dot-offset, 0px));
         left: 50%;
         width: ${dot.size}px;
         height: ${dot.size}px;
-        background-color: ${dot.color} !important;
+        background-color: ${dot.color};
         border-radius: 50%;
         transform: translate(-50%, -50%);
         pointer-events: none;
       }
     ` : ""}
-  `).join("\n")}
+  `;
+  }).join("\n")}
 `;

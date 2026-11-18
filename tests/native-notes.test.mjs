@@ -90,7 +90,12 @@ test('native playback indexes equal the original trace for half-open boundaries,
 
 test('native pitch-bend samples, sounding pitch, color interpolation and quartertone windows match the source',()=>{
  const api=load(nativeCode,runtimes[1].React),original=load(referenceCode,runtimes[1].React);
- assert.equal(api.nativeColorStyles(),original.RawlColorStyles.css);
+ const css=api.nativeColorStyles();
+ assert.doesNotMatch(css,/!important/);
+ assert.match(css,/\[data-pitch-class="1"\]::after/);
+ assert.match(css,/\[data-pitch-class="6"\]::after/);
+ const classRules=css.replace(/\[data-pitch-class="\d+"\](?:::after)?, /g,'').replaceAll(':where(:not([data-pitch-class]))','');
+ assert.equal(classRules,original.RawlColorStyles.css.replaceAll(' !important',''));
  for(let pitch=-24;pitch<=84;pitch+=.125){assert.equal(api.notePitchDotClass(pitch),original.notePitchDotClass(pitch));assert.equal(api.getQuarterToneMarkerPosition(pitch),original.getQuarterToneMarkerPosition(pitch));assert.equal(api.interpolatedPitchColor(pitch),original.interpolatedPitchColor(pitch));}
  const n=note('bent',{pitchBend:[{time:-1,value:6144},{time:0,value:8192},{time:1,value:10240},{time:1,value:6144}]});for(const time of [-1,0,.5,1,1.5,2,3])assert.equal(api.getNotePitchAtTime(n,time),original.getNotePitchAtTime(n,time));assert.deepEqual(JSON.parse(JSON.stringify(api.getPitchBendSamples(n.pitchBend,n.span))),JSON.parse(JSON.stringify(original.getPitchBendSamples(n.pitchBend,n.span))));
 });

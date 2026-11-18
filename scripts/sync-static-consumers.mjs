@@ -5,9 +5,10 @@ import os from 'node:os';
 import path from 'node:path';
 
 const caplinArtifacts = new Map([
-  ['soundfont-playback.js', ['soundfont-playback.js', 'soundfontArtifactSha256']],
-  ['librawl-caplin-notes.js', ['caplin-notes.js', 'browserArtifactSha256']],
-  ['librawl-tempo-keys.js', ['tempo-keys.js', 'tempoArtifactSha256']],
+  ['soundfont-playback.js', ['dist/browser/soundfont-playback.js', 'soundfontArtifactSha256']],
+  ['librawl-caplin-notes.js', ['dist/browser/caplin-notes.js', 'browserArtifactSha256']],
+  ['librawl-tempo-keys.js', ['dist/browser/tempo-keys.js', 'tempoArtifactSha256']],
+  ['librawl-native.css', ['dist/native.css', 'nativeStyleArtifactSha256']],
 ]);
 const hash = (bytes, algorithm = 'sha256', encoding = 'hex') =>
   createHash(algorithm).update(bytes).digest(encoding);
@@ -38,6 +39,11 @@ function prepareStartup(reader, operations) {
         const next = operations.get(source);
         if (next) fs.writeFileSync(target, next);
         else if (name !== 'index.html' && name !== 'startup-manifest.json') fs.symlinkSync(source, target);
+      }
+    }
+    for (const [file, bytes] of operations) {
+      if (path.dirname(file) === dist && !fs.existsSync(file)) {
+        fs.writeFileSync(path.join(sandbox, 'dist', path.basename(file)), bytes);
       }
     }
     execFileSync(process.execPath, [path.join(sandbox, 'scripts/prepare-startup.cjs')], {
@@ -115,8 +121,7 @@ export function syncStaticConsumers({repos, libraryRoot, archive, version, sha25
   const mirror = shared.modules.find(item => item.source === mirrorSource && item.caplinMirror === mirrorName);
   if (!mirror) throw Error('Caplin SoundFont compatibility mirror is absent');
 
-  for (const [destination, [filename, fingerprint]] of caplinArtifacts) {
-    const packageEntry = 'dist/browser/' + filename;
+  for (const [destination, [packageEntry, fingerprint]] of caplinArtifacts) {
     const bytes = extract(packageEntry);
     const target = 'dist/' + destination;
     nextLock.artifactCopies.push({destination: target, packageEntry});
@@ -142,10 +147,9 @@ export function syncStaticConsumers({repos, libraryRoot, archive, version, sha25
   const mortensenPreview = path.join(root, 'deployments/mortensen/dist');
   if (fs.existsSync(path.join(mortensen, 'index.html'))) {
     const keys = extract('dist/browser/playback-keys.js');
-    operations.set(path.join(mortensen, 'librawl-playback-keys.js'), keys);
     if (fs.existsSync(path.join(mortensenPreview, 'index.html'))) {
       operations.set(path.join(mortensenPreview, 'librawl-playback-keys.js'), keys);
-      for (const filename of ['soundfont-playback.js', 'librawl-caplin-notes.js']) {
+      for (const filename of ['soundfont-playback.js', 'librawl-caplin-notes.js', 'librawl-native.css']) {
         operations.set(path.join(mortensenPreview, filename), operations.get(path.join(reader, 'dist', filename)));
       }
     }
