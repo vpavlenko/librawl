@@ -1,7 +1,7 @@
-/*! librawl version: 0.3.5-local; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
+/*! librawl version: 0.4.0-local; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
 
 // src/notation/RawlNotation.jsx
-import React3, { forwardRef as forwardRef2, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState as useState2 } from "react";
+import React3, { useImperativeHandle, useLayoutEffect, useMemo, useRef, useState as useState2 } from "react";
 
 // src/notation/geometry.mjs
 var PITCH_STEP = 3;
@@ -213,14 +213,8 @@ function TonicSymbol({ left, number, previousTonic, modulationDiff, tonicStart, 
 }
 
 // src/notation/PlaybackMeasureBorders.jsx
-import React2, { forwardRef } from "react";
-var PlaybackMeasureBorders = forwardRef(function PlaybackMeasureBorders2({
-  left,
-  width,
-  top = true,
-  bottom = true,
-  hidden = false
-}, ref) {
+import React2 from "react";
+function PlaybackMeasureBorders({ left, width, top = true, bottom = true, hidden = false, ref }) {
   return /* @__PURE__ */ React2.createElement("div", { "aria-hidden": "true", className: "rawln-playback-measure", hidden, ref, style: {
     position: "absolute",
     left,
@@ -232,7 +226,7 @@ var PlaybackMeasureBorders = forwardRef(function PlaybackMeasureBorders2({
     borderTop: top ? "1px solid #444" : void 0,
     borderBottom: bottom ? "1px solid #444" : void 0
   } });
-});
+}
 
 // src/notation/RawlNotation.jsx
 import { NoteLayer, NotePlaybackContext, PlaybackSectionContext, createSectionPlaybackClock } from "librawl/native";
@@ -455,7 +449,7 @@ function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, hovere
     return { role: "button", tabIndex: -1, "aria-label": noteName(original.pitch), "data-note": original.id, "data-pitch": original.pitch, "data-degree": degree, "data-voice": original.voice, className: `rawln-note rawln-voice-${original.voice}${muted ? " rawln-muted" : ""}`, style: { left: (start - row.start) / span * 100 + "%", width: (end - start) / span * 100 + "%", ...!((_a = note.pitchBend) == null ? void 0 : _a.length) && RAWL_COLORS[degree] ? { background: RAWL_COLORS[degree].background } : {}, zIndex: 100 + (84 - original.pitch) + (original.voice === 1 ? 128 : 0) } };
   } })));
 }
-var RawlNotation = forwardRef2(function RawlNotation2({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = [], onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, renderHeader, renderUnderlay, renderFooter, className = "", style }, ref) {
+function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = [], onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, renderHeader, renderUnderlay, renderFooter, className = "", style, ref }) {
   const root = useRef(null), hoveredRef = useRef(null), [hoveredKey, setHoveredKey] = useState2(null), ownClock = useMemo(createSectionPlaybackClock, []), clock = playbackClock != null ? playbackClock : ownClock;
   const audition = onNoteAudition != null ? onNoteAudition : onNote;
   const seek = onSeek != null ? onSeek : ((beat) => (playbackClock == null ? void 0 : playbackClock.seek) ? playbackClock.seek(beat) : clock.advance(beat));
@@ -493,7 +487,7 @@ var RawlNotation = forwardRef2(function RawlNotation2({ notes, beats, rows, toni
       else if (selectedMeasure === null) seek(Math.max(row.start, note.start));
     }, onNoteAudition: audition, auditionEnabled: selectedMeasure == null, onNoteHover, clock })), renderFooter && /* @__PURE__ */ React3.createElement("div", { className: "rawln-footer" }, renderFooter(row, { changes, selectedMeasure })));
   })));
-});
+}
 
 // src/components/PlaybackFooter.jsx
 import React4, { memo, useCallback, useEffect as useEffect2, useLayoutEffect as useLayoutEffect2, useMemo as useMemo2, useRef as useRef2 } from "react";
@@ -2393,7 +2387,7 @@ function ScoreSizeSliders({ noteHeight, timeSpacing, onNoteHeightChange, onTimeS
 import React7, { useEffect as useEffect5, useRef as useRef5, useState as useState4 } from "react";
 
 // node_modules/lucide-react/dist/esm/createLucideIcon.js
-import { forwardRef as forwardRef4, createElement as createElement3 } from "react";
+import { forwardRef as forwardRef2, createElement as createElement3 } from "react";
 
 // node_modules/lucide-react/dist/esm/shared/src/utils.js
 var toKebabCase = (string) => string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
@@ -2417,7 +2411,7 @@ var hasA11yProp = (props) => {
 };
 
 // node_modules/lucide-react/dist/esm/Icon.js
-import { forwardRef as forwardRef3, createElement as createElement2 } from "react";
+import { forwardRef, createElement as createElement2 } from "react";
 
 // node_modules/lucide-react/dist/esm/defaultAttributes.js
 var defaultAttributes = {
@@ -2433,7 +2427,7 @@ var defaultAttributes = {
 };
 
 // node_modules/lucide-react/dist/esm/Icon.js
-var Icon = forwardRef3(
+var Icon = forwardRef(
   ({
     color: color2 = "currentColor",
     size = 24,
@@ -2465,7 +2459,7 @@ var Icon = forwardRef3(
 
 // node_modules/lucide-react/dist/esm/createLucideIcon.js
 var createLucideIcon = (iconName, iconNode) => {
-  const Component = forwardRef4(
+  const Component = forwardRef2(
     ({ className, ...props }, ref) => createElement3(Icon, {
       ref,
       iconNode,

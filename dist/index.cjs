@@ -1,4 +1,4 @@
-/*! librawl version: 0.3.5-local; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
+/*! librawl version: 0.4.0-local; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -270,13 +270,7 @@ function TonicSymbol({ left, number, previousTonic, modulationDiff, tonicStart, 
 
 // src/notation/PlaybackMeasureBorders.jsx
 var import_react = __toESM(require("react"), 1);
-var PlaybackMeasureBorders = (0, import_react.forwardRef)(function PlaybackMeasureBorders2({
-  left,
-  width,
-  top = true,
-  bottom = true,
-  hidden = false
-}, ref) {
+function PlaybackMeasureBorders({ left, width, top = true, bottom = true, hidden = false, ref }) {
   return /* @__PURE__ */ import_react.default.createElement("div", { "aria-hidden": "true", className: "rawln-playback-measure", hidden, ref, style: {
     position: "absolute",
     left,
@@ -288,7 +282,7 @@ var PlaybackMeasureBorders = (0, import_react.forwardRef)(function PlaybackMeasu
     borderTop: top ? "1px solid #444" : void 0,
     borderBottom: bottom ? "1px solid #444" : void 0
   } });
-});
+}
 
 // src/notation/RawlNotation.jsx
 var import_native = require("librawl/native");
@@ -511,7 +505,7 @@ function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, hovere
     return { role: "button", tabIndex: -1, "aria-label": noteName(original.pitch), "data-note": original.id, "data-pitch": original.pitch, "data-degree": degree, "data-voice": original.voice, className: `rawln-note rawln-voice-${original.voice}${muted ? " rawln-muted" : ""}`, style: { left: (start - row.start) / span * 100 + "%", width: (end - start) / span * 100 + "%", ...!((_a = note.pitchBend) == null ? void 0 : _a.length) && RAWL_COLORS[degree] ? { background: RAWL_COLORS[degree].background } : {}, zIndex: 100 + (84 - original.pitch) + (original.voice === 1 ? 128 : 0) } };
   } })));
 }
-var RawlNotation = (0, import_react3.forwardRef)(function RawlNotation2({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = [], onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, renderHeader, renderUnderlay, renderFooter, className = "", style }, ref) {
+function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = [], onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, renderHeader, renderUnderlay, renderFooter, className = "", style, ref }) {
   const root = (0, import_react3.useRef)(null), hoveredRef = (0, import_react3.useRef)(null), [hoveredKey, setHoveredKey] = (0, import_react3.useState)(null), ownClock = (0, import_react3.useMemo)(import_native.createSectionPlaybackClock, []), clock = playbackClock != null ? playbackClock : ownClock;
   const audition = onNoteAudition != null ? onNoteAudition : onNote;
   const seek = onSeek != null ? onSeek : ((beat) => (playbackClock == null ? void 0 : playbackClock.seek) ? playbackClock.seek(beat) : clock.advance(beat));
@@ -549,7 +543,7 @@ var RawlNotation = (0, import_react3.forwardRef)(function RawlNotation2({ notes,
       else if (selectedMeasure === null) seek(Math.max(row.start, note.start));
     }, onNoteAudition: audition, auditionEnabled: selectedMeasure == null, onNoteHover, clock })), renderFooter && /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-footer" }, renderFooter(row, { changes, selectedMeasure })));
   })));
-});
+}
 
 // src/components/PlaybackFooter.jsx
 var import_react4 = __toESM(require("react"), 1);

@@ -1,4 +1,4 @@
-/*! librawl version: 0.3.5-local; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
+/*! librawl version: 0.4.0-local; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
 var LibrawlCaplinNotes = (() => {
   var __create = Object.create;
   var __defProp = Object.defineProperty;
@@ -15246,13 +15246,7 @@ var LibrawlCaplinNotes = (() => {
 
   // src/notation/PlaybackMeasureBorders.jsx
   var import_react5 = __toESM(require_react(), 1);
-  var PlaybackMeasureBorders = (0, import_react5.forwardRef)(function PlaybackMeasureBorders2({
-    left,
-    width,
-    top = true,
-    bottom = true,
-    hidden = false
-  }, ref) {
+  function PlaybackMeasureBorders({ left, width, top = true, bottom = true, hidden = false, ref }) {
     return /* @__PURE__ */ import_react5.default.createElement("div", { "aria-hidden": "true", className: "rawln-playback-measure", hidden, ref, style: {
       position: "absolute",
       left,
@@ -15264,7 +15258,7 @@ var LibrawlCaplinNotes = (() => {
       borderTop: top ? "1px solid #444" : void 0,
       borderBottom: bottom ? "1px solid #444" : void 0
     } });
-  });
+  }
 
   // src/notation/geometry.mjs
   function tonicAt(tonic, changes, beat) {

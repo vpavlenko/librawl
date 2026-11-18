@@ -11,13 +11,7 @@ import {JSDOM} from 'jsdom';
 const require=createRequire(import.meta.url),root=fileURLToPath(new URL('../',import.meta.url));
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const provenance=JSON.parse(fs.readFileSync(path.join(root,'docs/native-provenance.json')));
-const React16=require('react16');
-function legacyServer(React){
- const filename=require.resolve('react-dom16/cjs/react-dom-server.node.production.min.js'),localRequire=createRequire(filename),module={exports:{}};
- vm.runInNewContext('(function(module,exports,require){'+fs.readFileSync(filename,'utf8')+'\n})',{process:{env:{NODE_ENV:'production'}}},{filename})(module,module.exports,name=>name==='react'?React:localRequire(name));
- return module.exports;
-}
-const runtimes=[{name:'React16',React:React16,server:legacyServer(React16)},{name:'React19',React:require('react'),server:require('react-dom/server')}];
+const React=require('react'),{renderToStaticMarkup}=require('react-dom/server');
 async function bundle(relative){
  const result=await build({entryPoints:[path.join(root,relative)],bundle:true,write:false,format:'cjs',platform:'node',target:'es2018',jsx:'transform',external:['react'],plugins:[{name:'reference-styled-global-only',setup(b){
   b.onResolve({filter:/^styled-components$/},()=>({path:'styled-components',namespace:'reference-global-style'}));
@@ -25,9 +19,9 @@ async function bundle(relative){
  }}]});return result.outputFiles[0].text;
 }
 const [nativeCode,referenceCode]=await Promise.all([bundle('src/rawlnative/index.ts'),bundle('tests/fixtures/native/entry.ts')]);
-function load(code,React){
+function load(code){
  const module={exports:{}};
- vm.runInNewContext('(function(module,exports,require){'+code+'\n})',{console,Map,Set,Number,Math},{filename:'native-notes-bundle.js'})(module,module.exports,name=>name==='react'?React:require(name));
+ vm.runInNewContext('(function(module,exports,require){'+code+'\n})',{console,Map,Set,Number,Math},{filename:'native-notes-bundle.js'})(module,module.exports,require);
  return module.exports;
 }
 const note=(id='note',extras={})=>({id,span:[0,2],note:{midiNumber:60},voiceIndex:0,isDrum:false,isActive:true,color:'noteColor_0_colors',colorPitchClass:0,...extras});
@@ -35,14 +29,13 @@ const no=()=>{};
 function rects(api,notes,options={}){
  return api.getNoteRectangles(notes,pitch=>300-pitch*3,2.5,options.click??no,options.enter??no,options.leave??no,seconds=>seconds*80,!!options.manual,options.hoveredColors??null,!!options.source,()=>28,options.hoveredVoiceIndex??null,options.endX,options.startX,options.attributes);
 }
-function wrap(api,React,nodes,options={}){
+function wrap(api,nodes,options={}){
  return React.createElement(api.ModulationOnsetEditingContext.Provider,{value:{active:!!options.onsetEditing,isAllowed:n=>n.id==='allowed'}},
   React.createElement(api.StrumNotesContext.Provider,{value:new Set(options.strums??[])},
    React.createElement(api.VoiceZIndicesContext.Provider,{value:new Map(options.bands??[])},nodes)));
 }
-function staticMarkup(runtime,api,notes,options={}){
- const old=console.error;console.error=(first,...rest)=>{if(typeof first==='string'&&first.includes('useLayoutEffect does nothing on the server'))return;old(first,...rest);};
- try{return runtime.server.renderToStaticMarkup(wrap(api,runtime.React,runtime.React.createElement(runtime.React.Fragment,null,rects(api,notes,options)),options));}finally{console.error=old;}
+function staticMarkup(api,notes,options={}){
+ return renderToStaticMarkup(wrap(api,React.createElement(React.Fragment,null,rects(api,notes,options)),options));
 }
 function cases(){
  const cases=[];
@@ -67,21 +60,21 @@ test('native source fixtures retain every recorded upstream source byte and comp
  assert.equal(extracted,fs.readFileSync(path.join(root,'tests/fixtures/native/getNoteRectangles.tsx'),'utf8'));
  for(const filename of ['playbackIndex.ts','notePlayback.ts','drumPlayback.ts','strumContext.ts'])assert.equal(fs.readFileSync(path.join(root,'src/rawlnative',filename),'utf8'),fs.readFileSync(path.join(root,'tests/fixtures/native',filename),'utf8'));
 });
-for(const runtime of runtimes)test(runtime.name+' complete native rendering equals original Rawl across pitches, bends, voices, drums, strums and source metadata',()=>{
- const actual=load(nativeCode,runtime.React),original=load(referenceCode,runtime.React),all=cases();
- for(const [i,entry]of all.entries())assert.equal(staticMarkup(runtime,actual,entry.notes,entry.options),staticMarkup(runtime,original,entry.notes,entry.options),`${runtime.name} case${i}`);
- const zero=staticMarkup(runtime,actual,[note('zero',{span:[0,0],displaySpan:[0,8]}),note('drumzero',{span:[1,1],isDrum:true})]);assert.equal(zero,'');
+test('React 19 complete native rendering equals original Rawl across pitches, bends, voices, drums, strums and source metadata',()=>{
+ const actual=load(nativeCode),original=load(referenceCode),all=cases();
+ for(const [i,entry]of all.entries())assert.equal(staticMarkup(actual,entry.notes,entry.options),staticMarkup(original,entry.notes,entry.options),`case ${i}`);
+ const zero=staticMarkup(actual,[note('zero',{span:[0,0],displaySpan:[0,8]}),note('drumzero',{span:[1,1],isDrum:true})]);assert.equal(zero,'');
  assert.ok(all.length>=100);
 });
 
 test('optional native host class/attributes/style remain additive and source note identities stay immutable',()=>{
- const runtime=runtimes[1],api=load(nativeCode,runtime.React),notes=[note('source-id',{voiceIndex:3,displayVoiceIndex:1,displaySpan:[-1,4],displayMidiNumber:72})],before=JSON.stringify(notes);
- const markup=staticMarkup(runtime,api,notes,{attributes:()=>({className:'rawl-note host-note','data-host':'one',style:{opacity:.8,width:'50%'}})});
+ const api=load(nativeCode),notes=[note('source-id',{voiceIndex:3,displayVoiceIndex:1,displaySpan:[-1,4],displayMidiNumber:72})],before=JSON.stringify(notes);
+ const markup=staticMarkup(api,notes,{attributes:()=>({className:'rawl-note host-note','data-host':'one',style:{opacity:.8,width:'50%'}})});
  assert.match(markup,/voiceShape-1.*rawl-note host-note/);assert.match(markup,/data-note-id="source-id"/);assert.match(markup,/data-host="one"/);assert.match(markup,/width:50%/);assert.match(markup,/opacity:0.8/);assert.equal(JSON.stringify(notes),before);
 });
 
 test('native playback indexes equal the original trace for half-open boundaries, long held-note seeks, section copies and teardown',()=>{
- const api=load(nativeCode,runtimes[1].React),original=load(referenceCode,runtimes[1].React);
+ const api=load(nativeCode),original=load(referenceCode);
  function run(module){const clock=module.createSectionPlaybackClock(),trace=[],remove=[];for(let i=0;i<48;i++){const start=i%8*.25,end=start+(i%3?2:36000);remove.push(clock.register(start,end,on=>trace.push([i,on]),i%4?[0,4]:[4,8]));}for(const time of [-1,0,.25,1.75,3.999,4,5.5,7.999,8,18000,3,2,2,0])clock.advance(time);clock.reset();remove.forEach(fn=>fn());clock.advance(2);return trace;}
  assert.deepEqual(run(api),run(original));
  const clock=api.createSectionPlaybackClock(),trace=[];clock.register(1,12,on=>trace.push(['left',on]),[0,10]);clock.register(1,12,on=>trace.push(['right',on]),[10,20]);trace.length=0;clock.advance(9);clock.advance(10);clock.advance(12);assert.deepEqual(trace,[['left',true],['left',false],['right',true],['right',false]]);
@@ -89,7 +82,7 @@ test('native playback indexes equal the original trace for half-open boundaries,
 });
 
 test('native pitch-bend samples, sounding pitch, color interpolation and quartertone windows match the source',()=>{
- const api=load(nativeCode,runtimes[1].React),original=load(referenceCode,runtimes[1].React);
+ const api=load(nativeCode),original=load(referenceCode);
  const css=api.nativeColorStyles();
  assert.doesNotMatch(css,/!important/);
  assert.match(css,/\[data-pitch-class="1"\]::after/);
@@ -104,7 +97,7 @@ test('React19 native layer preserves real events, upward playback doubling, cont
  const dom=new JSDOM('<!doctype html><body><div id="root"></div></body>',{url:'http://localhost/',pretendToBeVisual:true}),w=dom.window;
  const saved=Object.getOwnPropertyDescriptors(globalThis),keys=['window','document','navigator','HTMLElement','requestAnimationFrame','cancelAnimationFrame'];
  Object.assign(globalThis,{window:w,document:w.document,HTMLElement:w.HTMLElement,requestAnimationFrame:w.requestAnimationFrame.bind(w),cancelAnimationFrame:w.cancelAnimationFrame.bind(w)});Object.defineProperty(globalThis,'navigator',{value:w.navigator,configurable:true});
- const React=runtimes[1].React,api=load(nativeCode,React),{createRoot}=require('react-dom/client'),{flushSync}=require('react-dom'),clock=api.createSectionPlaybackClock(),host=w.document.querySelector('#root'),rootView=createRoot(host),events=[];
+ const api=load(nativeCode),{createRoot}=require('react-dom/client'),{flushSync}=require('react-dom'),clock=api.createSectionPlaybackClock(),host=w.document.querySelector('#root'),rootView=createRoot(host),events=[];
  const n=note('held',{span:[0,4]});
  function tree(){return React.createElement(api.NotePlaybackContext.Provider,{value:clock.register},React.createElement(React.Fragment,null,...[[0,2],[2,4]].map((section,i)=>React.createElement(api.PlaybackSectionContext.Provider,{value:section,key:i},React.createElement(api.NoteLayer,{notes:[n],midiNumberToY:p=>300-p*3,noteHeight:2.5,secondsToX:s=>s*80,handleNoteClick:(note,event)=>events.push(['click',note.id,event.type]),handleMouseEnter:(note,event,time)=>events.push(['hover',note.id,event.type,time]),handleMouseLeave:()=>events.push(['leave']),getNoteAttributes:()=>({'data-copy':i,className:'rawl-note'})})))));}
  try{
@@ -117,7 +110,7 @@ test('React19 native layer preserves real events, upward playback doubling, cont
 test('React19 native moving ribbons follow playback height while drum onsets pulse once and dispose on unmount',async()=>{
  const dom=new JSDOM('<!doctype html><body><div id="root"></div></body>',{url:'http://localhost/',pretendToBeVisual:true}),w=dom.window,saved=Object.getOwnPropertyDescriptors(globalThis),keys=['window','document','navigator','HTMLElement','requestAnimationFrame','cancelAnimationFrame'];
  Object.assign(globalThis,{window:w,document:w.document,HTMLElement:w.HTMLElement,requestAnimationFrame:w.requestAnimationFrame.bind(w),cancelAnimationFrame:w.cancelAnimationFrame.bind(w)});Object.defineProperty(globalThis,'navigator',{value:w.navigator,configurable:true});
- const React=runtimes[1].React,api=load(nativeCode,React),{createRoot}=require('react-dom/client'),{flushSync}=require('react-dom'),noteClock=api.createSectionPlaybackClock(),rootView=createRoot(w.document.querySelector('#root')),animations=[];let drumClock,cancels=0;
+ const api=load(nativeCode),{createRoot}=require('react-dom/client'),{flushSync}=require('react-dom'),noteClock=api.createSectionPlaybackClock(),rootView=createRoot(w.document.querySelector('#root')),animations=[];let drumClock,cancels=0;
  w.HTMLElement.prototype.animate=function(frames,options){animations.push({frames,options});return {cancel(){cancels++;}};};
  const notes=[note('ribbon',{pitchBend:[{time:0,value:8192},{time:1,value:10240}]}),note('drum',{span:[0,.01],note:{midiNumber:38},isDrum:true})];
  function Harness(){drumClock=api.useDrumPlaybackClock();return React.createElement(api.DrumPlaybackContext.Provider,{value:drumClock.register},React.createElement(api.NotePlaybackContext.Provider,{value:noteClock.register},React.createElement(api.NoteLayer,{notes,midiNumberToY:p=>300-p*3,noteHeight:2.5,secondsToX:s=>s*80,handleNoteClick:no,getNoteAttributes:n=>({'data-host-id':n.id})})));}
@@ -128,9 +121,9 @@ test('React19 native moving ribbons follow playback height while drum onsets pul
  }finally{try{flushSync(()=>rootView.unmount());}catch{}await new Promise(resolve=>setTimeout(resolve,25));dom.window.close();for(const key of keys){if(saved[key])Object.defineProperty(globalThis,key,saved[key]);else delete globalThis[key];}}
 });
 
-for(const runtime of runtimes)test(runtime.name+' native notes suppress host tooltips through plain, bent, quartertone and drum DOM while retaining labels and source metadata',()=>{
- const api=load(nativeCode,runtime.React),attributes=Object.freeze({title:'host note tooltip','aria-label':'source pitch','data-source-row':'7'}),notes=[note('plain'),note('bend',{pitchBend:[{time:0,value:8192},{time:1,value:10240}]}),note('quartertone',{note:{midiNumber:63.5},colorPitchClass:3.5}),note('drum',{isDrum:true,note:{midiNumber:38}})],before=JSON.stringify(notes);
- const markup=staticMarkup(runtime,api,notes,{attributes:()=>attributes,source:true});
+test('React 19 native notes suppress host tooltips through plain, bent, quartertone and drum DOM while retaining labels and source metadata',()=>{
+ const api=load(nativeCode),attributes=Object.freeze({title:'host note tooltip','aria-label':'source pitch','data-source-row':'7'}),notes=[note('plain'),note('bend',{pitchBend:[{time:0,value:8192},{time:1,value:10240}]}),note('quartertone',{note:{midiNumber:63.5},colorPitchClass:3.5}),note('drum',{isDrum:true,note:{midiNumber:38}})],before=JSON.stringify(notes);
+ const markup=staticMarkup(api,notes,{attributes:()=>attributes,source:true});
  const dom=new JSDOM('<!doctype html><body>'+markup+'</body>');
  try{
   const pitched=dom.window.document.querySelectorAll('[data-note-id]');assert.equal(pitched.length,3);

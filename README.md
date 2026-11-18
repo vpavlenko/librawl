@@ -21,7 +21,7 @@ The library owns the actual Rawl note renderer, tonic flags, palette, playback h
 | `librawl/style.css` | Notation styles only |
 | `librawl/harmony.css` | Optional host chord/RN overlay styles |
 
-React is a peer dependency for package modules. The optional legacy Caplin browser adapter bundles React 19 because its host has no React runtime. The native renderer is compared against the original Rawl in 102 cases under both React16.14 and React19.3.1. Built ESM/CommonJS and legacy Webpack subpath entries are committed so consumers do not need a JSX or TypeScript compiler for this package.
+Package modules require React and React DOM 19. The standalone Caplin browser adapter bundles React 19 because its host has no React runtime. The native renderer is compared against the original Rawl in 102 cases under React 19. Built ESM/CommonJS and legacy Webpack subpath entries are committed so consumers do not need a JSX or TypeScript compiler for this package.
 
 ## Styles
 
@@ -126,11 +126,11 @@ This scheduler consumes prepared note/program/CC plans. It does not claim arbitr
 ## Development
 
 ```sh
-npm ci --legacy-peer-deps
+npm ci
 npm run check
 ```
 
-The legacy peer flag is needed only by the React16 test aliases alongside the React19 development runtime. Tests include a pinned original-renderer oracle and pinned original Caplin engine; neither requires another checkout. Generated browser adapters preserve the current `SoundFontPlayback` API for legacy hosts.
+Tests include a pinned original-renderer oracle and pinned original Caplin engine; neither requires another checkout. Generated browser adapters preserve the current `SoundFontPlayback` API for legacy hosts.
 
 Consumers should pin a reviewed commit or a checksummed package artifact. There is no runtime dependency on a moving CDN or branch. Compiled distribution files and compatibility mirrors are generated artifacts; edit canonical source here and regenerate them.
 

@@ -1,4 +1,4 @@
-import React,{forwardRef,useImperativeHandle,useLayoutEffect,useMemo,useRef,useState} from 'react';
+import React,{useImperativeHandle,useLayoutEffect,useMemo,useRef,useState} from 'react';
 import {pitchRange,staveGeometry,tonalSegments,tonalLines,tonicAt,mod,TONIC_NAMES,measureHeaderLayout} from './geometry.mjs';
 import {RAWL_COLORS} from './palette.mjs';
 import {TonicSymbol} from '../components/TonicSymbol.jsx';
@@ -144,7 +144,7 @@ function BeatNoteLayer({visible,row,axis,tonic,changes,mutedVoices,hoveredKey,se
 }
 
 /** A host-independent Rawl score. Times are quarter-note beats, pitches MIDI. */
-export const RawlNotation=forwardRef(function RawlNotation({notes,beats,rows,tonic=0,changes=EMPTY_CHANGES,barBeats=4,beatBeats=1,phraseStarts,measureMap,hideInitialTonic=false,showTonalGuides=true,noteScale=1,position,playbackClock,mutedVoices=[],onSeek,onNote,onNoteAudition,onNoteHover,onMeasureSelect,selectedMeasure=null,onChangesChange,recolorable=true,renderHeader,renderUnderlay,renderFooter,className='',style},ref){
+export function RawlNotation({notes,beats,rows,tonic=0,changes=EMPTY_CHANGES,barBeats=4,beatBeats=1,phraseStarts,measureMap,hideInitialTonic=false,showTonalGuides=true,noteScale=1,position,playbackClock,mutedVoices=[],onSeek,onNote,onNoteAudition,onNoteHover,onMeasureSelect,selectedMeasure=null,onChangesChange,recolorable=true,renderHeader,renderUnderlay,renderFooter,className='',style,ref}){
  const root=useRef(null),hoveredRef=useRef(null),[hoveredKey,setHoveredKey]=useState(null),ownClock=useMemo(createSectionPlaybackClock,[]),clock=playbackClock??ownClock;
  const audition=onNoteAudition??onNote;
  const seek=onSeek??(beat=>playbackClock?.seek?playbackClock.seek(beat):clock.advance(beat));
@@ -177,6 +177,6 @@ export const RawlNotation=forwardRef(function RawlNotation({notes,beats,rows,ton
    </div>;
   })}
  </div></NotePlaybackContext.Provider>;
-});
+}
 export {pitchRange,staveGeometry,modulationLabelOffset} from './geometry.mjs';
 export {RAWL_COLORS} from './palette.mjs';

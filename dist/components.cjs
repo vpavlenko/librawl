@@ -1,4 +1,4 @@
-/*! librawl version: 0.3.5-local; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
+/*! librawl version: 0.4.0-local; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -101,37 +101,15 @@ function TonicSymbol({ left, number, previousTonic, modulationDiff, tonicStart, 
 }
 
 // src/notation/RawlNotation.jsx
-var import_react3 = __toESM(require("react"), 1);
+var import_react2 = __toESM(require("react"), 1);
 
 // src/notation/geometry.mjs
-var PITCH_STEP = 3;
-var NOTE_HEIGHT = 5;
-var TOP_CLEARANCE = 20;
-var BOTTOM_CLEARANCE = 2;
-function pitchRange(notes, span = null, fallback = { low: 48, high: 84 }) {
-  const pitches = notes.filter((n) => !span || Math.min(span.end, n.start + n.duration) - Math.max(span.start, n.start) > 1e-6).map((n) => n.pitch);
-  return pitches.length ? { low: Math.min(...pitches), high: Math.max(...pitches) } : { ...fallback };
-}
-function staveGeometry(range, { above = 0, transpose = 0, noteScale = 1 } = {}) {
-  const scale = Number.isFinite(noteScale) && noteScale > 0 ? noteScale : 1, pitchStep = PITCH_STEP * scale, glyphHeight = NOTE_HEIGHT * scale;
-  const low = range.low + transpose, high = range.high + transpose, noteTop = TOP_CLEARANCE + above + Math.max(0, glyphHeight - NOTE_HEIGHT);
-  const notesBottom = noteTop + (high - low) * pitchStep + glyphHeight + BOTTOM_CLEARANCE, noteHeight = notesBottom - above;
-  return { low, high, noteTop, noteHeight, notesBottom, pitchStep, glyphHeight, guideTop: Math.max(0, noteTop - 16), markerTop: noteTop - 14, pitchToY: (pitch) => noteTop + (high - pitch) * pitchStep };
-}
 var mod = (n) => (n % 12 + 12) % 12;
-function tonicAt(tonic, changes, beat) {
-  let result = tonic;
-  for (const c of changes) {
-    if (c.beat < beat) result = c.tonic;
-    else break;
-  }
-  return result;
-}
 var TONIC_NAMES = ["C", "D\u266D", "D", "E\u266D", "E", "F", "F\u266F", "G", "A\u266D", "A", "B\u266D", "B"];
-function modulationLabelOffset(beat, barBeats, { initial: initial2 = beat === 0, onsetOverride, continued = false } = {}) {
+function modulationLabelOffset(beat, barBeats, { initial = beat === 0, onsetOverride, continued = false } = {}) {
   const measure = beat / barBeats, override = onsetOverride != null ? onsetOverride : Number.isFinite(measure) && Math.abs(measure - Math.round(measure)) > 1e-7;
   if (override && !continued) return 0;
-  return initial2 ? String(Math.floor(measure) + 1).length * 8 + 10 : 30;
+  return initial ? String(Math.floor(measure) + 1).length * 8 + 10 : 30;
 }
 function keyMarkers(tonic, changes) {
   var _a;
@@ -184,44 +162,16 @@ function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatB
   const markers = events.flatMap((marker) => {
     var _a2;
     if (hideInitialTonic && marker.previousTonic === null || marker.beat >= row.end) return [];
-    const initial2 = marker.previousTonic === null, measure = marker.beat / barBeats, onsetOverride = !initial2 && ((_a2 = marker.onsetOverride) != null ? _a2 : explicit ? !explicit.some((m) => Math.abs(m.start - marker.beat) < EPS) : Math.abs(measure - Math.round(measure)) > EPS), badgeLeft = (marker.beat - row.start) * ppb - (onsetOverride ? 0 : 1), continued = marker.beat < row.start && marker === activeAtStart && width > 0 && badgeLeft + 80 > 0;
+    const initial = marker.previousTonic === null, measure = marker.beat / barBeats, onsetOverride = !initial && ((_a2 = marker.onsetOverride) != null ? _a2 : explicit ? !explicit.some((m) => Math.abs(m.start - marker.beat) < EPS) : Math.abs(measure - Math.round(measure)) > EPS), badgeLeft = (marker.beat - row.start) * ppb - (onsetOverride ? 0 : 1), continued = marker.beat < row.start && marker === activeAtStart && width > 0 && badgeLeft + 80 > 0;
     if (marker.beat < row.start && !continued) return [];
     if (continued) return [{ ...marker, originBeat: marker.beat, beat: row.start, number: numberAt(row.start), previousTonic: null, delta: null, join: false, name: void 0, initial: true, onsetOverride: false, continued: true, left: 0, pixelOffset: -1, labelOffset: String(numberAt(row.start)).length * 8 + 10 }];
-    return [{ ...marker, number: numberAt(marker.beat), initial: initial2, onsetOverride, continued: false, left: x(marker.beat), pixelOffset: !onsetOverride ? -1 : 0, labelOffset: initial2 && explicit ? String(numberAt(marker.beat)).length * 8 + 10 : modulationLabelOffset(marker.beat, barBeats, { initial: initial2, onsetOverride }) }];
+    return [{ ...marker, number: numberAt(marker.beat), initial, onsetOverride, continued: false, left: x(marker.beat), pixelOffset: !onsetOverride ? -1 : 0, labelOffset: initial && explicit ? String(numberAt(marker.beat)).length * 8 + 10 : modulationLabelOffset(marker.beat, barBeats, { initial, onsetOverride }) }];
   });
   for (const measure of measures) {
     measure.hasModulation = markers.some((marker) => marker.beat === measure.beat && marker.delta !== null);
     if (measure.color === "#666" && measure.hasModulation) measure.color = "black";
   }
   return { measures, beats: showBeats ? beats : [], markers };
-}
-function tonalSegments(tonic, changes, start, end) {
-  const events = [{ beat: 0, tonic }, ...changes].sort((a, b) => a.beat - b.beat), result = [];
-  let current = tonic, cursor = start;
-  for (const e of events) {
-    if (e.beat <= start) {
-      current = e.tonic;
-      continue;
-    }
-    if (e.beat >= end) break;
-    if (e.tonic !== current) {
-      result.push({ start: cursor, end: e.beat, tonic: current });
-      cursor = e.beat;
-      current = e.tonic;
-    }
-  }
-  result.push({ start: cursor, end, tonic: current });
-  return result;
-}
-function tonalLines(range, axis, tonic) {
-  const result = [];
-  const rawlY = (p) => axis.pitchToY(p) + axis.pitchStep;
-  for (let octave = Math.ceil((range.low + 7 - tonic) / 12); octave <= Math.floor((range.high + 12 - tonic) / 12); octave++) {
-    const midi = tonic + octave * 12;
-    if (midi - 12 >= range.low && midi - 12 <= range.high) result.push({ kind: "tonic", y: rawlY(midi - 13 + 0.5) });
-    if (midi - 7 >= range.low && midi - 7 <= range.high) result.push({ kind: "fifth", y: rawlY(midi - 6) - 0.5 });
-  }
-  return result;
 }
 function validateMeasureMap(measures) {
   if (!Array.isArray(measures) || !measures.length) throw Error("Invalid measure map");
@@ -260,13 +210,7 @@ var colorIndex = (semitones) => (semitones % 12 + 12) % 12;
 
 // src/notation/PlaybackMeasureBorders.jsx
 var import_react = __toESM(require("react"), 1);
-var PlaybackMeasureBorders = (0, import_react.forwardRef)(function PlaybackMeasureBorders2({
-  left,
-  width,
-  top = true,
-  bottom = true,
-  hidden = false
-}, ref) {
+function PlaybackMeasureBorders({ left, width, top = true, bottom = true, hidden = false, ref }) {
   return /* @__PURE__ */ import_react.default.createElement("div", { "aria-hidden": "true", className: "rawln-playback-measure", hidden, ref, style: {
     position: "absolute",
     left,
@@ -278,71 +222,15 @@ var PlaybackMeasureBorders = (0, import_react.forwardRef)(function PlaybackMeasu
     borderTop: top ? "1px solid #444" : void 0,
     borderBottom: bottom ? "1px solid #444" : void 0
   } });
-});
+}
 
 // src/notation/RawlNotation.jsx
 var import_native = require("librawl/native");
-
-// src/notation/recolor.jsx
-var import_react2 = require("react");
-var ROOTS = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
-function recolorModulation(changes, beat, pitch) {
-  if (!Number.isFinite(beat) || beat < 0 || !Number.isFinite(pitch)) return changes;
-  const tonic = (Math.round(pitch) % 12 + 12) % 12, existing = changes.find((change) => Math.abs(change.beat - beat) < 1e-7), choice = { ...existing != null ? existing : { beat }, tonic, root: ROOTS[tonic] };
-  const events = [...changes.filter((change) => Math.abs(change.beat - beat) >= 1e-7).map((change) => ({ ...change })), choice].sort((a, b) => a.beat - b.beat), result = [];
-  for (const event of events) if (!result.length || result.at(-1).tonic !== event.tonic) result.push(event);
-  return result;
-}
-function recolorBoundary(changes, measureBeat, barBeats, measureMap) {
-  var _a, _b;
-  const measure = measureMap == null ? void 0 : measureMap.find((measure2) => Math.abs(measure2.start - measureBeat) < 1e-7), end = measure ? measure.start + measure.duration : measureBeat + barBeats;
-  return (_b = (_a = changes.find((change) => change.beat >= measureBeat - 1e-7 && change.beat < end - 1e-7)) == null ? void 0 : _a.beat) != null ? _b : measureBeat;
-}
-var initial = (source) => ({ source, committed: source, selectedMeasure: null, boundary: null, preview: null });
-function useTonicRecoloring({ changes, barBeats = 4, measureMap, onChange }) {
-  var _a;
-  const [stored, setStored] = (0, import_react2.useState)(() => initial(changes)), state = stored.source === changes ? stored : initial(changes);
-  const cancel = () => setStored((previous) => ({ ...previous, selectedMeasure: null, boundary: null, preview: null }));
-  (0, import_react2.useEffect)(() => {
-    if (state.selectedMeasure === null) return;
-    const escape3 = (event) => {
-      if (event.key === "Escape") cancel();
-    };
-    document.addEventListener("keydown", escape3);
-    return () => document.removeEventListener("keydown", escape3);
-  }, [state.selectedMeasure]);
-  return {
-    changes: (_a = state.preview) != null ? _a : state.committed,
-    selectedMeasure: state.selectedMeasure,
-    selectMeasure(beat) {
-      setStored((previous) => {
-        const current = previous.source === changes ? previous : initial(changes), selectedMeasure = current.selectedMeasure === beat ? null : beat;
-        return { ...current, selectedMeasure, boundary: selectedMeasure === null ? null : recolorBoundary(current.committed, beat, barBeats, measureMap), preview: null };
-      });
-    },
-    hoverNote(note) {
-      if (state.boundary === null) return;
-      setStored((previous) => ({ ...previous, preview: note ? recolorModulation(state.committed, state.boundary, note.pitch) : null }));
-    },
-    chooseNote(note) {
-      if (state.boundary === null) return false;
-      const committed = recolorModulation(state.committed, state.boundary, note.pitch);
-      setStored({ ...state, committed, preview: null, selectedMeasure: null, boundary: null });
-      onChange == null ? void 0 : onChange(committed);
-      return true;
-    },
-    cancel
-  };
-}
-
-// src/notation/RawlNotation.jsx
 var EMPTY_CHANGES = [];
 var atRowStart = (beat, start) => Math.abs(beat - start) < 1e-7;
-var names = ["C", "D\u266D", "D", "E\u266D", "E", "F", "F\u266F", "G", "A\u266D", "A", "B\u266D", "B"];
-var noteName = (p) => names[mod(p)] + (Math.floor(p / 12) - 1);
 function PlaybackMeasureLayer({ row, clock, measureMap, barBeats = 4 }) {
-  const border = (0, import_react3.useRef)(null), { start, end } = row;
-  (0, import_react3.useLayoutEffect)(() => {
+  const border = (0, import_react2.useRef)(null), { start, end } = row;
+  (0, import_react2.useLayoutEffect)(() => {
     var _a;
     const element = border.current, span = end - start;
     if (!(span > 0)) return;
@@ -389,11 +277,11 @@ function PlaybackMeasureLayer({ row, clock, measureMap, barBeats = 4 }) {
     }
     return () => unregister.forEach((remove) => remove());
   }, [start, end, clock, measureMap, barBeats]);
-  return /* @__PURE__ */ import_react3.default.createElement(PlaybackMeasureBorders, { ref: border, hidden: true });
+  return /* @__PURE__ */ import_react2.default.createElement(PlaybackMeasureBorders, { ref: border, hidden: true });
 }
 function RawlMeasureHeader({ row, height = "100%", tonic = 0, changes = EMPTY_CHANGES, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, selectedMeasure = null, onMeasureSelect, hideInitialTonic = false }) {
-  const element = (0, import_react3.useRef)(null), [width, setWidth] = (0, import_react3.useState)(0);
-  (0, import_react3.useLayoutEffect)(() => {
+  const element = (0, import_react2.useRef)(null), [width, setWidth] = (0, import_react2.useState)(0);
+  (0, import_react2.useLayoutEffect)(() => {
     var _a;
     const el = element.current, view = el.ownerDocument.defaultView, fit = () => {
       const next = el.getBoundingClientRect().width || el.clientWidth;
@@ -408,16 +296,16 @@ function RawlMeasureHeader({ row, height = "100%", tonic = 0, changes = EMPTY_CH
       view == null ? void 0 : view.removeEventListener("resize", fit);
     };
   }, []);
-  const { measures, beats, markers } = (0, import_react3.useMemo)(() => measureHeaderLayout({ row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic }), [row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic]);
+  const { measures, beats, markers } = (0, import_react2.useMemo)(() => measureHeaderLayout({ row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic }), [row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic]);
   const x = (beat) => (beat - row.start) / (row.end - row.start) * 100;
-  return /* @__PURE__ */ import_react3.default.createElement("div", { ref: element, className: "rawln-measure-grid", style: { height } }, measures.map((measure) => /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-bar" + (measure.isPhraseStart ? " rawln-phrase-bar" : ""), key: "bar-" + measure.beat, "data-beat": measure.beat, "data-phrase-boundary": measure.isPhraseStart ? "true" : void 0, "data-terminal": measure.terminal ? "true" : void 0, style: { left: atRowStart(measure.beat, row.start) ? 0 : `calc(${measure.left}% - 1px)` } })), beats.map((beat) => /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-beat-bar", key: "beat-" + beat, "data-beat": beat, style: { left: x(beat) + "%" } })), /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-modulations" }, markers.map((marker) => /* @__PURE__ */ import_react3.default.createElement("div", { key: marker.beat, className: "rawln-modulation", "data-beat": marker.beat, "data-tonic": marker.tonic, "data-join": marker.join ? marker.name : void 0, "data-onset-override": marker.onsetOverride ? "true" : void 0, "data-origin-beat": marker.originBeat, "data-continued": marker.continued ? "true" : void 0, style: { left: marker.pixelOffset ? `calc(${marker.left}% - 1px)` : marker.left + "%" }, title: marker.name }, /* @__PURE__ */ import_react3.default.createElement(TonicSymbol, { left: 0, number: marker.number, previousTonic: marker.previousTonic, modulationDiff: marker.delta === null ? null : mod(marker.delta), tonicStart: marker.tonic, alignToOnset: marker.onsetOverride && !marker.continued, labelClassName: "rawln-modulation-label", flagClassName: "rawln-modulation-flag", labelAttributes: { style: { left: marker.labelOffset } }, flagAttributes: { "data-degree": marker.delta === null ? void 0 : mod(marker.delta), style: { background: marker.delta === null ? void 0 : RAWL_COLORS[mod(marker.delta)].background } }, renderArrow: ({ direction }) => /* @__PURE__ */ import_react3.default.createElement("svg", { viewBox: "0 0 24 24", "aria-hidden": "true" }, direction === "down" ? /* @__PURE__ */ import_react3.default.createElement(import_react3.default.Fragment, null, /* @__PURE__ */ import_react3.default.createElement("path", { d: "M12 5v14" }), /* @__PURE__ */ import_react3.default.createElement("path", { d: "m19 12-7 7-7-7" })) : /* @__PURE__ */ import_react3.default.createElement(import_react3.default.Fragment, null, /* @__PURE__ */ import_react3.default.createElement("path", { d: "m5 12 7-7 7 7" }), /* @__PURE__ */ import_react3.default.createElement("path", { d: "M12 19V5" }))) })))), /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-measure-labels", "aria-hidden": onMeasureSelect ? void 0 : true }, measures.filter((measure) => !measure.terminal).map((measure) => /* @__PURE__ */ import_react3.default.createElement(
+  return /* @__PURE__ */ import_react2.default.createElement("div", { ref: element, className: "rawln-measure-grid", style: { height } }, measures.map((measure) => /* @__PURE__ */ import_react2.default.createElement("div", { className: "rawln-bar" + (measure.isPhraseStart ? " rawln-phrase-bar" : ""), key: "bar-" + measure.beat, "data-beat": measure.beat, "data-phrase-boundary": measure.isPhraseStart ? "true" : void 0, "data-terminal": measure.terminal ? "true" : void 0, style: { left: atRowStart(measure.beat, row.start) ? 0 : `calc(${measure.left}% - 1px)` } })), beats.map((beat) => /* @__PURE__ */ import_react2.default.createElement("div", { className: "rawln-beat-bar", key: "beat-" + beat, "data-beat": beat, style: { left: x(beat) + "%" } })), /* @__PURE__ */ import_react2.default.createElement("div", { className: "rawln-modulations" }, markers.map((marker) => /* @__PURE__ */ import_react2.default.createElement("div", { key: marker.beat, className: "rawln-modulation", "data-beat": marker.beat, "data-tonic": marker.tonic, "data-join": marker.join ? marker.name : void 0, "data-onset-override": marker.onsetOverride ? "true" : void 0, "data-origin-beat": marker.originBeat, "data-continued": marker.continued ? "true" : void 0, style: { left: marker.pixelOffset ? `calc(${marker.left}% - 1px)` : marker.left + "%" }, title: marker.name }, /* @__PURE__ */ import_react2.default.createElement(TonicSymbol, { left: 0, number: marker.number, previousTonic: marker.previousTonic, modulationDiff: marker.delta === null ? null : mod(marker.delta), tonicStart: marker.tonic, alignToOnset: marker.onsetOverride && !marker.continued, labelClassName: "rawln-modulation-label", flagClassName: "rawln-modulation-flag", labelAttributes: { style: { left: marker.labelOffset } }, flagAttributes: { "data-degree": marker.delta === null ? void 0 : mod(marker.delta), style: { background: marker.delta === null ? void 0 : RAWL_COLORS[mod(marker.delta)].background } }, renderArrow: ({ direction }) => /* @__PURE__ */ import_react2.default.createElement("svg", { viewBox: "0 0 24 24", "aria-hidden": "true" }, direction === "down" ? /* @__PURE__ */ import_react2.default.createElement(import_react2.default.Fragment, null, /* @__PURE__ */ import_react2.default.createElement("path", { d: "M12 5v14" }), /* @__PURE__ */ import_react2.default.createElement("path", { d: "m19 12-7 7-7-7" })) : /* @__PURE__ */ import_react2.default.createElement(import_react2.default.Fragment, null, /* @__PURE__ */ import_react2.default.createElement("path", { d: "m5 12 7-7 7 7" }), /* @__PURE__ */ import_react2.default.createElement("path", { d: "M12 19V5" }))) })))), /* @__PURE__ */ import_react2.default.createElement("div", { className: "rawln-measure-labels", "aria-hidden": onMeasureSelect ? void 0 : true }, measures.filter((measure) => !measure.terminal).map((measure) => /* @__PURE__ */ import_react2.default.createElement(
     "div",
     {
       className: "rawln-measure-position",
       key: measure.beat,
       style: { gridTemplateColumns: `minmax(0, calc(${measure.left}% + 6px)) max-content` }
     },
-    /* @__PURE__ */ import_react3.default.createElement(
+    /* @__PURE__ */ import_react2.default.createElement(
       "div",
       {
         className: "rawln-measure-number",
@@ -439,110 +327,13 @@ function RawlMeasureHeader({ row, height = "100%", tonic = 0, changes = EMPTY_CH
         "data-modulation": measure.hasModulation ? "true" : void 0,
         style: { color: measure.color, pointerEvents: onMeasureSelect ? "auto" : void 0, cursor: onMeasureSelect ? "pointer" : void 0 }
       },
-      /* @__PURE__ */ import_react3.default.createElement("span", null, measure.number)
+      /* @__PURE__ */ import_react2.default.createElement("span", null, measure.number)
     )
   ))));
 }
-function notePlaybackSpan(note, row, independentPlayback) {
-  var _a;
-  if (!independentPlayback) return [note.start, note.start + note.duration];
-  const [start, end] = (_a = note.playbackSpan) != null ? _a : [note.start, note.start + note.duration];
-  const scale = (end - start) / note.duration;
-  return [start + Math.max(0, row.start - note.start) * scale, end - Math.max(0, note.start + note.duration - row.end) * scale];
-}
-function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, hoveredKey, setHoveredKey, hoveredRef, onNote, onNoteAudition, auditionEnabled, onNoteHover, clock }) {
-  const host = (0, import_react3.useRef)(null), [pixelWidth, setPixelWidth] = (0, import_react3.useState)(100), span = row.end - row.start, section = (0, import_react3.useMemo)(() => [row.start, row.end], [row.start, row.end]);
-  const independentPlayback = visible.some((note) => note.playbackSpan !== void 0), playbackSection = independentPlayback ? null : section;
-  (0, import_react3.useLayoutEffect)(() => {
-    var _a;
-    const element = host.current.parentElement, view = element.ownerDocument.defaultView, fit = () => {
-      const width = element.getBoundingClientRect().width || element.clientWidth || 100;
-      setPixelWidth((previous) => previous === width ? previous : width);
-    }, Observer = (_a = view == null ? void 0 : view.ResizeObserver) != null ? _a : globalThis.ResizeObserver;
-    fit();
-    const observer = Observer ? new Observer(fit) : null;
-    observer == null ? void 0 : observer.observe(element);
-    view == null ? void 0 : view.addEventListener("resize", fit);
-    return () => {
-      observer == null ? void 0 : observer.disconnect();
-      view == null ? void 0 : view.removeEventListener("resize", fit);
-    };
-  }, []);
-  const sourceById = (0, import_react3.useMemo)(() => new Map(visible.map((note) => [String(note.id), note])), [visible]);
-  const nativeNotes = (0, import_react3.useMemo)(() => visible.map((note) => {
-    var _a, _b;
-    const degree = mod(note.pitch - tonicAt(tonic, changes, note.start + note.duration / 2)), muted = mutedVoices.includes(note.voice);
-    return { id: String(note.id), note: { midiNumber: note.pitch }, span: notePlaybackSpan(note, row, independentPlayback), displaySpan: [Math.max(row.start, note.start), Math.min(row.end, note.start + note.duration)], voiceIndex: (_a = note.voice) != null ? _a : 0, displayVoiceIndex: (_b = note.voice) != null ? _b : 0, isDrum: false, isActive: !muted, color: `noteColor_${degree}_colors`, colorPitchClass: degree, noteUnderCursor: hoveredKey === `${note.id}:${row.start}`, velocity: note.velocity, ...note.pitchBend ? { pitchBend: note.pitchBend } : {}, ...note.sourceLocation ? { sourceLocation: note.sourceLocation } : {} };
-  }), [visible, row.start, row.end, independentPlayback, tonic, changes, mutedVoices, hoveredKey]);
-  (0, import_react3.useLayoutEffect)(() => {
-    const nativeById = new Map(nativeNotes.map((note) => [note.id, note]));
-    const unregister = [...host.current.querySelectorAll("[data-note]")].map((element) => {
-      const note = nativeById.get(element.dataset.note);
-      return clock.register(...note.span, (active2) => element.classList.toggle("rawln-sounding", active2 && note.isActive), playbackSection);
-    });
-    return () => unregister.forEach((remove) => remove());
-  }, [clock, nativeNotes, playbackSection]);
-  const hover = (note) => {
-    const original = sourceById.get(note.id), key = `${original.id}:${row.start}`;
-    if (hoveredRef.current === key) return;
-    hoveredRef.current = key;
-    setHoveredKey(key);
-    onNoteHover == null ? void 0 : onNoteHover(original);
-  };
-  const leave = () => {
-    if (hoveredRef.current === null) return;
-    hoveredRef.current = null;
-    setHoveredKey(null);
-    onNoteHover == null ? void 0 : onNoteHover(null);
-  };
-  return /* @__PURE__ */ import_react3.default.createElement("div", { ref: host, style: { display: "contents" } }, /* @__PURE__ */ import_react3.default.createElement(import_native.PlaybackSectionContext.Provider, { value: playbackSection }, /* @__PURE__ */ import_react3.default.createElement(import_native.NoteLayer, { notes: nativeNotes, midiNumberToY: (pitch) => axis.pitchToY(pitch) + axis.glyphHeight / 2, noteHeight: axis.glyphHeight / 2, secondsToX: (beat) => (beat - row.start) / span * pixelWidth, handleNoteClick: (note) => onNote == null ? void 0 : onNote(sourceById.get(note.id)), handleMouseEnter: hover, handleMouseLeave: leave, onNoteAudition: onNoteAudition ? (note) => onNoteAudition(sourceById.get(note.id)) : void 0, auditionEnabled, getNoteAttributes: (note) => {
-    var _a;
-    const original = sourceById.get(note.id), start = note.displaySpan[0], end = note.displaySpan[1], degree = note.colorPitchClass, muted = mutedVoices.includes(original.voice);
-    return { role: "button", tabIndex: -1, "aria-label": noteName(original.pitch), "data-note": original.id, "data-pitch": original.pitch, "data-degree": degree, "data-voice": original.voice, className: `rawln-note rawln-voice-${original.voice}${muted ? " rawln-muted" : ""}`, style: { left: (start - row.start) / span * 100 + "%", width: (end - start) / span * 100 + "%", ...!((_a = note.pitchBend) == null ? void 0 : _a.length) && RAWL_COLORS[degree] ? { background: RAWL_COLORS[degree].background } : {}, zIndex: 100 + (84 - original.pitch) + (original.voice === 1 ? 128 : 0) } };
-  } })));
-}
-var RawlNotation = (0, import_react3.forwardRef)(function RawlNotation2({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = [], onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, renderHeader, renderUnderlay, renderFooter, className = "", style }, ref) {
-  const root = (0, import_react3.useRef)(null), hoveredRef = (0, import_react3.useRef)(null), [hoveredKey, setHoveredKey] = (0, import_react3.useState)(null), ownClock = (0, import_react3.useMemo)(import_native.createSectionPlaybackClock, []), clock = playbackClock != null ? playbackClock : ownClock;
-  const audition = onNoteAudition != null ? onNoteAudition : onNote;
-  const seek = onSeek != null ? onSeek : ((beat) => (playbackClock == null ? void 0 : playbackClock.seek) ? playbackClock.seek(beat) : clock.advance(beat));
-  const editor = useTonicRecoloring({ changes, barBeats, measureMap, onChange: onChangesChange }), automatic = recolorable && !onMeasureSelect;
-  if (automatic) {
-    changes = editor.changes;
-    selectedMeasure = editor.selectedMeasure;
-    onMeasureSelect = editor.selectMeasure;
-    const originalHover = onNoteHover;
-    onNoteHover = (note) => {
-      editor.hoverNote(note);
-      originalHover == null ? void 0 : originalHover(note);
-    };
-  }
-  const spans = (rows == null ? void 0 : rows.length) ? rows : [{ start: 0, end: beats, label: 1 }];
-  const prepared = (0, import_react3.useMemo)(() => spans.map((row) => {
-    const visible = notes.filter((n) => n.start < row.end - 1e-6 && n.start + n.duration > row.start + 1e-6), range = pitchRange(visible), axis = staveGeometry(range, { noteScale });
-    return { row, visible, range, axis, regions: showTonalGuides ? tonalSegments(tonic, changes, row.start, row.end) : [] };
-  }), [notes, rows, beats, tonic, changes, noteScale, showTonalGuides]);
-  const setPosition = (beat) => Number.isFinite(beat) ? clock.advance(beat) : clock.reset();
-  (0, import_react3.useImperativeHandle)(ref, () => ({ setPosition, element: root.current }), [clock]);
-  (0, import_react3.useLayoutEffect)(() => {
-    if (position !== void 0 || !playbackClock) setPosition(position);
-  }, [position, clock, playbackClock]);
-  (0, import_react3.useLayoutEffect)(() => () => ownClock.reset(), [ownClock]);
-  return /* @__PURE__ */ import_react3.default.createElement(import_native.NotePlaybackContext.Provider, { value: clock.register }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln" + (className ? " " + className : ""), style, ref: root }, prepared.map(({ row, visible, range, axis, regions }) => {
-    const span = row.end - row.start, x = (beat) => (beat - row.start) / span * 100;
-    return /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-row", "data-section": row.section, key: `${row.start}-${row.end}`, "data-start": row.start, "data-end": row.end, style: row.style }, renderHeader && /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-header" }, renderHeader(row)), /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-score", "data-seekable": selectedMeasure === null || void 0, role: "group", "aria-label": "Rawl notation", style: { height: axis.notesBottom }, onClick: (e) => {
-      if (selectedMeasure !== null) return;
-      const box = e.currentTarget.getBoundingClientRect();
-      if (box.width > 0) seek(row.start + Math.max(0, Math.min(1, (e.clientX - box.left) / box.width)) * span);
-    } }, /* @__PURE__ */ import_react3.default.createElement(PlaybackMeasureLayer, { row, clock, measureMap, barBeats }), /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-grid", "aria-hidden": "true" }, regions.flatMap((region, i) => tonalLines(range, axis, region.tonic).map((line, j) => /* @__PURE__ */ import_react3.default.createElement("div", { key: `${i}-${j}`, "data-tonic": region.tonic, className: `rawln-${line.kind}-line`, style: { left: x(region.start) + "%", width: (region.end - region.start) / span * 100 + "%", top: line.y } })))), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ import_react3.default.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic }), /* @__PURE__ */ import_react3.default.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, hoveredKey, setHoveredKey, hoveredRef, onNote: (note) => {
-      if (automatic && editor.chooseNote(note)) return;
-      if (onNote) onNote(note);
-      else if (selectedMeasure === null) seek(Math.max(row.start, note.start));
-    }, onNoteAudition: audition, auditionEnabled: selectedMeasure == null, onNoteHover, clock })), renderFooter && /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-footer" }, renderFooter(row, { changes, selectedMeasure })));
-  })));
-});
 
 // src/components/PlaybackFooter.jsx
-var import_react4 = __toESM(require("react"), 1);
+var import_react3 = __toESM(require("react"), 1);
 
 // src/audio/tempo-keys.js
 function bindTempoKeys({ target = globalThis.document, adjustTempo, enabled = () => true }) {
@@ -684,10 +475,10 @@ function timelineGeometry(timeline, duration) {
     colored
   };
 }
-var TimelineMarks = (0, import_react4.memo)(function TimelineMarks2({ geometry }) {
+var TimelineMarks = (0, import_react3.memo)(function TimelineMarks2({ geometry }) {
   if (!geometry) return null;
   const { sections, phrases, bass, colored } = geometry;
-  return /* @__PURE__ */ import_react4.default.createElement("div", { className: "rawlp-marks", "aria-hidden": "true" }, sections.map((left, index) => /* @__PURE__ */ import_react4.default.createElement("i", { className: "rawlp-section-mark", key: index, style: { left: `${left}%` } })), phrases.map((left, index) => /* @__PURE__ */ import_react4.default.createElement("i", { className: "rawlp-phrase-mark", key: index, style: { left: `${left}%` } })), bass.map(({ left, right, color: color2 }, index) => /* @__PURE__ */ import_react4.default.createElement("i", { className: "rawlp-bass-bar", key: index, style: { left: `${left}%`, width: `${right - left}%`, background: color2 } })), colored.map(({ left, color: color2 }, index) => /* @__PURE__ */ import_react4.default.createElement("i", { className: "rawlp-colored-mark", key: index, style: { left: `${left}%`, background: color2 } })));
+  return /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawlp-marks", "aria-hidden": "true" }, sections.map((left, index) => /* @__PURE__ */ import_react3.default.createElement("i", { className: "rawlp-section-mark", key: index, style: { left: `${left}%` } })), phrases.map((left, index) => /* @__PURE__ */ import_react3.default.createElement("i", { className: "rawlp-phrase-mark", key: index, style: { left: `${left}%` } })), bass.map(({ left, right, color: color2 }, index) => /* @__PURE__ */ import_react3.default.createElement("i", { className: "rawlp-bass-bar", key: index, style: { left: `${left}%`, width: `${right - left}%`, background: color2 } })), colored.map(({ left, color: color2 }, index) => /* @__PURE__ */ import_react3.default.createElement("i", { className: "rawlp-colored-mark", key: index, style: { left: `${left}%`, background: color2 } })));
 });
 function PlaybackFooter({
   position,
@@ -711,12 +502,12 @@ function PlaybackFooter({
   const length = Number.isFinite(duration) && duration > 0 ? duration : 0;
   const hasTempo = Number.isFinite(rate) && !!onRateChange;
   const hasVolume = Number.isFinite(volume) && !!onVolumeChange;
-  const seekRef = (0, import_react4.useRef)(null);
-  const elapsedRef = (0, import_react4.useRef)(null);
-  const activePointer = (0, import_react4.useRef)(null);
+  const seekRef = (0, import_react3.useRef)(null);
+  const elapsedRef = (0, import_react3.useRef)(null);
+  const activePointer = (0, import_react3.useRef)(null);
   const elapsed = clamp(Number.isFinite(position) ? position : 0, 0, length);
-  const geometry = (0, import_react4.useMemo)(() => length ? timelineGeometry(timeline, length) : null, [timeline, length]);
-  const paintPosition = (0, import_react4.useCallback)((next) => {
+  const geometry = (0, import_react3.useMemo)(() => length ? timelineGeometry(timeline, length) : null, [timeline, length]);
+  const paintPosition = (0, import_react3.useCallback)((next) => {
     const input = seekRef.current;
     const label = elapsedRef.current;
     const seconds = clamp(Number.isFinite(next) ? next : 0, 0, length);
@@ -725,7 +516,7 @@ function PlaybackFooter({
     if (label.textContent !== time) label.textContent = time;
     if (input.getAttribute("aria-valuetext") !== time) input.setAttribute("aria-valuetext", time);
   }, [length]);
-  (0, import_react4.useLayoutEffect)(() => {
+  (0, import_react3.useLayoutEffect)(() => {
     if (activePointer.current !== null) paintPosition(seekRef.current.valueAsNumber);
     if (playing && getPosition && length && !disabled) {
       return observePlaybackPosition(getPosition, (next) => {
@@ -746,18 +537,18 @@ function PlaybackFooter({
     if (commit && !disabled && length) onSeek(Number(event.currentTarget.value));
     else paintPosition(playing && getPosition ? getPosition() : elapsed);
   }
-  (0, import_react4.useEffect)(() => {
+  (0, import_react3.useEffect)(() => {
     if (!keyboardShortcuts || disabled) return;
     const keys = bindPlaybackKeys({ toggle: onTogglePlay, allowInInputs: allowSpaceInInputs });
     return () => keys.destroy();
   }, [keyboardShortcuts, disabled, onTogglePlay, allowSpaceInInputs]);
-  (0, import_react4.useEffect)(() => {
+  (0, import_react3.useEffect)(() => {
     if (!keyboardShortcuts || disabled || !hasTempo) return;
     return bindTempoKeys({
       adjustTempo: (delta) => onRateChange(clamp(Number((rate + delta).toFixed(2)), 0.1, 4))
     });
   }, [keyboardShortcuts, disabled, hasTempo, onRateChange, rate]);
-  return /* @__PURE__ */ import_react4.default.createElement("footer", { className: "rawlp-footer", "aria-label": "Playback" }, /* @__PURE__ */ import_react4.default.createElement("div", { className: "rawlp-playback" }, /* @__PURE__ */ import_react4.default.createElement(
+  return /* @__PURE__ */ import_react3.default.createElement("footer", { className: "rawlp-footer", "aria-label": "Playback" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawlp-playback" }, /* @__PURE__ */ import_react3.default.createElement(
     "button",
     {
       type: "button",
@@ -766,8 +557,8 @@ function PlaybackFooter({
       "aria-label": playing ? "Pause" : "Play",
       onClick: onTogglePlay
     },
-    /* @__PURE__ */ import_react4.default.createElement("svg", { "aria-hidden": "true", width: "14", height: "16", viewBox: "0 0 14 16", fill: "currentColor" }, playing ? /* @__PURE__ */ import_react4.default.createElement("path", { d: "M2 1h4v14H2zm6 0h4v14H8z" }) : /* @__PURE__ */ import_react4.default.createElement("path", { d: "M2 1l12 7L2 15z" }))
-  ), beforeTimeline), /* @__PURE__ */ import_react4.default.createElement("div", { className: "rawlp-timeline" }, /* @__PURE__ */ import_react4.default.createElement("span", { className: "rawlp-time", ref: elapsedRef }, formatTime(elapsed)), /* @__PURE__ */ import_react4.default.createElement("div", { className: "rawlp-track" }, /* @__PURE__ */ import_react4.default.createElement(TimelineMarks, { geometry }), /* @__PURE__ */ import_react4.default.createElement(
+    /* @__PURE__ */ import_react3.default.createElement("svg", { "aria-hidden": "true", width: "14", height: "16", viewBox: "0 0 14 16", fill: "currentColor" }, playing ? /* @__PURE__ */ import_react3.default.createElement("path", { d: "M2 1h4v14H2zm6 0h4v14H8z" }) : /* @__PURE__ */ import_react3.default.createElement("path", { d: "M2 1l12 7L2 15z" }))
+  ), beforeTimeline), /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawlp-timeline" }, /* @__PURE__ */ import_react3.default.createElement("span", { className: "rawlp-time", ref: elapsedRef }, formatTime(elapsed)), /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawlp-track" }, /* @__PURE__ */ import_react3.default.createElement(TimelineMarks, { geometry }), /* @__PURE__ */ import_react3.default.createElement(
     "input",
     {
       ref: seekRef,
@@ -789,7 +580,7 @@ function PlaybackFooter({
         else paintPosition(next);
       }
     }
-  )), /* @__PURE__ */ import_react4.default.createElement("span", { className: "rawlp-time" }, formatTime(length))), (hasTempo || hasVolume || children) && /* @__PURE__ */ import_react4.default.createElement("div", { className: "rawlp-options" }, hasTempo && /* @__PURE__ */ import_react4.default.createElement("div", { className: "rawlp-tempo" }, /* @__PURE__ */ import_react4.default.createElement(
+  )), /* @__PURE__ */ import_react3.default.createElement("span", { className: "rawlp-time" }, formatTime(length))), (hasTempo || hasVolume || children) && /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawlp-options" }, hasTempo && /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawlp-tempo" }, /* @__PURE__ */ import_react3.default.createElement(
     "button",
     {
       type: "button",
@@ -797,8 +588,8 @@ function PlaybackFooter({
       disabled: disabled || rate <= 0.1,
       onClick: () => onRateChange(clamp(Number((rate - 0.1).toFixed(2)), 0.1, 4))
     },
-    /* @__PURE__ */ import_react4.default.createElement("span", { "aria-hidden": "true" }, /* @__PURE__ */ import_react4.default.createElement("i", null, "_"), /* @__PURE__ */ import_react4.default.createElement("i", null, "\u2212"))
-  ), /* @__PURE__ */ import_react4.default.createElement("span", null, Number(rate.toFixed(2)), "x"), /* @__PURE__ */ import_react4.default.createElement(
+    /* @__PURE__ */ import_react3.default.createElement("span", { "aria-hidden": "true" }, /* @__PURE__ */ import_react3.default.createElement("i", null, "_"), /* @__PURE__ */ import_react3.default.createElement("i", null, "\u2212"))
+  ), /* @__PURE__ */ import_react3.default.createElement("span", null, Number(rate.toFixed(2)), "x"), /* @__PURE__ */ import_react3.default.createElement(
     "button",
     {
       type: "button",
@@ -806,8 +597,8 @@ function PlaybackFooter({
       disabled: disabled || rate >= 4,
       onClick: () => onRateChange(clamp(Number((rate + 0.1).toFixed(2)), 0.1, 4))
     },
-    /* @__PURE__ */ import_react4.default.createElement("span", { "aria-hidden": "true" }, /* @__PURE__ */ import_react4.default.createElement("i", null, "+"), /* @__PURE__ */ import_react4.default.createElement("i", null, "="))
-  )), hasVolume && /* @__PURE__ */ import_react4.default.createElement("label", { className: "rawlp-volume" }, "Vol", /* @__PURE__ */ import_react4.default.createElement(
+    /* @__PURE__ */ import_react3.default.createElement("span", { "aria-hidden": "true" }, /* @__PURE__ */ import_react3.default.createElement("i", null, "+"), /* @__PURE__ */ import_react3.default.createElement("i", null, "="))
+  )), hasVolume && /* @__PURE__ */ import_react3.default.createElement("label", { className: "rawlp-volume" }, "Vol", /* @__PURE__ */ import_react3.default.createElement(
     "input",
     {
       "aria-label": "Volume",
@@ -824,7 +615,7 @@ function PlaybackFooter({
 }
 
 // src/components/RomanNumeral.jsx
-var import_react5 = __toESM(require("react"), 1);
+var import_react4 = __toESM(require("react"), 1);
 
 // src/notation/roman-numerals.mjs
 var escape = (value) => String(value).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -1437,13 +1228,13 @@ function bindRomanNumeralTooltip(anchor, render) {
 
 // src/components/RomanNumeral.jsx
 function RomanNumeral({ notation, options, tooltip = false }) {
-  const ref = (0, import_react5.useRef)(null);
-  const model = (0, import_react5.useMemo)(() => romanNumeralTooltipModel(notation, options, tooltip), [notation, options, tooltip]);
-  (0, import_react5.useEffect)(() => {
+  const ref = (0, import_react4.useRef)(null);
+  const model = (0, import_react4.useMemo)(() => romanNumeralTooltipModel(notation, options, tooltip), [notation, options, tooltip]);
+  (0, import_react4.useEffect)(() => {
     if (!model) return;
     return bindRomanNumeralTooltip(ref.current, () => romanNumeralTooltipHTML(notation, options != null ? options : {}, model));
   }, [notation, options, model]);
-  return /* @__PURE__ */ import_react5.default.createElement(
+  return /* @__PURE__ */ import_react4.default.createElement(
     "span",
     {
       ref,
@@ -1458,16 +1249,16 @@ function RomanNumeral({ notation, options, tooltip = false }) {
 }
 
 // src/components/ScoreSizeSliders.jsx
-var import_react6 = __toESM(require("react"), 1);
+var import_react5 = __toESM(require("react"), 1);
 var HEIGHT = { min: 1, max: 10 };
 var SPACING = { min: 2, max: 150 };
 var clamp2 = (value, { min, max }) => Math.min(max, Math.max(min, value));
 function SizeRange({ label, title = label, value, bounds, onChange, before, after, vertical = false }) {
-  const [draft, setDraft] = (0, import_react6.useState)(null);
-  const timer = (0, import_react6.useRef)(null);
-  (0, import_react6.useEffect)(() => () => clearTimeout(timer.current), []);
+  const [draft, setDraft] = (0, import_react5.useState)(null);
+  const timer = (0, import_react5.useRef)(null);
+  (0, import_react5.useEffect)(() => () => clearTimeout(timer.current), []);
   const displayValue = draft != null ? draft : value;
-  return /* @__PURE__ */ import_react6.default.createElement("label", { className: vertical ? "rawln-size-option rawln-size-option-height" : "rawln-size-option" }, /* @__PURE__ */ import_react6.default.createElement("span", { className: "rawln-size-key", "aria-hidden": "true" }, before), /* @__PURE__ */ import_react6.default.createElement(
+  return /* @__PURE__ */ import_react5.default.createElement("label", { className: vertical ? "rawln-size-option rawln-size-option-height" : "rawln-size-option" }, /* @__PURE__ */ import_react5.default.createElement("span", { className: "rawln-size-key", "aria-hidden": "true" }, before), /* @__PURE__ */ import_react5.default.createElement(
     "input",
     {
       type: "range",
@@ -1489,10 +1280,10 @@ function SizeRange({ label, title = label, value, bounds, onChange, before, afte
         }, 50);
       }
     }
-  ), /* @__PURE__ */ import_react6.default.createElement("span", { className: "rawln-size-key", "aria-hidden": "true" }, after));
+  ), /* @__PURE__ */ import_react5.default.createElement("span", { className: "rawln-size-key", "aria-hidden": "true" }, after));
 }
 function ScoreSizeSliders({ noteHeight, timeSpacing, onNoteHeightChange, onTimeSpacingChange, keyboardShortcuts = false, titles }) {
-  (0, import_react6.useEffect)(() => {
+  (0, import_react5.useEffect)(() => {
     if (!keyboardShortcuts) return;
     const onKey = (event) => {
       var _a, _b;
@@ -1518,14 +1309,14 @@ function ScoreSizeSliders({ noteHeight, timeSpacing, onNoteHeightChange, onTimeS
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [keyboardShortcuts, noteHeight, timeSpacing, onNoteHeightChange, onTimeSpacingChange]);
-  return /* @__PURE__ */ import_react6.default.createElement("div", { className: "rawln-size-sliders" }, /* @__PURE__ */ import_react6.default.createElement(SizeRange, { label: "Time spacing", title: titles == null ? void 0 : titles.timeSpacing, value: timeSpacing, bounds: SPACING, onChange: onTimeSpacingChange, before: "a", after: "d" }), /* @__PURE__ */ import_react6.default.createElement(SizeRange, { label: "Note height", title: titles == null ? void 0 : titles.noteHeight, value: noteHeight, bounds: HEIGHT, onChange: onNoteHeightChange, before: "w", after: "s", vertical: true }));
+  return /* @__PURE__ */ import_react5.default.createElement("div", { className: "rawln-size-sliders" }, /* @__PURE__ */ import_react5.default.createElement(SizeRange, { label: "Time spacing", title: titles == null ? void 0 : titles.timeSpacing, value: timeSpacing, bounds: SPACING, onChange: onTimeSpacingChange, before: "a", after: "d" }), /* @__PURE__ */ import_react5.default.createElement(SizeRange, { label: "Note height", title: titles == null ? void 0 : titles.noteHeight, value: noteHeight, bounds: HEIGHT, onChange: onNoteHeightChange, before: "w", after: "s", vertical: true }));
 }
 
 // src/components/PianoLegend.jsx
-var import_react9 = __toESM(require("react"), 1);
+var import_react8 = __toESM(require("react"), 1);
 
 // node_modules/lucide-react/dist/esm/createLucideIcon.js
-var import_react8 = require("react");
+var import_react7 = require("react");
 
 // node_modules/lucide-react/dist/esm/shared/src/utils.js
 var toKebabCase = (string) => string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
@@ -1549,7 +1340,7 @@ var hasA11yProp = (props) => {
 };
 
 // node_modules/lucide-react/dist/esm/Icon.js
-var import_react7 = require("react");
+var import_react6 = require("react");
 
 // node_modules/lucide-react/dist/esm/defaultAttributes.js
 var defaultAttributes = {
@@ -1565,7 +1356,7 @@ var defaultAttributes = {
 };
 
 // node_modules/lucide-react/dist/esm/Icon.js
-var Icon = (0, import_react7.forwardRef)(
+var Icon = (0, import_react6.forwardRef)(
   ({
     color: color2 = "currentColor",
     size = 24,
@@ -1575,7 +1366,7 @@ var Icon = (0, import_react7.forwardRef)(
     children,
     iconNode,
     ...rest
-  }, ref) => (0, import_react7.createElement)(
+  }, ref) => (0, import_react6.createElement)(
     "svg",
     {
       ref,
@@ -1589,7 +1380,7 @@ var Icon = (0, import_react7.forwardRef)(
       ...rest
     },
     [
-      ...iconNode.map(([tag, attrs]) => (0, import_react7.createElement)(tag, attrs)),
+      ...iconNode.map(([tag, attrs]) => (0, import_react6.createElement)(tag, attrs)),
       ...Array.isArray(children) ? children : [children]
     ]
   )
@@ -1597,8 +1388,8 @@ var Icon = (0, import_react7.forwardRef)(
 
 // node_modules/lucide-react/dist/esm/createLucideIcon.js
 var createLucideIcon = (iconName, iconNode) => {
-  const Component = (0, import_react8.forwardRef)(
-    ({ className, ...props }, ref) => (0, import_react8.createElement)(Icon, {
+  const Component = (0, import_react7.forwardRef)(
+    ({ className, ...props }, ref) => (0, import_react7.createElement)(Icon, {
       ref,
       iconNode,
       className: mergeClasses(
@@ -1682,7 +1473,7 @@ var CHORDS = {
 var MODES = [
   { title: "major", names: ["ii", "IV", "vi", "I", "iii", "V", "V7"] },
   { title: "minor", names: ["iio", "iv", "bVI", "i", "bIII", "V", "V7", "v", "bVII"] }
-].map(({ title, names: names2 }) => ({ title, chords: names2.map((name) => ({ name, pitches: CHORDS[name] })) }));
+].map(({ title, names }) => ({ title, chords: names.map((name) => ({ name, pitches: CHORDS[name] })) }));
 var SCALES = [
   { label: "minor", color: 3, scales: [
     ["phrygian", [0, 1, 3, 5, 7, 8, 10]],
@@ -1701,7 +1492,7 @@ var color = (degree) => RAWL_COLORS[colorIndex(degree)].background;
 function PitchDot({ pitch }) {
   const { dot } = RAWL_COLORS[colorIndex(pitch)];
   if (!dot) return null;
-  return /* @__PURE__ */ import_react9.default.createElement(
+  return /* @__PURE__ */ import_react8.default.createElement(
     "span",
     {
       className: "rawln-piano-pitch-dot",
@@ -1740,10 +1531,10 @@ function PianoLegend({
   activePitch = null,
   onAudition
 }) {
-  const [playing, setPlaying] = (0, import_react9.useState)(null);
-  const timer = (0, import_react9.useRef)(null);
-  const stop = (0, import_react9.useRef)(null);
-  (0, import_react9.useEffect)(() => () => {
+  const [playing, setPlaying] = (0, import_react8.useState)(null);
+  const timer = (0, import_react8.useRef)(null);
+  const stop = (0, import_react8.useRef)(null);
+  (0, import_react8.useEffect)(() => () => {
     var _a;
     clearTimeout(timer.current);
     (_a = stop.current) == null ? void 0 : _a.call(stop);
@@ -1753,7 +1544,7 @@ function PianoLegend({
     const active2 = activePitch === pitch;
     const interactive = !inline && enabled && !!onAudition;
     const Element = interactive ? "button" : "span";
-    return /* @__PURE__ */ import_react9.default.createElement(
+    return /* @__PURE__ */ import_react8.default.createElement(
       Element,
       {
         key: pitch,
@@ -1772,20 +1563,20 @@ function PianoLegend({
         "data-playing": playing === pitch || void 0,
         style: { left: `${left * 100 / 7}%`, background: color(pitch) }
       },
-      /* @__PURE__ */ import_react9.default.createElement(PitchDot, { pitch }),
-      !inline && /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, pitch === 0 && /* @__PURE__ */ import_react9.default.createElement("span", { className: "rawln-piano-tonic" }, tonicName(currentTonic)), label)
+      /* @__PURE__ */ import_react8.default.createElement(PitchDot, { pitch }),
+      !inline && /* @__PURE__ */ import_react8.default.createElement(import_react8.default.Fragment, null, pitch === 0 && /* @__PURE__ */ import_react8.default.createElement("span", { className: "rawln-piano-tonic" }, tonicName(currentTonic)), label)
     );
   }
-  return /* @__PURE__ */ import_react9.default.createElement("div", { className: `rawln-piano-keys${inline ? " rawln-piano-inline" : ""}` }, WHITE_KEYS.map((pitch, i) => renderKey(pitch, i + 1, i, false)), BLACK_KEYS.map((pitch, i) => pitch === null ? null : renderKey(pitch, BLACK_LABELS[i], i + 0.5, true)));
+  return /* @__PURE__ */ import_react8.default.createElement("div", { className: `rawln-piano-keys${inline ? " rawln-piano-inline" : ""}` }, WHITE_KEYS.map((pitch, i) => renderKey(pitch, i + 1, i, false)), BLACK_KEYS.map((pitch, i) => pitch === null ? null : renderKey(pitch, BLACK_LABELS[i], i + 0.5, true)));
 }
 function InlinePianoLegend(props) {
-  return /* @__PURE__ */ import_react9.default.createElement(PianoLegend, { ...props, inline: true });
+  return /* @__PURE__ */ import_react8.default.createElement(PianoLegend, { ...props, inline: true });
 }
 function ChordRow({ mode, tonic, guitar, onAudition, setHoveredColors }) {
   var _a, _b;
-  const [playing, setPlaying] = (0, import_react9.useState)(null);
-  const timer = (0, import_react9.useRef)(null);
-  (0, import_react9.useEffect)(() => () => clearTimeout(timer.current), []);
+  const [playing, setPlaying] = (0, import_react8.useState)(null);
+  const timer = (0, import_react8.useRef)(null);
+  (0, import_react8.useEffect)(() => () => clearTimeout(timer.current), []);
   const voiced = [];
   for (const chord of mode.chords) {
     if (!chord.pitches.length) continue;
@@ -1808,7 +1599,7 @@ function ChordRow({ mode, tonic, guitar, onAudition, setHoveredColors }) {
   const bottom = Math.min(...voiced.flatMap((chord) => chord.positions));
   const tonicIndex = voiced.findIndex(({ name }) => name === "I" || name === "i");
   const minor = mode.title.toLowerCase().includes("minor") || voiced.some(({ name }) => name === "i");
-  return /* @__PURE__ */ import_react9.default.createElement("div", { className: "rawln-piano-mode" }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "rawln-piano-chords", style: { "--rawln-piano-chord-count": voiced.length, height: (top - bottom) * 3 + 52 } }, voiced.map(({ name, pitches, positions, romanLabel }, i) => {
+  return /* @__PURE__ */ import_react8.default.createElement("div", { className: "rawln-piano-mode" }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "rawln-piano-chords", style: { "--rawln-piano-chord-count": voiced.length, height: (top - bottom) * 3 + 52 } }, voiced.map(({ name, pitches, positions, romanLabel }, i) => {
     var _a2;
     const showAbove = i < tonicIndex;
     const alternateLabel = guitar ? guitarName(name, pitches, tonic, minor) : void 0;
@@ -1817,7 +1608,7 @@ function ChordRow({ mode, tonic, guitar, onAudition, setHoveredColors }) {
     const Element = onAudition ? "button" : "span";
     const clearHover = () => setHoveredColors == null ? void 0 : setHoveredColors(null);
     const preview = () => setHoveredColors == null ? void 0 : setHoveredColors(pitches.map((pitch) => `noteColor_${colorIndex(pitch)}_colors`));
-    return /* @__PURE__ */ import_react9.default.createElement(
+    return /* @__PURE__ */ import_react8.default.createElement(
       Element,
       {
         key: `${name}-${i}`,
@@ -1833,7 +1624,7 @@ function ChordRow({ mode, tonic, guitar, onAudition, setHoveredColors }) {
         onFocus: preview,
         onBlur: clearHover
       },
-      positions.map((position, j) => /* @__PURE__ */ import_react9.default.createElement(
+      positions.map((position, j) => /* @__PURE__ */ import_react8.default.createElement(
         "i",
         {
           key: `${j}-${(playing == null ? void 0 : playing.index) === i ? playing.serial : ""}`,
@@ -1841,11 +1632,11 @@ function ChordRow({ mode, tonic, guitar, onAudition, setHoveredColors }) {
           "data-playing": (playing == null ? void 0 : playing.index) === i || void 0,
           style: { top: 22 + (top - position) * 3, background: color(pitches[j]), animationDelay: `${ARPEGGIO_DELAY_MS * j}ms` }
         },
-        /* @__PURE__ */ import_react9.default.createElement(PitchDot, { pitch: pitches[j] })
+        /* @__PURE__ */ import_react8.default.createElement(PitchDot, { pitch: pitches[j] })
       )),
-      /* @__PURE__ */ import_react9.default.createElement("span", { style: { top: labelTop } }, (_a2 = alternateLabel != null ? alternateLabel : romanLabel) != null ? _a2 : label)
+      /* @__PURE__ */ import_react8.default.createElement("span", { style: { top: labelTop } }, (_a2 = alternateLabel != null ? alternateLabel : romanLabel) != null ? _a2 : label)
     );
-  })), mode.title && /* @__PURE__ */ import_react9.default.createElement("div", { className: "rawln-piano-mode-title" }, mode.title));
+  })), mode.title && /* @__PURE__ */ import_react8.default.createElement("div", { className: "rawln-piano-mode-title" }, mode.title));
 }
 function getMobile() {
   var _a;
@@ -1901,14 +1692,14 @@ function FoldablePianoLegend({
   setHoveredColors,
   storageKey = "showLegend"
 }) {
-  const [mobile, setMobile] = (0, import_react9.useState)(getMobile);
-  const [expanded, setExpanded] = (0, import_react9.useState)(() => storedExpansion(storageKey, mobile));
-  const [scale, setScale] = (0, import_react9.useState)(null);
-  const [highlight, setHighlight] = (0, import_react9.useState)(null);
-  const [guitar, setGuitar] = (0, import_react9.useState)(false);
-  const audition = (0, import_react9.useRef)(null);
-  const legend = (0, import_react9.useRef)(null);
-  (0, import_react9.useEffect)(() => {
+  const [mobile, setMobile] = (0, import_react8.useState)(getMobile);
+  const [expanded, setExpanded] = (0, import_react8.useState)(() => storedExpansion(storageKey, mobile));
+  const [scale, setScale] = (0, import_react8.useState)(null);
+  const [highlight, setHighlight] = (0, import_react8.useState)(null);
+  const [guitar, setGuitar] = (0, import_react8.useState)(false);
+  const audition = (0, import_react8.useRef)(null);
+  const legend = (0, import_react8.useRef)(null);
+  (0, import_react8.useEffect)(() => {
     if (!expanded && legend.current) return reserveCollapsedLegendSpace(legend.current);
   }, [expanded]);
   function stop() {
@@ -1917,7 +1708,7 @@ function FoldablePianoLegend({
     audition.current = null;
     (_a = run == null ? void 0 : run.cancel) == null ? void 0 : _a.call(run);
   }
-  (0, import_react9.useEffect)(() => {
+  (0, import_react8.useEffect)(() => {
     var _a, _b;
     const media = (_a = window.matchMedia) == null ? void 0 : _a.call(window, MOBILE);
     const changed = (event) => setMobile(event.matches);
@@ -1927,8 +1718,8 @@ function FoldablePianoLegend({
       return (_a2 = media == null ? void 0 : media.removeEventListener) == null ? void 0 : _a2.call(media, "change", changed);
     };
   }, []);
-  (0, import_react9.useEffect)(() => setExpanded(storedExpansion(storageKey, mobile)), [storageKey, mobile]);
-  (0, import_react9.useEffect)(() => {
+  (0, import_react8.useEffect)(() => setExpanded(storedExpansion(storageKey, mobile)), [storageKey, mobile]);
+  (0, import_react8.useEffect)(() => {
     setHighlight(null);
     setScale(null);
     return stop;
@@ -1961,7 +1752,7 @@ function FoldablePianoLegend({
   }
   const Chevron = expanded ? ChevronDown : ChevronUp;
   const chordNamesLabel = guitar ? "Show Roman numerals" : "Show guitar chords";
-  return /* @__PURE__ */ import_react9.default.createElement("aside", { ref: legend, className: "rawln-piano-legend", "data-expanded": expanded }, /* @__PURE__ */ import_react9.default.createElement("div", { className: "rawln-piano-header" }, /* @__PURE__ */ import_react9.default.createElement(
+  return /* @__PURE__ */ import_react8.default.createElement("aside", { ref: legend, className: "rawln-piano-legend", "data-expanded": expanded }, /* @__PURE__ */ import_react8.default.createElement("div", { className: "rawln-piano-header" }, /* @__PURE__ */ import_react8.default.createElement(
     "button",
     {
       type: "button",
@@ -1970,9 +1761,9 @@ function FoldablePianoLegend({
       "aria-label": "Piano legend",
       "aria-expanded": expanded
     },
-    /* @__PURE__ */ import_react9.default.createElement(Chevron, { size: 14, "aria-hidden": "true" }),
-    !expanded && /* @__PURE__ */ import_react9.default.createElement(InlinePianoLegend, null)
-  ), expanded && /* @__PURE__ */ import_react9.default.createElement(
+    /* @__PURE__ */ import_react8.default.createElement(Chevron, { size: 14, "aria-hidden": "true" }),
+    !expanded && /* @__PURE__ */ import_react8.default.createElement(InlinePianoLegend, null)
+  ), expanded && /* @__PURE__ */ import_react8.default.createElement(
     "button",
     {
       type: "button",
@@ -1982,10 +1773,10 @@ function FoldablePianoLegend({
       title: chordNamesLabel,
       onClick: () => setGuitar(!guitar)
     },
-    /* @__PURE__ */ import_react9.default.createElement(GraduationCap, { size: 14, className: "rawln-piano-name-roman", "aria-hidden": "true" }),
-    /* @__PURE__ */ import_react9.default.createElement("span", { className: "rawln-piano-name-track", "aria-hidden": "true" }),
-    /* @__PURE__ */ import_react9.default.createElement(Guitar, { size: 14, className: "rawln-piano-name-guitar", "aria-hidden": "true" })
-  )), /* @__PURE__ */ import_react9.default.createElement("div", { className: "rawln-piano-panel", hidden: !expanded }, expanded && /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, modes.map((mode, i) => /* @__PURE__ */ import_react9.default.createElement(
+    /* @__PURE__ */ import_react8.default.createElement(GraduationCap, { size: 14, className: "rawln-piano-name-roman", "aria-hidden": "true" }),
+    /* @__PURE__ */ import_react8.default.createElement("span", { className: "rawln-piano-name-track", "aria-hidden": "true" }),
+    /* @__PURE__ */ import_react8.default.createElement(Guitar, { size: 14, className: "rawln-piano-name-guitar", "aria-hidden": "true" })
+  )), /* @__PURE__ */ import_react8.default.createElement("div", { className: "rawln-piano-panel", hidden: !expanded }, expanded && /* @__PURE__ */ import_react8.default.createElement(import_react8.default.Fragment, null, modes.map((mode, i) => /* @__PURE__ */ import_react8.default.createElement(
     ChordRow,
     {
       key: i,
@@ -1995,7 +1786,7 @@ function FoldablePianoLegend({
       onAudition: onAudition ? play : void 0,
       setHoveredColors
     }
-  )), /* @__PURE__ */ import_react9.default.createElement("div", { className: "rawln-piano-octaves" }, [0, 12].map((octave) => /* @__PURE__ */ import_react9.default.createElement(
+  )), /* @__PURE__ */ import_react8.default.createElement("div", { className: "rawln-piano-octaves" }, [0, 12].map((octave) => /* @__PURE__ */ import_react8.default.createElement(
     PianoLegend,
     {
       key: octave,
@@ -2004,9 +1795,9 @@ function FoldablePianoLegend({
       activePitch: highlight == null ? null : highlight - octave,
       onAudition: onAudition ? play : void 0
     }
-  ))), SCALES.map((group) => /* @__PURE__ */ import_react9.default.createElement("div", { key: group.label, className: "rawln-piano-scale-row" }, /* @__PURE__ */ import_react9.default.createElement("span", { style: { background: color(group.color), color: RAWL_COLORS[group.color].foreground } }, group.label), group.scales.map(([label, pitches]) => {
+  ))), SCALES.map((group) => /* @__PURE__ */ import_react8.default.createElement("div", { key: group.label, className: "rawln-piano-scale-row" }, /* @__PURE__ */ import_react8.default.createElement("span", { style: { background: color(group.color), color: RAWL_COLORS[group.color].foreground } }, group.label), group.scales.map(([label, pitches]) => {
     const Element = onAudition ? "button" : "span";
-    return /* @__PURE__ */ import_react9.default.createElement(
+    return /* @__PURE__ */ import_react8.default.createElement(
       Element,
       {
         key: label,
@@ -2030,14 +1821,14 @@ function FoldablePianoLegend({
 }
 
 // src/components/score-pinch.ts
-var import_react10 = __toESM(require("react"), 1);
+var import_react9 = __toESM(require("react"), 1);
 var import_react_dom = require("react-dom");
 var clamp3 = (value, min, max) => Math.min(max, Math.max(min, value));
-var ScorePinchContent = import_react10.default.memo(
+var ScorePinchContent = import_react9.default.memo(
   ({
     children,
     fitWidth = false
-  }) => import_react10.default.createElement(
+  }) => import_react9.default.createElement(
     "div",
     {
       "data-score-pinch-content": "",
@@ -2050,16 +1841,16 @@ var ScorePinchContent = import_react10.default.memo(
   (previous, next) => next.activeRef.current || previous.children === next.children && previous.fitWidth === next.fitWidth
 );
 function useScorePinch(containerRef, noteHeight, secondWidth, setNoteHeight, setSecondWidth, enabled = true) {
-  const dimensions = (0, import_react10.useRef)({ noteHeight, secondWidth });
+  const dimensions = (0, import_react9.useRef)({ noteHeight, secondWidth });
   dimensions.current = { noteHeight, secondWidth };
-  const activeRef = (0, import_react10.useRef)(false);
-  const clearPreviewRef = (0, import_react10.useRef)(null);
-  const [, refreshScore] = (0, import_react10.useReducer)((revision) => revision + 1, 0);
-  (0, import_react10.useLayoutEffect)(() => {
+  const activeRef = (0, import_react9.useRef)(false);
+  const clearPreviewRef = (0, import_react9.useRef)(null);
+  const [, refreshScore] = (0, import_react9.useReducer)((revision) => revision + 1, 0);
+  (0, import_react9.useLayoutEffect)(() => {
     var _a;
     if (!activeRef.current) (_a = clearPreviewRef.current) == null ? void 0 : _a.call(clearPreviewRef);
   });
-  (0, import_react10.useEffect)(() => {
+  (0, import_react9.useEffect)(() => {
     const container = containerRef.current;
     const content = container == null ? void 0 : container.querySelector(
       "[data-score-pinch-content]"

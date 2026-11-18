@@ -16,13 +16,14 @@ export interface SourceMeasure {
 }
 export interface PlaybackMeasureBordersProps {
  left?:React.CSSProperties['left']; width?:React.CSSProperties['width'];
- top?:boolean; bottom?:boolean; hidden?:boolean;
+ top?:boolean; bottom?:boolean; hidden?:boolean; ref?:React.Ref<HTMLDivElement>;
 }
-export const PlaybackMeasureBorders:React.ForwardRefExoticComponent<PlaybackMeasureBordersProps & React.RefAttributes<HTMLDivElement>>;
+export function PlaybackMeasureBorders(props:PlaybackMeasureBordersProps):React.ReactElement;
 /** Tracks the current measure in a host-rendered relative score row. */
 export const PlaybackMeasureLayer:React.FC<{row:ScoreRow;clock:NotePlaybackClock;measureMap?:readonly SourceMeasure[];barBeats?:number}>;
 export interface RawlNotationHandle { setPosition(beat:number|null):void; element:HTMLDivElement|null; }
 export interface RawlNotationProps {
+ ref?:React.Ref<RawlNotationHandle>;
  notes:MidiNote[]; beats:number; rows?:ScoreRow[]; tonic?:number; changes?:TonicChange[];
  barBeats?:number; beatBeats?:number; phraseStarts?:number[]; measureMap?:SourceMeasure[]; hideInitialTonic?:boolean; position?:number|null; mutedVoices?:number[]; className?:string; style?:React.CSSProperties;
  /** An externally advanced clock. When position is omitted, its lifecycle belongs to the host. */
@@ -35,7 +36,7 @@ export interface RawlNotationProps {
  renderUnderlay?:(row:ScoreRow,axis:ReturnType<typeof staveGeometry>)=>React.ReactNode;
  renderFooter?:(row:ScoreRow,context:{changes:TonicChange[];selectedMeasure:number|null})=>React.ReactNode;
 }
-export const RawlNotation:React.ForwardRefExoticComponent<RawlNotationProps & React.RefAttributes<RawlNotationHandle>>;
+export function RawlNotation(props:RawlNotationProps):React.ReactElement;
 export interface RawlMeasureHeaderProps {
  row:ScoreRow; height?:number|string; tonic?:number; changes?:TonicChange[]; barBeats?:number; beatBeats?:number;
  /** Absolute quarter-beat phrase starts; optional closing boundary has no label. */
