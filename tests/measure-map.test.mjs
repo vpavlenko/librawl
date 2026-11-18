@@ -33,3 +33,30 @@ test('authored cut/common meter changes retain exact boundaries and per-measure 
  assert.deepEqual(grid.measures.map(m=>[m.beat,m.number]),[[0,1],[4,2],[8,3]]);assert.deepEqual(grid.beats,[2,5,6,7,9,10]);
  for(const beatBeats of [0,-1,NaN,Infinity])assert.throws(()=>validateMeasureMap([{start:0,duration:4,sourceNumber:1,beatBeats}]),/Invalid measure map/);
 });
+
+test('recording-time grid keeps irregular beats and measures at their annotated positions',()=>{
+ const measureMap=[
+  {start:0,duration:1.2,sourceNumber:1,beatPositions:[0.2,0.55,0.86]},
+  {start:1.2,duration:0.8,sourceNumber:2,beatPositions:[1.42,1.7,1.84]},
+  {start:2,duration:0.4,sourceNumber:3,beatPositions:[]},
+ ];
+ const grid=measureHeaderLayout({row:{start:0.4,end:2.4},measureMap,width:600,phraseStarts:[]});
+ assert.deepEqual(grid.measures.map(m=>[m.beat,m.number]),[[1.2,2],[2,3]]);
+ assert.deepEqual(grid.beats,[0.55,0.86,1.42,1.7,1.84]);
+ for(const beatPositions of [[1.2],[2],[1.7,1.42],[1.42,1.42],[NaN]]){
+  assert.throws(()=>validateMeasureMap([measureMap[0],{...measureMap[1],beatPositions}]),/Invalid measure map/);
+ }
+});
+
+
+test('a section-start bar uses the phrase accent without changing the authored selection rules', () => {
+ const props={row:{start:5,end:12},measureMap:pickup,width:700,phraseStarts:[9,12],selectedMeasure:5};
+ const {measures}=measureHeaderLayout(props);
+ assert.deepEqual(measures.map(({beat,number,isPhraseStart,color})=>[beat,number,isPhraseStart,color]),[
+  [5,'2',true,'red'],[9,'3',true,'#666'],[12,null,true,'#666'],
+ ]);
+ const clipped=measureHeaderLayout({...props,row:{start:5.5,end:12}});
+ assert.deepEqual(clipped.measures.map(({beat})=>beat),[9,12]);
+ const regular=measureHeaderLayout({row:{start:4,end:12},width:800});
+ assert.deepEqual(regular.measures.map(({beat,isPhraseStart})=>[beat,isPhraseStart]),[[4,true],[8,false]]);
+});

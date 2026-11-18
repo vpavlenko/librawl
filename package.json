@@ -1,6 +1,6 @@
 {
   "name": "librawl",
-  "version": "0.3.5",
+  "version": "0.3.5-local",
   "description": "Shared Rawl React notation primitives and MIDI playback adapters",
   "type": "module",
   "license": "GPL-3.0-only",
@@ -38,6 +38,21 @@
       "require": "./dist/audio.cjs"
     },
     "./style.css": "./dist/style.css",
+    "./roman-numerals": {
+      "types": "./dist/roman-numerals.d.ts",
+      "import": "./dist/roman-numerals.js",
+      "require": "./dist/roman-numerals.cjs"
+    },
+    "./roman-numerals.css": "./dist/roman-numerals.css",
+    "./harmony-annotations": {
+      "types": "./dist/harmony-annotations.d.ts",
+      "import": "./dist/harmony-annotations.js",
+      "require": "./dist/harmony-annotations.cjs"
+    },
+    "./harmony-annotations.css": "./dist/harmony-annotations.css",
+    "./score-size-sliders.css": "./dist/score-size-sliders.css",
+    "./piano-legend.css": "./dist/piano-legend.css",
+    "./playback-footer.css": "./dist/playback-footer.css",
     "./browser/*": "./dist/browser/*",
     "./legacy-style.css": "./dist/legacy-style.css",
     "./harmony.css": "./dist/harmony.css",
@@ -82,14 +97,18 @@
   "devDependencies": {
     "esbuild": "0.28.2",
     "jsdom": "26.1.0",
+    "lucide-react": "0.562.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "react16": "npm:react@16.14.0",
-    "react-dom16": "npm:react-dom@16.14.0"
+    "react-dom16": "npm:react-dom@16.14.0",
+    "react16": "npm:react@16.14.0"
   },
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "node --test tests/*.test.mjs integrations/caplin/*.test.mjs",
-    "check": "npm run build && npm test"
+    "check": "npm run build && npm test",
+    "postbuild": "node scripts/sync-local-consumers.mjs --skip-build --when-enabled",
+    "sync:local": "node scripts/sync-local-consumers.mjs",
+    "watch:local": "node scripts/sync-local-consumers.mjs --watch"
   }
 }

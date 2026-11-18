@@ -48,3 +48,42 @@ test('resize retains host transpose, hover recoloring, recording state and captu
   assert.equal(handle.notes[0],node);assert.equal(node.style.top,'50px');assert.equal(node.style.backgroundColor,'red');assert.equal(node.dataset.pitch,'62');assert.equal(node.dataset.tonic,'2');assert.equal(node.dataset.pitchClass,'0');assert.ok(node.classList.contains('recording-playing'));assert.equal(node.hidden,true);
  }finally{handle.destroy();assert.equal(disconnected,true);dom.window.close();}
 });
+test('legacy Caplin edges follow authored bars and the shared beat through rows, rests, and reset',()=>{
+ const {dom,score}=environment(),f=fixture(),doc=score.ownerDocument;
+ const first=doc.createElement('div'),second=doc.createElement('div');
+ const panel=doc.createElement('section');panel.className='rawl-example';
+ score.replaceWith(panel);panel.append(score);score.className='rawl-period-sections';score.append(first,second);
+ const data={...f.data,groups:[0,4],structure:{notatedBars:{starts:[0,1,3.5,7],measureLabels:[0,'1a','1b',2]}}};
+ const notes=[];
+ const a=exports.mount(first,{...f,data,notes,row:{start:0,end:4,pad:0,span:4.5}});
+ const b=exports.mount(second,{...f,data,notes,row:{start:4,end:8,pad:.5,span:4.5}});
+ try{
+  const edge=row=>row.querySelector('.rawln-playback-measure');
+  const beat=(position,owner=score)=>exports.setPlaybackMeasure(owner,position);
+  assert.equal(edge(first).hidden,true);
+  beat(.75);
+  assert.equal(edge(first).hidden,false);assert.equal(edge(first).dataset.measure,'0');
+  assert.equal(edge(second).hidden,true);
+  assert.equal(edge(first).style.borderTop,'1px solid rgb(68, 68, 68)');
+  assert.equal(edge(first).style.borderBottom,'1px solid rgb(68, 68, 68)');
+  beat(3.5,panel);
+  assert.equal(edge(first).dataset.measure,'1b');
+  assert.ok(Math.abs(parseFloat(edge(first).style.width)-100*.5/4.5)<1e-8);
+  beat(4);
+  assert.equal(edge(first).hidden,true);assert.equal(edge(second).hidden,false);
+  assert.equal(edge(second).dataset.measure,'1b');
+  assert.ok(edge(second).style.left.includes(String(100*.5/4.5).slice(0,5)));
+  assert.ok(Math.abs(parseFloat(edge(second).style.width)-100*3/4.5)<1e-8);
+  beat(7);
+  assert.equal(edge(second).dataset.measure,'2');
+  b.update({});assert.equal(edge(second).dataset.measure,'2');
+  beat(8);assert.equal(edge(second).hidden,true);
+  beat(2);assert.equal(edge(first).dataset.measure,'1a');
+  exports.setPlaybackMeasure(score,null,'recording');
+  assert.equal(edge(first).dataset.measure,'1a','late recording clear must not hide MIDI edge');
+  exports.setPlaybackMeasure(score,7.5,'recording');
+  beat(null);assert.equal(edge(second).dataset.measure,'2','MIDI cleanup must not hide the recording edge');
+  exports.setPlaybackMeasure(score,null,'recording');
+  assert.equal(edge(first).hidden,true);assert.equal(edge(second).hidden,true);
+ }finally{a.destroy();b.destroy();exports.setPlaybackMeasure(panel,2);dom.window.close();}
+});

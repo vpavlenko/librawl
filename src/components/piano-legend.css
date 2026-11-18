@@ -1,0 +1,215 @@
+.rawln-piano-clearance {
+  display: block;
+  flex: none;
+  grid-column: 1 / -1;
+  width: 0;
+  height: max(0px, calc(var(--rawln-piano-needed-clearance) - var(--rawln-piano-existing-clearance, 0px)));
+  pointer-events: none;
+}
+.rawln-piano-legend {
+  --rawln-legend-viewport: 100vh;
+  --rawln-legend-top: calc(8px + env(safe-area-inset-top, 0px));
+  --rawln-legend-bottom: clamp(0px,
+    calc(var(--rawl-playback-footer-height, 25px) + 37px + env(safe-area-inset-bottom, 0px)),
+    calc(var(--rawln-legend-viewport) - var(--rawln-legend-top) - 70px));
+  position: fixed;
+  z-index: var(--rawl-piano-legend-z-index, 29);
+  right: max(42px, calc(34px + env(safe-area-inset-right, 0px)));
+  bottom: var(--rawln-legend-bottom);
+  width: max-content;
+  max-width: calc(100% - 54px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+  color: white;
+  font: 12px/1.25 system-ui, sans-serif;
+}
+@supports (height: 100dvh) {
+  .rawln-piano-legend { --rawln-legend-viewport: 100dvh; }
+}
+.rawln-piano-legend[data-expanded="true"] {
+  display: flex;
+  flex-direction: column;
+  z-index: var(--rawl-piano-legend-z-index, 31);
+  width: 421px;
+  max-height: calc(var(--rawln-legend-viewport) - var(--rawln-legend-top) - var(--rawln-legend-bottom));
+}
+.rawln-piano-legend button, .rawln-piano-keys button { font: inherit; cursor: pointer; }
+.rawln-piano-legend button:focus-visible, .rawln-piano-keys button:focus-visible {
+  outline: 1px solid white;
+  outline-offset: 2px;
+}
+.rawln-piano-header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+}
+.rawln-piano-legend[data-expanded="true"] .rawln-piano-header {
+  border: 1px solid #666;
+  border-bottom: 0;
+  background: black;
+}
+.rawln-piano-fold {
+  border: 1px solid #666;
+  border-radius: 0;
+  background: black;
+  color: white;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: 26px;
+  padding: 4px 7px;
+  text-align: center;
+}
+.rawln-piano-legend[data-expanded="true"] .rawln-piano-fold {
+  border: 0;
+}
+.rawln-piano-panel {
+  position: relative;
+  box-sizing: border-box;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 10px;
+  border: 1px solid #666;
+  background: black;
+}
+.rawln-piano-panel[hidden] { display: none; }
+.rawln-piano-names {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 2px 5px;
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  color: #666;
+}
+.rawln-piano-names[aria-pressed="false"] .rawln-piano-name-roman,
+.rawln-piano-names[aria-pressed="true"] .rawln-piano-name-guitar {
+  color: white;
+}
+.rawln-piano-name-track {
+  position: relative;
+  width: 32px;
+  height: 16px;
+  border-radius: 8px;
+  background: #444;
+}
+.rawln-piano-names:hover .rawln-piano-name-track {
+  background: #555;
+}
+.rawln-piano-name-track::after {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: white;
+  content: "";
+  transition: transform .2s;
+}
+.rawln-piano-names[aria-pressed="true"] .rawln-piano-name-track::after {
+  transform: translateX(16px);
+}
+.rawln-piano-chords {
+  display: grid;
+  grid-template-columns: repeat(var(--rawln-piano-chord-count), minmax(0, 30px));
+  gap: clamp(2px, 1vw, 7px);
+}
+.rawln-piano-chord {
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: white;
+  background: none;
+  text-align: center;
+}
+.rawln-piano-chord > span, .rawln-piano-chord > i {
+  position: absolute;
+  inset-inline: 0;
+  display: block;
+}
+.rawln-piano-chord > span { white-space: nowrap; font-family: Tahoma, sans-serif; }
+.rawln-piano-chord i { height: 6px; border-radius: 4px; }
+.rawln-piano-pitch-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.rawln-piano-chord i[data-playing="true"] { animation: rawln-piano-chord-pulse .6s ease-out; }
+.rawln-piano-mode-title { color: #aaa; margin-bottom: 10px; }
+.rawln-piano-octaves { display: flex; }
+.rawln-piano-keys {
+  --rawln-piano-key-height: 70px;
+  --rawln-piano-row-step: 40px;
+  --rawln-piano-key-gap: 2.5px;
+  position: relative;
+  flex: 1 1 199.5px;
+  width: 199.5px;
+  height: calc(var(--rawln-piano-key-height) + var(--rawln-piano-row-step));
+  user-select: none;
+}
+.rawln-piano-inline {
+  --rawln-piano-key-height: 24px;
+  --rawln-piano-row-step: 15px;
+  --rawln-piano-key-gap: 2px;
+  width: 84px;
+}
+.rawln-piano-keys .rawln-piano-key {
+  position: absolute;
+  top: var(--rawln-piano-row-step);
+  display: grid;
+  place-items: end center;
+  box-sizing: border-box;
+  width: calc(100% / 7 - var(--rawln-piano-key-gap));
+  height: var(--rawln-piano-key-height);
+  padding: 0 0 1px;
+  border: 0;
+  border-radius: 5px;
+  color: white;
+  text-shadow: .5px .5px black, -.5px .5px black, .5px -.5px black, -.5px -.5px black;
+  font: 700 16px/1.1 system-ui, sans-serif;
+  transform-origin: top center;
+}
+.rawln-piano-inline .rawln-piano-key { border-radius: 3px; }
+.rawln-piano-key[data-raised="true"] { top: 0; z-index: 2; }
+.rawln-piano-key[data-hidden="true"] { visibility: hidden; }
+.rawln-piano-key[data-active="true"] { z-index: 3; transform: scale(1.2); }
+.rawln-piano-key[data-playing="true"] { animation: rawln-piano-key-pulse .2s ease-out; }
+.rawln-piano-tonic {
+  position: absolute;
+  bottom: 18px;
+  left: 2px;
+  z-index: 3;
+  color: black;
+  text-shadow: none;
+  font-size: 14px;
+}
+.rawln-piano-scale-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+.rawln-piano-scale-row span, .rawln-piano-scale {
+  box-sizing: border-box;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 4px;
+  color: white;
+}
+.rawln-piano-scale-row > span:first-child { margin-right: 4px; }
+.rawln-piano-scale { text-shadow: 0 1px 2px black, 0 0 2px black; }
+@keyframes rawln-piano-chord-pulse { 30% { transform: scale(1.5); } }
+@keyframes rawln-piano-key-pulse { 50% { transform: scale(.95); } }
+@media (prefers-reduced-motion: reduce) {
+  .rawln-piano-chord i[data-playing="true"], .rawln-piano-key[data-playing="true"] { animation: none; }
+  .rawln-piano-name-track::after { transition: none; }
+}

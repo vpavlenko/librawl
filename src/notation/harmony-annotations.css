@@ -1,0 +1,26 @@
+.rawln-harmony-lane {
+  position: relative;
+  min-width: 0;
+}
+.rawln-harmony-label {
+  position: absolute;
+  display: block;
+  width: max-content;
+  text-indent: 0;
+  white-space: nowrap;
+  font: 16px/1.25 Georgia, "Times New Roman", serif;
+}
+.rawln-harmony-arrows {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  fill: currentColor;
+}
+.rawln-harmony-arrow-shaft {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+  stroke-linecap: round;
+}

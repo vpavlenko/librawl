@@ -1,4 +1,4 @@
-/*! librawl version: 0.3.5; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
+/*! librawl version: 0.3.5-local; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
 
 // src/audio/continuous-playback.js
 function attachContinuousPlayback(engine, { setInterval, clearInterval, presentationTime, horizon = 0.14, interval = 25 }) {
@@ -703,16 +703,104 @@ function createSoundFontPlayback(options = {}) {
   return { prepare, stop, stopAudition: () => engine == null ? void 0 : engine.stopAudition(), getContext: () => audioContext, getPreparationState: () => ({ phase, pending: !!pending, error: lastError }), PlaybackEngine: ContinuousPlaybackEngine, presentationTime, soundingIntervals, room: ROOM, roomImpulse, masterGain: MASTER_GAIN };
 }
 
+// src/audio/playback-keys.js
+var targets = /* @__PURE__ */ new WeakMap();
+var textControls = 'input, textarea, [contenteditable]:not([contenteditable="false"]), [role~="textbox"]';
+var readerControls = [
+  textControls,
+  "select",
+  "button",
+  "summary",
+  "dialog[open]",
+  ...[
+    "button",
+    "checkbox",
+    "combobox",
+    "menuitem",
+    "menuitemcheckbox",
+    "menuitemradio",
+    "option",
+    "radio",
+    "slider",
+    "switch",
+    "tab"
+  ].map((role) => `[role~="${role}"]`),
+  "audio[controls]",
+  "video[controls]"
+].join(",");
+function bindPlaybackKeys({
+  target = globalThis.document,
+  pause,
+  toggle,
+  enabled = () => true,
+  allowInInputs = false,
+  preventScrollWhenIdle = false
+}) {
+  let registry = targets.get(target);
+  if (!registry) {
+    const bindings = /* @__PURE__ */ new Set();
+    const active = /* @__PURE__ */ new Set();
+    let consumed = false;
+    const keydown = (event) => {
+      var _a, _b, _c, _d, _e, _f, _g;
+      if (event.code !== "Space" && event.key !== " " && event.key !== "Spacebar") return;
+      if (!event.repeat) consumed = false;
+      if (event.defaultPrevented || event.isComposing || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+      let app;
+      let idleBlocker = false;
+      for (const binding of bindings) {
+        if ((binding.toggle || binding.preventScrollWhenIdle) && binding.enabled()) {
+          if (binding.toggle) app = binding;
+          if (binding.preventScrollWhenIdle) idleBlocker = true;
+        }
+      }
+      let player2 = app;
+      if (!player2) {
+        for (const binding of active) if (binding.enabled()) player2 = binding;
+      }
+      if (!player2 && !idleBlocker && !consumed) return;
+      const element = (_b = (_a = event.composedPath) == null ? void 0 : _a.call(event)[0]) != null ? _b : event.target;
+      if (app ? !app.allowInInputs && ((_c = element == null ? void 0 : element.closest) == null ? void 0 : _c.call(element, textControls)) : ((_d = element == null ? void 0 : element.closest) == null ? void 0 : _d.call(element, readerControls)) || ((_e = target.querySelector) == null ? void 0 : _e.call(target, "dialog[open]"))) return;
+      event.preventDefault();
+      if (app) event.stopPropagation();
+      consumed = true;
+      if (!event.repeat) (_g = (_f = player2 == null ? void 0 : player2.toggle) != null ? _f : player2 == null ? void 0 : player2.pause) == null ? void 0 : _g();
+    };
+    registry = { bindings, active, keydown };
+    target.addEventListener("keydown", keydown, true);
+    targets.set(target, registry);
+  }
+  const player = { pause, toggle, enabled, allowInInputs, preventScrollWhenIdle };
+  registry.bindings.add(player);
+  return {
+    setActive(active) {
+      if (!registry.bindings.has(player)) return;
+      registry.active.delete(player);
+      if (active) registry.active.add(player);
+    },
+    destroy() {
+      if (!registry.bindings.delete(player)) return;
+      registry.active.delete(player);
+      if (!registry.bindings.size) {
+        target.removeEventListener("keydown", registry.keydown, true);
+        targets.delete(target);
+      }
+    }
+  };
+}
+
 // src/audio/transport.js
 function createTransport({ makePlan, audio: providedAudio, onState = () => {
 }, onPosition = () => {
 }, onError = () => {
-} } = {}) {
+}, keyboardTarget = globalThis.document } = {}) {
   if (typeof makePlan !== "function") throw new TypeError("makePlan is required");
   const audioEngine = () => providedAudio != null ? providedAudio : globalThis.SoundFontPlayback;
   let data = null, engine = null, context = null, clock = null, position = 0, tempo = 120, planTempo = 120, state = "idle", token = 0, frame = null, nodes = [], mixers = [], output = null, muted = /* @__PURE__ */ new Set(), auditionVoice = null, auditionGeneration = 0;
+  const keys = keyboardTarget && bindPlaybackKeys({ target: keyboardTarget, pause });
   const emit = (s) => {
     state = s;
+    keys == null ? void 0 : keys.setActive(s === "playing" || s === "loading");
     onState(s);
   };
   function disconnect() {
@@ -862,6 +950,7 @@ function createTransport({ makePlan, audio: providedAudio, onState = () => {
       }
     },
     destroy() {
+      keys == null ? void 0 : keys.destroy();
       stop();
       data = null;
     },
@@ -898,6 +987,7 @@ function bindTempoKeys({ target = globalThis.document, adjustTempo, enabled = ()
   return () => target.removeEventListener("keydown", keydown);
 }
 export {
+  bindPlaybackKeys,
   bindTempoKeys,
   createSoundFontPlayback,
   createTransport

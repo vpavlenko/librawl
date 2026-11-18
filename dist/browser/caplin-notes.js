@@ -1,4 +1,4 @@
-/*! librawl version: 0.3.5; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
+/*! librawl version: 0.3.5-local; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
 var LibrawlCaplinNotes = (() => {
   var __create = Object.create;
   var __defProp = Object.defineProperty;
@@ -35,9 +35,9 @@ var LibrawlCaplinNotes = (() => {
   ));
   var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-  // ../librawl/node_modules/react/cjs/react.production.js
+  // node_modules/react/cjs/react.production.js
   var require_react_production = __commonJS({
-    "../librawl/node_modules/react/cjs/react.production.js"(exports) {
+    "node_modules/react/cjs/react.production.js"(exports) {
       "use strict";
       var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.transitional.element");
       var REACT_PORTAL_TYPE = /* @__PURE__ */ Symbol.for("react.portal");
@@ -487,9 +487,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../librawl/node_modules/react/index.js
+  // node_modules/react/index.js
   var require_react = __commonJS({
-    "../librawl/node_modules/react/index.js"(exports, module) {
+    "node_modules/react/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_production();
@@ -499,9 +499,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../librawl/node_modules/scheduler/cjs/scheduler.production.js
+  // node_modules/scheduler/cjs/scheduler.production.js
   var require_scheduler_production = __commonJS({
-    "../librawl/node_modules/scheduler/cjs/scheduler.production.js"(exports) {
+    "node_modules/scheduler/cjs/scheduler.production.js"(exports) {
       "use strict";
       function push(heap, node) {
         var index = heap.length;
@@ -772,9 +772,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../librawl/node_modules/scheduler/index.js
+  // node_modules/scheduler/index.js
   var require_scheduler = __commonJS({
-    "../librawl/node_modules/scheduler/index.js"(exports, module) {
+    "node_modules/scheduler/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_scheduler_production();
@@ -784,11 +784,11 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../librawl/node_modules/react-dom/cjs/react-dom.production.js
+  // node_modules/react-dom/cjs/react-dom.production.js
   var require_react_dom_production = __commonJS({
-    "../librawl/node_modules/react-dom/cjs/react-dom.production.js"(exports) {
+    "node_modules/react-dom/cjs/react-dom.production.js"(exports) {
       "use strict";
-      var React3 = require_react();
+      var React4 = require_react();
       function formatProdErrorMessage(code) {
         var url = "https://react.dev/errors/" + code;
         if (1 < arguments.length) {
@@ -830,7 +830,7 @@ var LibrawlCaplinNotes = (() => {
           implementation
         };
       }
-      var ReactSharedInternals = React3.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
+      var ReactSharedInternals = React4.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
       function getCrossOriginStringAs(as, input) {
         if ("font" === as) return "";
         if ("string" === typeof input)
@@ -941,9 +941,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../librawl/node_modules/react-dom/index.js
+  // node_modules/react-dom/index.js
   var require_react_dom = __commonJS({
-    "../librawl/node_modules/react-dom/index.js"(exports, module) {
+    "node_modules/react-dom/index.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -967,12 +967,12 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../librawl/node_modules/react-dom/cjs/react-dom-client.production.js
+  // node_modules/react-dom/cjs/react-dom-client.production.js
   var require_react_dom_client_production = __commonJS({
-    "../librawl/node_modules/react-dom/cjs/react-dom-client.production.js"(exports) {
+    "node_modules/react-dom/cjs/react-dom-client.production.js"(exports) {
       "use strict";
       var Scheduler = require_scheduler();
-      var React3 = require_react();
+      var React4 = require_react();
       var ReactDOM = require_react_dom();
       function formatProdErrorMessage(code) {
         var url = "https://react.dev/errors/" + code;
@@ -1263,7 +1263,7 @@ var LibrawlCaplinNotes = (() => {
         return null;
       }
       var isArrayImpl = Array.isArray;
-      var ReactSharedInternals = React3.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
+      var ReactSharedInternals = React4.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
       var ReactDOMSharedInternals = ReactDOM.__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
       var sharedNotPendingObject = {
         pending: false,
@@ -14412,7 +14412,7 @@ var LibrawlCaplinNotes = (() => {
           0 === i && attemptExplicitHydrationTarget(target);
         }
       };
-      var isomorphicReactPackageVersion$jscomp$inline_2043 = React3.version;
+      var isomorphicReactPackageVersion$jscomp$inline_2043 = React4.version;
       if ("19.3.1" !== isomorphicReactPackageVersion$jscomp$inline_2043)
         throw Error(
           formatProdErrorMessage(
@@ -14511,9 +14511,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../librawl/node_modules/react-dom/client.js
+  // node_modules/react-dom/client.js
   var require_client = __commonJS({
-    "../librawl/node_modules/react-dom/client.js"(exports, module) {
+    "node_modules/react-dom/client.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -14542,9 +14542,10 @@ var LibrawlCaplinNotes = (() => {
   __export(react_notes_exports, {
     CaplinNoteLayer: () => CaplinNoteLayer,
     createShiftHoverAudition: () => createShiftHoverAudition,
-    mount: () => mount
+    mount: () => mount,
+    setPlaybackMeasure: () => setPlaybackMeasure
   });
-  var React2 = __toESM(require_react(), 1);
+  var React3 = __toESM(require_react(), 1);
   var import_client = __toESM(require_client(), 1);
   var import_react_dom = __toESM(require_react_dom(), 1);
 
@@ -14638,6 +14639,21 @@ var LibrawlCaplinNotes = (() => {
 
   // src/rawlnative/notePlayback.ts
   var import_react2 = __toESM(require_react(), 1);
+
+  // src/rawlnative/playbackIndex.ts
+  function findPlaybackMeasure(measures, time) {
+    if (!Number.isFinite(time) || !measures.length || time < measures[0]) return null;
+    let low = 0;
+    let high = measures.length;
+    while (low < high) {
+      const middle = low + high >>> 1;
+      if (measures[middle] <= time) low = middle + 1;
+      else high = middle;
+    }
+    return low;
+  }
+
+  // src/rawlnative/notePlayback.ts
   var NotePlaybackContext = (0, import_react2.createContext)(null);
   var PlaybackSectionContext = (0, import_react2.createContext)(null);
 
@@ -15228,6 +15244,28 @@ var LibrawlCaplinNotes = (() => {
     };
   }
 
+  // src/notation/PlaybackMeasureBorders.jsx
+  var import_react5 = __toESM(require_react(), 1);
+  var PlaybackMeasureBorders = (0, import_react5.forwardRef)(function PlaybackMeasureBorders2({
+    left,
+    width,
+    top = true,
+    bottom = true,
+    hidden = false
+  }, ref) {
+    return /* @__PURE__ */ import_react5.default.createElement("div", { "aria-hidden": "true", className: "rawln-playback-measure", hidden, ref, style: {
+      position: "absolute",
+      left,
+      width,
+      top: -1,
+      bottom: -1,
+      pointerEvents: "none",
+      zIndex: 4,
+      borderTop: top ? "1px solid #444" : void 0,
+      borderBottom: bottom ? "1px solid #444" : void 0
+    } });
+  });
+
   // src/notation/geometry.mjs
   function tonicAt(tonic, changes, beat) {
     let result = tonic;
@@ -15294,11 +15332,92 @@ var LibrawlCaplinNotes = (() => {
     };
   }
 
+  // integrations/caplin/playback-measure.mjs
+  var rowsByScore = /* @__PURE__ */ new WeakMap();
+  function caplinPlaybackMeasures(model, data) {
+    var _a, _b, _c, _d, _e, _f, _g, _h;
+    const grid = (_a = data.structure) == null ? void 0 : _a.notatedBars;
+    const starts = (_e = (_d = (_b = grid == null ? void 0 : grid.starts) != null ? _b : data.groups) != null ? _d : (_c = data.measures) == null ? void 0 : _c.map((measure) => measure.start)) != null ? _e : [];
+    const labels = (_h = (_f = grid == null ? void 0 : grid.measureLabels) != null ? _f : data.measureLabels) != null ? _h : (_g = data.measures) == null ? void 0 : _g.map((measure) => measure.label);
+    const { row, secondsPerBeat, toX } = model;
+    const percent = (beat) => toX(beat * secondsPerBeat, 100);
+    return starts.flatMap((start, index) => {
+      var _a2, _b2;
+      const from = Math.max(row.start, start);
+      const to = Math.min(row.end, (_a2 = starts[index + 1]) != null ? _a2 : data.beats);
+      if (!(to > from)) return [];
+      return [{
+        start: from,
+        end: to,
+        label: (_b2 = labels == null ? void 0 : labels[index]) != null ? _b2 : index + 1,
+        left: `clamp(0px, calc(${percent(from)}% - 1px), calc(100% - 1px))`,
+        width: `${percent(to) - percent(from)}%`
+      }];
+    });
+  }
+  function mountPlaybackMeasure(score) {
+    const owners = /* @__PURE__ */ new Set([score]);
+    for (const selector of [".rawl-period-sections", ".rawl-example"]) {
+      const owner = score.closest(selector);
+      if (owner) owners.add(owner);
+    }
+    for (const owner of owners) {
+      if (!rowsByScore.has(owner)) rowsByScore.set(owner, /* @__PURE__ */ new Set());
+      rowsByScore.get(owner).add(paint);
+    }
+    let beat = null, clock = null, element = null, measures = [], starts = [], current = null;
+    function paint(position, source) {
+      var _a;
+      if (!Number.isFinite(position) && source !== clock) return;
+      beat = position;
+      clock = Number.isFinite(beat) ? source : null;
+      const next = measures[((_a = findPlaybackMeasure(starts, beat)) != null ? _a : 0) - 1];
+      const measure = next && beat < next.end ? next : null;
+      if (!element || measure === current) return;
+      current = measure;
+      element.hidden = !measure;
+      if (measure) {
+        element.dataset.measure = String(measure.label);
+        element.style.left = measure.left;
+        element.style.width = measure.width;
+      } else {
+        delete element.dataset.measure;
+      }
+    }
+    return {
+      update(nextElement, nextMeasures) {
+        element = nextElement;
+        measures = nextMeasures;
+        starts = measures.map((measure) => measure.start);
+        paint(beat, clock);
+      },
+      destroy() {
+        paint(null, clock);
+        for (const owner of owners) {
+          const rows = rowsByScore.get(owner);
+          rows == null ? void 0 : rows.delete(paint);
+          if (!(rows == null ? void 0 : rows.size)) rowsByScore.delete(owner);
+        }
+      }
+    };
+  }
+  function setPlaybackMeasure(score, beat, clock = "midi") {
+    var _a;
+    for (const paint of (_a = rowsByScore.get(score)) != null ? _a : []) paint(beat, clock);
+  }
+
   // integrations/caplin/react-notes.jsx
   var noop = () => {
   };
-  function CaplinNoteLayer({ model, axis, width }) {
-    return /* @__PURE__ */ React2.createElement(React2.Fragment, null, getNoteRectangles(model.notes, (pitch) => axis.pitchToY(pitch) + 2.5, 2.5, noop, noop, noop, (time) => model.toX(time, width), false, null, false, void 0, null, void 0, void 0, model.getAttributes));
+  function CaplinNoteLayer({ model, axis, width, border }) {
+    return /* @__PURE__ */ React3.createElement(React3.Fragment, null, getNoteRectangles(model.notes, (pitch) => axis.pitchToY(pitch) + 2.5, 2.5, noop, noop, noop, (time) => model.toX(time, width), false, null, false, void 0, null, void 0, void 0, model.getAttributes), /* @__PURE__ */ React3.createElement("div", { "aria-hidden": "true", style: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      pointerEvents: "none",
+      top: "max(1px, var(--rawl-notes-top, 1px))",
+      bottom: "max(1px, var(--rawl-notes-bottom, 1px))"
+    } }, /* @__PURE__ */ React3.createElement(PlaybackMeasureBorders, { ref: border, hidden: true })));
   }
   function mount(score, options) {
     var _a;
@@ -15308,6 +15427,7 @@ var LibrawlCaplinNotes = (() => {
     element.style.display = "contents";
     score.append(element);
     const root = (0, import_client.createRoot)(element), view = score.ownerDocument.defaultView;
+    const border = React3.createRef(), playbackMeasure = mountPlaybackMeasure(score);
     let props = options, model, destroyed = false, lastWidth = null;
     function render() {
       var _a2;
@@ -15317,7 +15437,8 @@ var LibrawlCaplinNotes = (() => {
       model = caplinNoteModel(props);
       const width = score.clientWidth || score.getBoundingClientRect().width || 600;
       lastWidth = width;
-      (0, import_react_dom.flushSync)(() => root.render(/* @__PURE__ */ React2.createElement(CaplinNoteLayer, { model, axis: props.axis, width })));
+      (0, import_react_dom.flushSync)(() => root.render(/* @__PURE__ */ React3.createElement(CaplinNoteLayer, { model, axis: props.axis, width, border })));
+      playbackMeasure.update(border.current, caplinPlaybackMeasures(model, props.data));
       for (const node of element.querySelectorAll(".rawl-note[data-note-id]")) {
         const prior = retained.get(node.dataset.noteId);
         if (prior) {
@@ -15331,6 +15452,7 @@ var LibrawlCaplinNotes = (() => {
     try {
       render();
     } catch (error) {
+      playbackMeasure.destroy();
       root.unmount();
       element.remove();
       throw error;
@@ -15349,6 +15471,7 @@ var LibrawlCaplinNotes = (() => {
       if (destroyed) return;
       destroyed = true;
       observer == null ? void 0 : observer.disconnect();
+      playbackMeasure.destroy();
       root.unmount();
       element.remove();
     }, get notes() {

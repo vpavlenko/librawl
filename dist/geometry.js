@@ -1,4 +1,4 @@
-/*! librawl version: 0.3.5; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
+/*! librawl version: 0.3.5-local; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
 
 // src/notation/geometry.mjs
 var PITCH_STEP = 3;
@@ -9,10 +9,11 @@ function pitchRange(notes, span = null, fallback = { low: 48, high: 84 }) {
   const pitches = notes.filter((n) => !span || Math.min(span.end, n.start + n.duration) - Math.max(span.start, n.start) > 1e-6).map((n) => n.pitch);
   return pitches.length ? { low: Math.min(...pitches), high: Math.max(...pitches) } : { ...fallback };
 }
-function staveGeometry(range, { above = 0, transpose = 0 } = {}) {
-  const low = range.low + transpose, high = range.high + transpose, noteTop = TOP_CLEARANCE + above;
-  const noteHeight = (high - low) * PITCH_STEP + TOP_CLEARANCE + NOTE_HEIGHT + BOTTOM_CLEARANCE;
-  return { low, high, noteTop, noteHeight, notesBottom: noteHeight + above, guideTop: Math.max(0, noteTop - 16), markerTop: noteTop - 14, pitchToY: (pitch) => noteTop + (high - pitch) * PITCH_STEP };
+function staveGeometry(range, { above = 0, transpose = 0, noteScale = 1 } = {}) {
+  const scale = Number.isFinite(noteScale) && noteScale > 0 ? noteScale : 1, pitchStep = PITCH_STEP * scale, glyphHeight = NOTE_HEIGHT * scale;
+  const low = range.low + transpose, high = range.high + transpose, noteTop = TOP_CLEARANCE + above + Math.max(0, glyphHeight - NOTE_HEIGHT);
+  const notesBottom = noteTop + (high - low) * pitchStep + glyphHeight + BOTTOM_CLEARANCE, noteHeight = notesBottom - above;
+  return { low, high, noteTop, noteHeight, notesBottom, pitchStep, glyphHeight, guideTop: Math.max(0, noteTop - 16), markerTop: noteTop - 14, pitchToY: (pitch) => noteTop + (high - pitch) * pitchStep };
 }
 var mod = (n) => (n % 12 + 12) % 12;
 function tonicAt(tonic, changes, beat) {
@@ -58,12 +59,17 @@ function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatB
   for (const { beat, number } of grid) {
     if (beat < row.start - EPS || beat > row.end + EPS) continue;
     barlines.push(beat);
-    const terminal = Math.abs(beat - row.end) < EPS, isPhraseStart = boundary(beat);
+    const terminal = Math.abs(beat - row.end) < EPS;
+    const isPhraseStart = boundary(beat) || !terminal && Math.abs(beat - row.start) < EPS;
     if (!terminal || isPhraseStart) measures.push({ beat, number, left: x(beat), terminal, isPhraseStart, color: selectedMeasure === beat ? "red" : selectedPhrase && Math.abs(beat - selectedMeasure) <= 4 * barBeats + EPS ? "orange" : "#666" });
   }
   if (beatBeats > 0) {
     if (explicit) {
       for (const measure of explicit) {
+        if (measure.beatPositions) {
+          beats.push(...measure.beatPositions.filter((beat) => beat >= row.start - EPS && beat <= row.end + EPS));
+          continue;
+        }
         const unit = (_a = measure.beatBeats) != null ? _a : beatBeats;
         for (let beat = measure.start + unit; beat < measure.start + measure.duration - EPS; beat += unit) if (beat >= row.start - EPS && beat <= row.end + EPS) beats.push(beat);
       }
@@ -106,7 +112,7 @@ function tonalSegments(tonic, changes, start, end) {
 }
 function tonalLines(range, axis, tonic) {
   const result = [];
-  const rawlY = (p) => axis.pitchToY(p) + PITCH_STEP;
+  const rawlY = (p) => axis.pitchToY(p) + axis.pitchStep;
   for (let octave = Math.ceil((range.low + 7 - tonic) / 12); octave <= Math.floor((range.high + 12 - tonic) / 12); octave++) {
     const midi = tonic + octave * 12;
     if (midi - 12 >= range.low && midi - 12 <= range.high) result.push({ kind: "tonic", y: rawlY(midi - 13 + 0.5) });
@@ -120,8 +126,29 @@ function validateMeasureMap(measures) {
   for (const measure of measures) {
     if (!Number.isFinite(measure.start) || Math.abs(measure.start - cursor) > 1e-7 || !Number.isFinite(measure.duration) || measure.duration <= 0 || !["number", "string"].includes(typeof measure.sourceNumber) || measure.beatBeats !== void 0 && (!Number.isFinite(measure.beatBeats) || measure.beatBeats <= 0)) throw Error("Invalid measure map");
     cursor = measure.start + measure.duration;
+    if (measure.beatPositions !== void 0) {
+      let previous = measure.start;
+      if (!Array.isArray(measure.beatPositions)) throw Error("Invalid measure map");
+      for (const beat of measure.beatPositions) {
+        if (!Number.isFinite(beat) || beat <= previous || beat >= cursor) throw Error("Invalid measure map");
+        previous = beat;
+      }
+    }
   }
   return measures;
+}
+function alignScoreRows(rows) {
+  const offsets = rows.map(({ start, end, anchor = start }) => Math.max(0, Math.min(end, anchor) - start));
+  const pickup = Math.max(0, ...offsets);
+  const width = pickup + Math.max(0, ...rows.map(({ start, end }, index) => end - start - offsets[index]));
+  return { width, rows: rows.map((row, index) => ({
+    ...row,
+    style: {
+      ...row.style,
+      width: width ? (row.end - row.start) / width * 100 + "%" : "0%",
+      marginLeft: width ? (pickup - offsets[index]) / width * 100 + "%" : "0%"
+    }
+  })) };
 }
 export {
   BOTTOM_CLEARANCE,
@@ -129,6 +156,7 @@ export {
   PITCH_STEP,
   TONIC_NAMES,
   TOP_CLEARANCE,
+  alignScoreRows,
   keyMarkers,
   measureHeaderLayout,
   mod,

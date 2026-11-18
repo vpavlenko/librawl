@@ -13,6 +13,7 @@ The library owns the actual Rawl note renderer, tonic flags, palette, playback h
 | `librawl/native` | Actual Rawl `getNoteRectangles`, `NoteLayer`, shared contexts, section-scoped playback indexes, bends, quartertones, drums, strums, voice stacking and source attributes |
 | `librawl/native.css` | Original Rawl pitch variables, dots and voice shapes; opt in where the host does not own recoloring CSS |
 | `librawl/geometry` | Beat-based Lego/Caplin geometry helpers; no changes to audio times |
+| `librawl/harmony-annotations` | Standalone Roman numerals and beat-aligned score annotation lanes with tonicization arrows |
 | `librawl/palette` | Exact twelve-color Rawl palette and distinguishing dots |
 | `librawl/native-audio` | Rawl threaded transport and consumed-PCM clock; injected worker and browser constructors |
 | `librawl/midi-output-worklet.js` | Byte-identical original output processor; copy to the host asset base |
@@ -21,6 +22,30 @@ The library owns the actual Rawl note renderer, tonic flags, palette, playback h
 | `librawl/harmony.css` | Optional host chord/RN overlay styles |
 
 React is a peer dependency for package modules. The optional legacy Caplin browser adapter bundles React 19 because its host has no React runtime. The native renderer is compared against the original Rawl in 102 cases under both React16.14 and React19.3.1. Built ESM/CommonJS and legacy Webpack subpath entries are committed so consumers do not need a JSX or TypeScript compiler for this package.
+
+### Roman numerals and score annotations
+
+Use `RomanNumeral` from `librawl/components` in React, or `romanNumeralHTML` from `librawl/roman-numerals` in static markup. Both use `librawl/roman-numerals.css`.
+
+Mount score annotations against the rendered score element. Pass that row's absolute beat range, then remove the lanes with the returned cleanup function when replacing the row. Lanes default to below the score. Use `position: 'above'` for an upper lane and `options.theme: 'light'` for paper. Set `endInclusive` only when a label at the last edge belongs to that row. Arrows join explicit annotation IDs on the same row and side.
+
+```js
+import {mountHarmonyAnnotations} from 'librawl/harmony-annotations';
+import 'librawl/roman-numerals.css';
+import 'librawl/harmony-annotations.css';
+
+const removeAnnotations = mountHarmonyAnnotations(score, {
+  start: 0,
+  end: 8,
+  annotations: [
+    {id: 'applied', beat: 0, notation: 'V⁷/V', options: {hideAppliedTarget: true}},
+    {id: 'dominant', beat: 4, notation: 'V'},
+  ],
+  arrows: [{from: 'applied', to: 'dominant'}],
+});
+```
+
+Static readers can load `librawl/browser/harmony-annotations.js`, which exposes `LibrawlHarmony.mountHarmonyAnnotations` and `LibrawlHarmony.romanNumeralHTML`.
 
 ```jsx
 import {RawlNotation} from 'librawl';
@@ -49,6 +74,10 @@ const engine=await audio.prepare(context);
 
 Assets remain explicitly host-owned. The default profile retains Caplin's bank and URLs. Additional banks and selectable audition programs are opt-in; the generated sax profile is used by Lego. No audio context is created merely by importing this library.
 
+`createTransport` binds bare Space to pause the active transport in a browser. Focused controls and text editing keep their keyboard behavior. A fresh Space press when playback is idle uses the browser default. A host with its own shortcut can pass `keyboardTarget: false`. Call `destroy()` when removing a transport.
+
+Custom players can call `bindPlaybackKeys({pause})` from `librawl/audio` or `LibrawlPlaybackKeys.bindPlaybackKeys` from the standalone browser build. Call `setActive(true)` when starting playback and `setActive(false)` on pause, stop, end or error. A reader can pass `preventScrollWhenIdle: true` to keep its reading position on Space. Call `destroy()` when removing the binding. See the [consumer inventory](docs/integration-status.md#consumers-to-check-before-changing-librawl) before changing shared behavior.
+
 During playback, `engine.setRate(rate)` changes speed without replaying sounding notes, reconnecting mixers, resetting controllers or clearing the room. The rate is an absolute multiplier relative to the original plan passed to `play`, rather than the preceding rate. A plan created at80 BPM needs `setRate(120/80)` to reach120 BPM. Each new `play` starts at rate1; `createTransport.setTempo` performs this conversion automatically, including after pause/resume. A tempo change during preparation keeps loading and uses the latest tempo when constructing the plan.
 
 The same clock object continues reporting the audible beat. `clock.endTime()` returns the revised AudioContext end time; `clock.remaining()` returns seconds from current audible presentation time to that end, including startup/output latency. Hosts with a completion timer must rearm it after changing rate. SpessaSynth cannot cancel already queued MIDI messages through its public API: those messages keep their timing, and the new rate starts at their committed fence, at most one140ms scheduling horizon ahead during playback. Unsent note-offs and attacks use the revised clock. Rapid changes at the same fence coalesce. Stop, pause and seek retain their existing cleanup/reconstruction behavior; the native Rawl worker transport remains unchanged.
@@ -69,3 +98,34 @@ Consumers should pin a reviewed commit or a checksummed package artifact. There 
 ## License
 
 GPL-3.0-only for extracted Rawl code. This code is not public domain. SoundFont, synthesizer and book/corpus assets are not included in the package; their existing licenses and notices remain with each host. See [NOTICE.md](NOTICE.md) and the recorded provenance under `docs/` and `tests/fixtures/`.
+
+## Score controls
+
+`ScoreSizeSliders` uses the lower-right corner by default. Connect
+`useScorePinch` to the scroll container, and wrap its score in
+`ScorePinchContent` with the returned ref. Touch gestures lock to one axis.
+Trackpad pinch changes time spacing, and Shift+pinch changes note height.
+
+
+`FoldablePianoLegend` sits beside the corner sliders, with auditions delegated
+to its host. Enable Caplin's pitch-diagram popup with `RomanNumeral`'s `tooltip`
+prop. Jazz hosts can provide an ordered voicing directly.
+
+The current measure has top and bottom edges by default. When playback uses
+recording seconds, supply each visible measure's `playbackSpans`, including
+repetitions where they share an overlay. Custom layouts can use
+`PlaybackMeasureLayer` with their existing playback clock.
+
+`RawlNotation` accepts a beat-based `onSeek` callback or `playbackClock.seek`.
+An unconnected score still moves its note highlight when clicked. An app can
+bind Space to a persistent transport with `bindPlaybackKeys({toggle})`.
+
+## Local consumers
+
+`npm run sync:local` builds and pins one content-addressed archive in the active
+12, Rawl, and Insights Roadmaps checkouts, and refreshes the local Caplin and
+Mortensen reader artifacts. Reuse `npm run watch:local` to sync after source
+saves. In this checkout, `.git/librawl-sync-local` enables the same sync after
+`npm run build`. Run `npm run sync:local -- --dry-run` to inspect the pins.
+The sync works locally and keeps release snapshots. Restart a running Vite or
+Webpack dev server after its dependency is replaced.

@@ -5,10 +5,11 @@ export function pitchRange(notes,span=null,fallback={low:48,high:84}){
  const pitches=notes.filter(n=>!span||Math.min(span.end,n.start+n.duration)-Math.max(span.start,n.start)>1e-6).map(n=>n.pitch);
  return pitches.length?{low:Math.min(...pitches),high:Math.max(...pitches)}:{...fallback};
 }
-export function staveGeometry(range,{above=0,transpose=0}={}){
- const low=range.low+transpose,high=range.high+transpose,noteTop=TOP_CLEARANCE+above;
- const noteHeight=(high-low)*PITCH_STEP+TOP_CLEARANCE+NOTE_HEIGHT+BOTTOM_CLEARANCE;
- return {low,high,noteTop,noteHeight,notesBottom:noteHeight+above,guideTop:Math.max(0,noteTop-16),markerTop:noteTop-14,pitchToY:pitch=>noteTop+(high-pitch)*PITCH_STEP};
+export function staveGeometry(range,{above=0,transpose=0,noteScale=1}={}){
+ const scale=Number.isFinite(noteScale)&&noteScale>0?noteScale:1,pitchStep=PITCH_STEP*scale,glyphHeight=NOTE_HEIGHT*scale;
+ const low=range.low+transpose,high=range.high+transpose,noteTop=TOP_CLEARANCE+above+Math.max(0,glyphHeight-NOTE_HEIGHT);
+ const notesBottom=noteTop+(high-low)*pitchStep+glyphHeight+BOTTOM_CLEARANCE,noteHeight=notesBottom-above;
+ return {low,high,noteTop,noteHeight,notesBottom,pitchStep,glyphHeight,guideTop:Math.max(0,noteTop-16),markerTop:noteTop-14,pitchToY:pitch=>noteTop+(high-pitch)*pitchStep};
 }
 export const mod=n=>((n%12)+12)%12;
 export function tonicAt(tonic,changes,beat){let result=tonic;for(const c of changes){if(c.beat<beat)result=c.tonic;else break;}return result;}
@@ -27,6 +28,7 @@ export function keyMarkers(tonic,changes){
  return onsets.map((event,i)=>{const previousTonic=i?onsets[i-1].tonic:null,delta=previousTonic===null?null:mod(event.tonic-previousTonic);return {...event,previousTonic,delta:delta!==null&&delta>6?delta-12:delta};});
 }
 /** Copy of AnalysisGrid's Measure/NewTonicSymbol layout in quarter beats.
+ * Section starts use the phrase accent when they coincide with an existing bar.
  * Terminal phrase boundaries retain their bar without acquiring a number.
  * Pixel width is needed only for Rawl's 80px carried flag and beat density.
  */
@@ -40,11 +42,21 @@ export function measureHeaderLayout({row,tonic=0,changes=[],barBeats=4,beatBeats
  for(const {beat,number} of grid){
   if(beat<row.start-EPS||beat>row.end+EPS)continue;
   barlines.push(beat);
-  const terminal=Math.abs(beat-row.end)<EPS,isPhraseStart=boundary(beat);
+  const terminal=Math.abs(beat-row.end)<EPS;
+  const isPhraseStart=boundary(beat)||(!terminal&&Math.abs(beat-row.start)<EPS);
   if(!terminal||isPhraseStart)measures.push({beat,number,left:x(beat),terminal,isPhraseStart,color:selectedMeasure===beat?'red':selectedPhrase&&Math.abs(beat-selectedMeasure)<=4*barBeats+EPS?'orange':'#666'});
  }
  if(beatBeats>0){
-  if(explicit){for(const measure of explicit){const unit=measure.beatBeats??beatBeats;for(let beat=measure.start+unit;beat<measure.start+measure.duration-EPS;beat+=unit)if(beat>=row.start-EPS&&beat<=row.end+EPS)beats.push(beat);}}
+  if(explicit){
+   for(const measure of explicit){
+    if(measure.beatPositions){
+     beats.push(...measure.beatPositions.filter(beat=>beat>=row.start-EPS&&beat<=row.end+EPS));
+     continue;
+    }
+    const unit=measure.beatBeats??beatBeats;
+    for(let beat=measure.start+unit;beat<measure.start+measure.duration-EPS;beat+=unit)if(beat>=row.start-EPS&&beat<=row.end+EPS)beats.push(beat);
+   }
+  }
   else for(let beat=Math.ceil((row.start-EPS)/beatBeats)*beatBeats;beat<=row.end+EPS;beat+=beatBeats)if(Math.abs(beat/barBeats-Math.round(beat/barBeats))>EPS)beats.push(beat);
  }
  const relevant=[...barlines,...beats].filter(beat=>beat!==0).sort((a,b)=>a-b),showBeats=relevant.length>1&&(relevant.at(-1)-relevant[0])*ppb/(relevant.length+1)>=10;
@@ -69,7 +81,7 @@ export function tonalSegments(tonic,changes,start,end){
  result.push({start:cursor,end,tonic:current});return result;
 }
 export function tonalLines(range,axis,tonic){
- const result=[];const rawlY=p=>axis.pitchToY(p)+PITCH_STEP;
+ const result=[];const rawlY=p=>axis.pitchToY(p)+axis.pitchStep;
  for(let octave=Math.ceil((range.low+7-tonic)/12);octave<=Math.floor((range.high+12-tonic)/12);octave++){
   const midi=tonic+octave*12;
   if(midi-12>=range.low&&midi-12<=range.high)result.push({kind:'tonic',y:rawlY(midi-13+.5)});
@@ -84,6 +96,24 @@ export function validateMeasureMap(measures){
  let cursor=0;for(const measure of measures){
   if(!Number.isFinite(measure.start)||Math.abs(measure.start-cursor)>1e-7||!Number.isFinite(measure.duration)||measure.duration<=0||!['number','string'].includes(typeof measure.sourceNumber)||measure.beatBeats!==undefined&&(!Number.isFinite(measure.beatBeats)||measure.beatBeats<=0))throw Error('Invalid measure map');
   cursor=measure.start+measure.duration;
+  if(measure.beatPositions!==undefined){
+   let previous=measure.start;
+   if(!Array.isArray(measure.beatPositions))throw Error('Invalid measure map');
+   for(const beat of measure.beatPositions){
+    if(!Number.isFinite(beat)||beat<=previous||beat>=cursor)throw Error('Invalid measure map');
+    previous=beat;
+   }
+  }
  }
  return measures;
+}
+// Place each row's musical anchor at the same x while keeping the beat scale uniform.
+export function alignScoreRows(rows){
+ const offsets=rows.map(({start,end,anchor=start})=>Math.max(0,Math.min(end,anchor)-start));
+ const pickup=Math.max(0,...offsets);
+ const width=pickup+Math.max(0,...rows.map(({start,end},index)=>end-start-offsets[index]));
+ return {width,rows:rows.map((row,index)=>({
+  ...row,style:{...row.style,width:width?(row.end-row.start)/width*100+'%':'0%',
+   marginLeft:width?(pickup-offsets[index])/width*100+'%':'0%'},
+ }))};
 }

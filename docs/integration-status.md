@@ -2,6 +2,19 @@
 
 The public shared source is https://github.com/vpavlenko/librawl. Rendering, the Rawl palette, note shapes, doubled active-note heights, measure controls, Shift-hover audition, and shared tempo bindings are implemented in the library. Lego and Caplin also use its SoundFont scheduler; Rawl retains its native PCM/WASM transport through the library's native adapter.
 
+## Consumers to check before changing librawl
+
+| Checkout | Playback and regression surface |
+| --- | --- |
+| `~/repos/rawl` | Native worker transport, app Space play/pause, editor Shift+Space, rendered notes and consumed PCM clock. |
+| `~/repos/caplin` | Caplin, Temperley and Mortensen readers. Check the reader shortcuts, MIDI and original-recording ownership, focused controls, reading position, and score playback. Mortensen uses the standalone playback-key binding. |
+| `~/repos/12` | React notation and playback footer from the notation build. Its solo recordings use the browser audio element. Check transport controls, seek and audio-driven highlights. |
+| `~/repos/lego` | Insights Roadmaps and other notation and playback integrations. Check the SoundFont transport, browser audio controls, and score highlighting. |
+
+Review each checkout against its pinned library build during shared changes. Adopt updated builds per consumer once its affected behavior has been verified. Keep this list current when adding a consumer.
+
+## Published integrations
+
 | Consumer | Current integration | Published state |
 | --- | --- | --- |
 | Rawl | React/DOM 19.3.1; librawl 0.3.4 native renderer and transport adapter; shared Shift-hover and tempo gesture | Master `c87e915b073d9953f6d9eefa7f376e5d2bd0b8a2`; `npm run deploy-lite`; gh-pages `6c0d8fe47f5568da618a42e4be2949791eea7e75` |

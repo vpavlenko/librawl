@@ -13,6 +13,7 @@ export interface SoundFontEngine {
 export interface SoundFontOptions {assetBase?:string;libraryUrl?:string;workletUrl?:string;additionalBanks?:SoundBank[];allowAuditionPrograms?:boolean;environment?:typeof globalThis;importLibrary?:(url:string)=>Promise<unknown>;fetch?:typeof fetch;}
 export interface SoundFontPlayback {prepare(context:AudioContext):Promise<SoundFontEngine>;stop():void;stopAudition():void;getContext():AudioContext|undefined;getPreparationState():{phase:string;pending:boolean;error:string|null};PlaybackEngine:new(context:AudioContext,synth:any)=>SoundFontEngine;presentationTime(context:AudioContext):number;soundingIntervals(plan:any,note:any):number[][];room:Readonly<{wet:number;seconds:number;decaySeconds:number;preDelay:number;seed:number}>;roomImpulse(context:AudioContext):AudioBuffer;masterGain:number;}
 export function createSoundFontPlayback(options?:SoundFontOptions):SoundFontPlayback;
-export function createTransport(options:{makePlan:(data:any,tempo:number)=>any;audio?:SoundFontPlayback;onState?:(state:string)=>void;onPosition?:(beat:number|null)=>void;onError?:(error:Error)=>void}):any;
+export function createTransport(options:{makePlan:(data:any,tempo:number)=>any;audio?:SoundFontPlayback;onState?:(state:string)=>void;onPosition?:(beat:number|null)=>void;onError?:(error:Error)=>void;keyboardTarget?:Document|false}):any;
 
 export function bindTempoKeys(options:{target?:Document;adjustTempo:(delta:number,event:KeyboardEvent)=>unknown;enabled?:()=>boolean}):()=>void;
+export function bindPlaybackKeys(options:{target?:Document;pause?:()=>void;toggle?:()=>void;enabled?:()=>boolean;allowInInputs?:boolean;preventScrollWhenIdle?:boolean}):{setActive(active:boolean):void;destroy():void};
