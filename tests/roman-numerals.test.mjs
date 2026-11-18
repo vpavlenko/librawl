@@ -39,6 +39,22 @@ test('Jazz major-seventh markers color the chord third independently of the seve
   assert.equal(elements('IVmaj7',{jazz:true,colorQuality:false}).querySelector('.chord-quality'),null);
 });
 
+test('An explicit augmented quality uses the raised fifth independently of the seventh', () => {
+  const roman = elements('♯IV+7', {jazz:true});
+  const guitar = new JSDOM(guitarChordHTML('B+7', {tonic:5})).window.document;
+  for (const document of [roman, guitar]) {
+    assert.equal(document.querySelector('.chord-quality').textContent, '+');
+    assert.deepEqual(degree(document,'.chord-root'), [6]);
+    assert.deepEqual(degree(document,'.chord-quality'), [2]);
+    assert.deepEqual(degree(document,'.chord-figure'), [4]);
+  }
+  assert.equal(roman.body.textContent, '♯IV+7');
+  assert.equal(guitar.body.textContent, 'B+7');
+  const uncolored = elements('♯IV+7', {jazz:true,colorQuality:false});
+  assert.equal(uncolored.querySelector('.chord-quality'),null);
+  assert.equal(uncolored.body.textContent,'♯IV+7');
+});
+
 test('Letter-name chord colors use the current tonic while preserving the chord spelling', () => {
   const document = new JSDOM(guitarChordHTML('Dm7',{tonic:2})).window.document;
   assert.equal(document.body.textContent,'Dm7');

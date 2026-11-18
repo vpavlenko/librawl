@@ -1003,13 +1003,14 @@ function jazzMarkup(notation, options, guitar = false) {
   const color2 = options.colorRoots ? ` colored" ${colorStyle(mod2(root))}` : '"';
   const rootLabel = guitar ? name + prettyAccidental(accidentals) : accidental + name;
   const rootMarkup = `<span class="chord-root${color2}>${rootLabel}</span>`;
+  const qualityIntervals = guitar ? { m: 3, "+": 8 } : { "\u0394": 4, "+": 8 };
   const figures = [...suffix.matchAll(jazzFigures)].map(([token, signs, digits], index) => {
     var _a2, _b2, _c2, _d;
     if (!digits) {
       const label2 = escape(prettyAccidental(token));
       if (index !== 0 || !((_a2 = options.colorQuality) != null ? _a2 : options.colorRoots)) return label2;
-      const third = guitar && token === "m" ? 3 : !guitar && token === "\u0394" ? 4 : null;
-      return third === null ? label2 : `<span class="chord-quality colored" ${colorStyle(mod2(root + third))}>${label2}</span>`;
+      const interval2 = qualityIntervals[token];
+      return interval2 === void 0 ? label2 : `<span class="chord-quality colored" ${colorStyle(mod2(root + interval2))}>${label2}</span>`;
     }
     const n = Number(digits);
     const interval = n === 7 ? dim ? 9 : majorSeventh.test(suffix) ? 11 : 10 : n === 3 ? minor ? 3 : 4 : n === 5 ? quality ? 6 : /^(?:\+|aug)/.test(suffix) ? 8 : 7 : jazzIntervals[n];
