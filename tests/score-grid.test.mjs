@@ -1,0 +1,58 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import React from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {JSDOM} from 'jsdom';
+import {TonalGrid, RawlMeasureHeader} from 'librawl/components';
+import {tonicMarkers, markersForRow, visibleBeatLines, measureSubdivisionBeats} from 'librawl/geometry';
+import * as browserGrid from '../src/notation/score-grid-browser.mjs';
+
+test('React and standalone score guides share pitch, placement and tonic regions', () => {
+  const {document} = new JSDOM('<main id="score"></main>').window;
+  const score = document.getElementById('score');
+  const range = {low:48, high:72};
+  const pitchToY = pitch => 18 + (72 - pitch) * 3;
+  const options = {...range, tonic:0, changes:[{beat:4,tonic:7}], beats:8, pitchToY, height:100};
+  const mounted = browserGrid.mount(score, options);
+  const regions = mounted.segments.map(region => ({
+    tonic:region.tonic, left:region.beat / 8 * 100 + '%', width:(region.end - region.beat) / 8 * 100 + '%',
+  }));
+  const markup = renderToStaticMarkup(React.createElement(TonalGrid, {regions, range, pitchToY:pitch => pitchToY(pitch) + 3}));
+  const reactGrid = new JSDOM(markup).window.document.querySelector('.rawln-grid');
+  const properties = nodes => [...nodes].map(({dataset,style}) => [dataset.pitch,dataset.tonic,style.left,style.top,style.width]);
+  assert.deepEqual(properties(reactGrid.children), properties(score.querySelector('.tonal-grid').children));
+  assert.equal(score.querySelector('.tonal-grid-key-badge').style.left, '50%');
+  assert.equal(browserGrid.tonicAtBeat(options, 4), 0);
+  assert.equal(browserGrid.tonicAtBeat(options, 4, true), 7);
+  mounted.destroy();
+  assert.equal(score.childElementCount, 0);
+});
+
+test('an editor layout supplies positioned bars and controls while carrying tonic without a second arrow', () => {
+  const events = tonicMarkers([{beat:0,tonic:0},{beat:1.5,tonic:7,onsetOverride:true}]);
+  const markers = markersForRow(events, {start:2,end:5,toPixels:beat => 55 + beat * 50,numberAt:() => 8});
+  assert.equal(markers.length, 1);
+  assert.equal(markers[0].originBeat, 1.5);
+  assert.equal(markers[0].delta, null);
+  const measures = [{beat:2,number:8,left:55,width:150,isPhraseStart:true, labelOffset:7}];
+  const beatTimes = measureSubdivisionBeats(2, 5, 1);
+  const beats = visibleBeatLines([2,5], beatTimes, beat => beat * 50)
+    .map(beat => ({beat,left:55 + (beat - 2) * 50}));
+  const layout = {measures, beats, markers:markers.map(marker => ({...marker,left:55 + marker.pixelOffset}))};
+  const props = {layout, renderMeasureExtras:() => React.createElement('input', {type:'text'})};
+  const doc = new JSDOM(renderToStaticMarkup(React.createElement(RawlMeasureHeader, props))).window.document;
+  assert.equal(doc.querySelector('.rawln-bar').style.left,'55px');
+  assert.equal(doc.querySelector('.rawln-measure-number span').textContent,'8');
+  assert(doc.querySelector('[data-score-measure="8"] input'));
+  assert.equal(doc.querySelector('.rawln-modulation svg'),null);
+  assert.equal(doc.querySelector('.rawln-modulation-label').textContent,'G');
+  assert.deepEqual([...doc.querySelectorAll('.rawln-beat-bar')].map(el=>el.style.left),['105px','155px']);
+
+  const score = doc.createElement('div');
+  const dom = browserGrid.appendMeasureGuides(score,{measures:[{...measures[0],phrase:true}],
+    beats,top:20,height:84});
+  assert.equal(dom.bars[0].querySelector('span').textContent,'8');
+  assert.equal(dom.bars[0].classList.contains('phrase-start'),true);
+  assert.equal(dom.beatLines[0].style.left,'105px');
+  assert.equal(dom.beatLines[0].style.bottom,'auto');
+});

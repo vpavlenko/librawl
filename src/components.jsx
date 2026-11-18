@@ -1,5 +1,5 @@
 export {TonicSymbol} from './components/TonicSymbol.jsx';
-export {RawlMeasureHeader,PlaybackMeasureBorders,PlaybackMeasureLayer} from './notation/RawlNotation.jsx';
+export {RawlMeasureHeader,TonalGrid,PlaybackMeasureBorders,PlaybackMeasureLayer} from './notation/RawlNotation.jsx';
 export {PlaybackFooter} from './components/PlaybackFooter.jsx';
 export {observePlaybackPosition} from './components/playback-position.js';
 

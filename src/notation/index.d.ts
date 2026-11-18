@@ -37,12 +37,42 @@ export interface RawlNotationProps {
  renderFooter?:(row:ScoreRow,context:{changes:TonicChange[];selectedMeasure:number|null})=>React.ReactNode;
 }
 export function RawlNotation(props:RawlNotationProps):React.ReactElement;
-export interface RawlMeasureHeaderProps {
- row:ScoreRow; height?:number|string; tonic?:number; changes?:TonicChange[]; barBeats?:number; beatBeats?:number;
- /** Absolute quarter-beat phrase starts; optional closing boundary has no label. */
- phraseStarts?:number[]; measureMap?:SourceMeasure[]; selectedMeasure?:number|null; onMeasureSelect?:(beat:number)=>void; hideInitialTonic?:boolean;
+export interface PositionedMeasure {
+ beat:number; number?:number|string|null; left:number|string; barLeft?:number|string; width?:number;
+ isPhraseStart?:boolean; terminal?:boolean; showLabel?:boolean; color?:string; highlighted?:boolean;
+ labelOffset?:number; hasModulation?:boolean;
 }
+export interface KeyMarker {
+ beat:number; tonic:number; previousTonic:number|null; delta:number|null;
+ number?:number|string|null; onsetOverride?:boolean; name?:string; join?:boolean;
+}
+export interface RowKeyMarker extends KeyMarker {
+ originBeat?:number; continued:boolean; initial:boolean; pixelOffset:number; labelOffset:number;
+}
+export interface PositionedKeyMarker extends KeyMarker {
+ left:number|string; continued?:boolean; originBeat?:number; labelOffset?:number;
+}
+export interface MeasureHeaderLayout {
+ measures:readonly PositionedMeasure[];
+ beats:readonly {beat:number;left:number|string}[];
+ markers:readonly PositionedKeyMarker[];
+}
+export type RawlMeasureHeaderProps = ({
+ row:ScoreRow; layout?:never; tonic?:number; changes?:TonicChange[]; barBeats?:number; beatBeats?:number;
+ /** Absolute quarter-beat phrase starts; optional closing boundary has no label. */
+ phraseStarts?:number[]; measureMap?:SourceMeasure[]; hideInitialTonic?:boolean;
+} | {layout:MeasureHeaderLayout; row?:never}) & {
+ height?:number|string; selectedMeasure?:number|null; onMeasureSelect?:(beat:number,measure:PositionedMeasure)=>void;
+ showHeader?:boolean; transpose?:number; renderMeasureExtras?:(measure:PositionedMeasure)=>React.ReactNode;
+};
 export const RawlMeasureHeader:React.FC<RawlMeasureHeaderProps>;
+export interface TonalGridProps {
+ regions:readonly {tonic:number|null; left:number|string; width:number|string}[];
+ range:{low:number;high:number};
+ pitchToY:(pitch:number)=>number;
+ tonicHeight?:number;
+}
+export const TonalGrid:React.FC<TonalGridProps>;
 export function pitchRange(notes:MidiNote[],span?:ScoreRow|null,fallback?:{low:number;high:number}):{low:number;high:number};
 export function staveGeometry(range:{low:number;high:number},options?:{above?:number;transpose?:number;noteScale?:number}):{low:number;high:number;noteTop:number;noteHeight:number;notesBottom:number;pitchStep:number;glyphHeight:number;guideTop:number;markerTop:number;pitchToY:(pitch:number)=>number};
 export function modulationLabelOffset(beat:number,barBeats:number,options?:{initial?:boolean;onsetOverride?:boolean;continued?:boolean}):number;

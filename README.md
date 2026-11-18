@@ -30,7 +30,7 @@ Load the stylesheets for the components you render. Import each sheet once at th
 | What you render | Stylesheets to import |
 | --- | --- |
 | `RawlNotation` from `librawl` | `librawl/style.css` and `librawl/native.css` |
-| `RawlMeasureHeader` or `TonicSymbol` on its own | `librawl/style.css` |
+| `RawlMeasureHeader`, `TonalGrid` or `TonicSymbol` on its own | `librawl/style.css` |
 | `NoteLayer` or `getNoteRectangles` inside a host-owned score | `librawl/native.css` and the host's score layout styles |
 | Roman numerals, guitar chord symbols or Roman-numeral tooltips | `librawl/roman-numerals.css` |
 | Beat-aligned harmony annotations | `librawl/roman-numerals.css` and `librawl/harmony-annotations.css` |
@@ -168,3 +168,14 @@ saves. In this checkout, `.git/librawl-sync-local` enables the same sync after
 `npm run build`. Run `npm run sync:local -- --dry-run` to inspect the pins.
 The sync works locally and keeps release snapshots. Restart a running Vite or
 Webpack dev server after its dependency is replaced.
+
+React hosts rendering their own score shell use `RawlMeasureHeader` and `TonalGrid` from
+`librawl/components` with `librawl/style.css`. Pass authored measures and key
+changes to the header, or position them against the host clock and pass a
+`layout`. Use `renderMeasureExtras` for editor controls in a measure label.
+`TonalGrid` takes positioned key regions and the host pitch axis.
+
+Plain DOM hosts load `librawl/browser/score-grid.js`. Its `TonalGrid` global
+mounts horizontal guides and key labels and provides `appendMeasureGuides`
+for positioned bars and beats. The React and plain DOM paths use the same
+pitch guides and tonic timeline. Hosts own score source data and playback.

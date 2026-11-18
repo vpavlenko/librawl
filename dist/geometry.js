@@ -1,4 +1,105 @@
-/*! librawl version: 0.4.0-local; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
+/*! librawl version: 0.4.1-local; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
+
+// src/notation/score-grid.mjs
+var octave = (value) => (value % 12 + 12) % 12;
+var TONIC_NAMES = ["C", "D\u266D", "D", "E\u266D", "E", "F", "F\u266F", "G", "A\u266D", "A", "B\u266D", "B"];
+var MODULATION_BADGE_WIDTH = 80;
+var pitchClass = (value) => value == null || !Number.isInteger(Number(value)) ? null : octave(Number(value));
+function tonicEvents(tonic, changes = [], end = Infinity) {
+  var _a;
+  const entries = [{ beat: 0, tonic }, ...changes].map((entry) => ({ ...entry, beat: Number(entry.beat), tonic: pitchClass(entry.tonic) })).filter((entry) => Number.isFinite(entry.beat) && entry.beat <= end).map((entry) => ({ ...entry, beat: Math.max(0, entry.beat) })).sort((a, b) => a.beat - b.beat);
+  const timeline = [];
+  for (const entry of entries) {
+    if (((_a = timeline.at(-1)) == null ? void 0 : _a.beat) === entry.beat) timeline[timeline.length - 1] = entry;
+    else timeline.push(entry);
+  }
+  return timeline.filter((entry, index) => index === 0 || entry.tonic !== timeline[index - 1].tonic);
+}
+function tonicMarkers(events) {
+  return events.map((event, index) => {
+    const previousTonic = index ? events[index - 1].tonic : null;
+    const interval = previousTonic === null || event.tonic === null ? null : octave(event.tonic - previousTonic);
+    return { ...event, previousTonic, delta: interval !== null && interval > 6 ? interval - 12 : interval };
+  });
+}
+function tonicRegions(events, start, end) {
+  return events.flatMap((event, index) => {
+    var _a, _b;
+    const from = Math.max(start, event.beat);
+    const to = Math.min(end, (_b = (_a = events[index + 1]) == null ? void 0 : _a.beat) != null ? _b : end);
+    return to > from ? [{ ...event, start: from, end: to }] : [];
+  });
+}
+function measureSubdivisionBeats(start, end, step, epsilon = 1e-6) {
+  if (![start, end, step].every(Number.isFinite) || step <= 0) return [];
+  const beats = [];
+  for (let beat = start + step; beat < end - epsilon; beat += step) beats.push(beat);
+  return beats;
+}
+function visibleBeatLines(barTimes, beatTimes, toPixels) {
+  const relevant = [...barTimes, ...beatTimes].filter((time) => time !== 0).sort((a, b) => a - b);
+  if (relevant.length < 2) return [];
+  return (toPixels(relevant.at(-1)) - toPixels(relevant[0])) / (relevant.length + 1) >= 10 ? beatTimes : [];
+}
+function markersForRow(events, { start, end, toPixels, numberAt, hideInitialTonic = false }) {
+  const activeAtStart = events.findLast((marker) => marker.beat <= start);
+  return events.flatMap((marker) => {
+    var _a;
+    const initial = marker.previousTonic === null;
+    if (marker.tonic == null || marker.delta === 0 || marker.beat >= end || hideInitialTonic && initial) return [];
+    const onsetOverride = !initial && marker.onsetOverride === true;
+    const pixelOffset = onsetOverride ? 0 : -1;
+    if (marker.beat >= start) {
+      const number2 = (_a = marker.number) != null ? _a : numberAt(marker.beat);
+      return [{
+        ...marker,
+        number: number2,
+        initial,
+        onsetOverride,
+        continued: false,
+        pixelOffset,
+        labelOffset: onsetOverride ? 0 : initial ? String(number2).length * 8 + 10 : 30
+      }];
+    }
+    const intersects = marker === activeAtStart && toPixels && toPixels(marker.beat) - toPixels(start) + pixelOffset + MODULATION_BADGE_WIDTH > 0;
+    if (!intersects) return [];
+    const number = numberAt(start);
+    return [{
+      ...marker,
+      originBeat: marker.beat,
+      beat: start,
+      number,
+      previousTonic: null,
+      delta: null,
+      join: false,
+      name: void 0,
+      initial: true,
+      onsetOverride: false,
+      continued: true,
+      pixelOffset: -1,
+      labelOffset: String(number).length * 8 + 10
+    }];
+  });
+}
+function guidePitches(low, high, tonic, fifthInterval = 5) {
+  if (tonic == null) return [];
+  const firstOctave = Math.ceil((low + 12 - fifthInterval - tonic) / 12);
+  const lastOctave = Math.floor((high + 12 - tonic) / 12);
+  const guides = [];
+  for (let n = firstOctave; n <= lastOctave; n++) {
+    const root = tonic + n * 12 - 12;
+    const fifth = root + fifthInterval;
+    if (root >= low && root <= high) guides.push({ kind: "tonic", pitch: root });
+    if (fifth >= low && fifth <= high) guides.push({ kind: "fifth", pitch: fifth });
+  }
+  return guides;
+}
+function tonalGuideLines(range, pitchToY, tonic) {
+  return guidePitches(range.low, range.high, tonic).map((guide) => ({
+    ...guide,
+    y: guide.kind === "tonic" ? pitchToY(guide.pitch - 0.5) : pitchToY(guide.pitch + 1) - 0.5
+  }));
+}
 
 // src/notation/geometry.mjs
 var PITCH_STEP = 3;
@@ -24,23 +125,13 @@ function tonicAt(tonic, changes, beat) {
   }
   return result;
 }
-var TONIC_NAMES = ["C", "D\u266D", "D", "E\u266D", "E", "F", "F\u266F", "G", "A\u266D", "A", "B\u266D", "B"];
 function modulationLabelOffset(beat, barBeats, { initial = beat === 0, onsetOverride, continued = false } = {}) {
   const measure = beat / barBeats, override = onsetOverride != null ? onsetOverride : Number.isFinite(measure) && Math.abs(measure - Math.round(measure)) > 1e-7;
   if (override && !continued) return 0;
   return initial ? String(Math.floor(measure) + 1).length * 8 + 10 : 30;
 }
 function keyMarkers(tonic, changes) {
-  var _a;
-  const events = [{ beat: 0, tonic }, ...changes].sort((a, b) => a.beat - b.beat), onsets = [];
-  for (const event of events) {
-    if (((_a = onsets.at(-1)) == null ? void 0 : _a.beat) === event.beat) onsets[onsets.length - 1] = event;
-    else onsets.push(event);
-  }
-  return onsets.map((event, i) => {
-    const previousTonic = i ? onsets[i - 1].tonic : null, delta = previousTonic === null ? null : mod(event.tonic - previousTonic);
-    return { ...event, previousTonic, delta: delta !== null && delta > 6 ? delta - 12 : delta };
-  });
+  return tonicMarkers(tonicEvents(tonic, changes));
 }
 function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatBeats = 1, phraseStarts, measureMap, width = 0, selectedMeasure = null, hideInitialTonic = false }) {
   var _a;
@@ -71,54 +162,29 @@ function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatB
           continue;
         }
         const unit = (_a = measure.beatBeats) != null ? _a : beatBeats;
-        for (let beat = measure.start + unit; beat < measure.start + measure.duration - EPS; beat += unit) if (beat >= row.start - EPS && beat <= row.end + EPS) beats.push(beat);
+        for (const beat of measureSubdivisionBeats(measure.start, measure.start + measure.duration, unit, EPS)) if (beat >= row.start - EPS && beat <= row.end + EPS) beats.push(beat);
       }
     } else for (let beat = Math.ceil((row.start - EPS) / beatBeats) * beatBeats; beat <= row.end + EPS; beat += beatBeats) if (Math.abs(beat / barBeats - Math.round(beat / barBeats)) > EPS) beats.push(beat);
   }
-  const relevant = [...barlines, ...beats].filter((beat) => beat !== 0).sort((a, b) => a - b), showBeats = relevant.length > 1 && (relevant.at(-1) - relevant[0]) * ppb / (relevant.length + 1) >= 10;
-  const events = keyMarkers(tonic, changes).filter((marker) => marker.delta !== 0);
-  const activeAtStart = events.findLast((marker) => marker.beat <= row.start);
-  const markers = events.flatMap((marker) => {
+  const events = keyMarkers(tonic, changes).map((marker) => {
     var _a2;
-    if (hideInitialTonic && marker.previousTonic === null || marker.beat >= row.end) return [];
-    const initial = marker.previousTonic === null, measure = marker.beat / barBeats, onsetOverride = !initial && ((_a2 = marker.onsetOverride) != null ? _a2 : explicit ? !explicit.some((m) => Math.abs(m.start - marker.beat) < EPS) : Math.abs(measure - Math.round(measure)) > EPS), badgeLeft = (marker.beat - row.start) * ppb - (onsetOverride ? 0 : 1), continued = marker.beat < row.start && marker === activeAtStart && width > 0 && badgeLeft + 80 > 0;
-    if (marker.beat < row.start && !continued) return [];
-    if (continued) return [{ ...marker, originBeat: marker.beat, beat: row.start, number: numberAt(row.start), previousTonic: null, delta: null, join: false, name: void 0, initial: true, onsetOverride: false, continued: true, left: 0, pixelOffset: -1, labelOffset: String(numberAt(row.start)).length * 8 + 10 }];
-    return [{ ...marker, number: numberAt(marker.beat), initial, onsetOverride, continued: false, left: x(marker.beat), pixelOffset: !onsetOverride ? -1 : 0, labelOffset: initial && explicit ? String(numberAt(marker.beat)).length * 8 + 10 : modulationLabelOffset(marker.beat, barBeats, { initial, onsetOverride }) }];
+    return {
+      ...marker,
+      onsetOverride: (_a2 = marker.onsetOverride) != null ? _a2 : explicit ? !explicit.some((measure) => Math.abs(measure.start - marker.beat) < EPS) : Math.abs(marker.beat / barBeats - Math.round(marker.beat / barBeats)) > EPS
+    };
   });
+  const markers = markersForRow(events, { ...row, numberAt, hideInitialTonic, toPixels: width > 0 ? (beat) => beat * ppb : null }).map((marker) => ({ ...marker, left: x(marker.beat) }));
   for (const measure of measures) {
     measure.hasModulation = markers.some((marker) => marker.beat === measure.beat && marker.delta !== null);
     if (measure.color === "#666" && measure.hasModulation) measure.color = "black";
   }
-  return { measures, beats: showBeats ? beats : [], markers };
+  return { measures, beats: visibleBeatLines(barlines, beats, (beat) => beat * ppb), markers };
 }
 function tonalSegments(tonic, changes, start, end) {
-  const events = [{ beat: 0, tonic }, ...changes].sort((a, b) => a.beat - b.beat), result = [];
-  let current = tonic, cursor = start;
-  for (const e of events) {
-    if (e.beat <= start) {
-      current = e.tonic;
-      continue;
-    }
-    if (e.beat >= end) break;
-    if (e.tonic !== current) {
-      result.push({ start: cursor, end: e.beat, tonic: current });
-      cursor = e.beat;
-      current = e.tonic;
-    }
-  }
-  result.push({ start: cursor, end, tonic: current });
-  return result;
+  return tonicRegions(tonicEvents(tonic, changes), start, end).map(({ start: start2, end: end2, tonic: tonic2 }) => ({ start: start2, end: end2, tonic: tonic2 }));
 }
 function tonalLines(range, axis, tonic) {
-  const result = [];
-  const rawlY = (p) => axis.pitchToY(p) + axis.pitchStep;
-  for (let octave = Math.ceil((range.low + 7 - tonic) / 12); octave <= Math.floor((range.high + 12 - tonic) / 12); octave++) {
-    const midi = tonic + octave * 12;
-    if (midi - 12 >= range.low && midi - 12 <= range.high) result.push({ kind: "tonic", y: rawlY(midi - 13 + 0.5) });
-    if (midi - 7 >= range.low && midi - 7 <= range.high) result.push({ kind: "fifth", y: rawlY(midi - 6) - 0.5 });
-  }
-  return result;
+  return tonalGuideLines(range, (pitch) => axis.pitchToY(pitch) + axis.pitchStep, tonic).map(({ kind, y }) => ({ kind, y }));
 }
 function validateMeasureMap(measures) {
   if (!Array.isArray(measures) || !measures.length) throw Error("Invalid measure map");
@@ -157,8 +223,11 @@ export {
   TONIC_NAMES,
   TOP_CLEARANCE,
   alignScoreRows,
+  guidePitches,
   keyMarkers,
+  markersForRow,
   measureHeaderLayout,
+  measureSubdivisionBeats,
   mod,
   modulationLabelOffset,
   pitchRange,
@@ -166,5 +235,8 @@ export {
   tonalLines,
   tonalSegments,
   tonicAt,
-  validateMeasureMap
+  tonicMarkers,
+  tonicRegions,
+  validateMeasureMap,
+  visibleBeatLines
 };

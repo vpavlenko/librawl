@@ -1,7 +1,8 @@
 import React,{useImperativeHandle,useLayoutEffect,useMemo,useRef,useState} from 'react';
-import {pitchRange,staveGeometry,tonalSegments,tonalLines,tonicAt,mod,TONIC_NAMES,measureHeaderLayout} from './geometry.mjs';
+import {pitchRange,staveGeometry,tonalSegments,tonicAt,mod,TONIC_NAMES} from './geometry.mjs';
 import {RAWL_COLORS} from './palette.mjs';
-import {TonicSymbol} from '../components/TonicSymbol.jsx';
+import {RawlMeasureHeader} from './RawlMeasureHeader.jsx';
+import {TonalGrid} from './TonalGrid.jsx';
 import {PlaybackMeasureBorders} from './PlaybackMeasureBorders.jsx';
 import {NoteLayer,NotePlaybackContext,PlaybackSectionContext,createSectionPlaybackClock} from 'librawl/native';
 
@@ -9,8 +10,7 @@ import {useTonicRecoloring} from './recolor.jsx';
 
 const EMPTY_CHANGES=[];
 const atRowStart=(beat,start)=>Math.abs(beat-start)<1e-7;
-const names=['C','D♭','D','E♭','E','F','F♯','G','A♭','A','B♭','B'];
-const noteName=p=>names[mod(p)]+(Math.floor(p/12)-1);
+const noteName=p=>TONIC_NAMES[mod(p)]+(Math.floor(p/12)-1);
 
 export {PlaybackMeasureBorders} from './PlaybackMeasureBorders.jsx';
 
@@ -62,43 +62,8 @@ export function PlaybackMeasureLayer({row,clock,measureMap,barBeats=4}){
  return <PlaybackMeasureBorders ref={border} hidden/>;
 }
 
-/** Rawl AnalysisGrid's header and vertical grid, shared by all host views. */
-export function RawlMeasureHeader({row,height='100%',tonic=0,changes=EMPTY_CHANGES,barBeats=4,beatBeats=1,phraseStarts,measureMap,selectedMeasure=null,onMeasureSelect,hideInitialTonic=false}){
- const element=useRef(null),[width,setWidth]=useState(0);
- useLayoutEffect(()=>{
-  const el=element.current,view=el.ownerDocument.defaultView,fit=()=>{const next=el.getBoundingClientRect().width||el.clientWidth;setWidth(previous=>previous===next?previous:next);},Observer=view?.ResizeObserver??globalThis.ResizeObserver;
-  fit();const observer=Observer?new Observer(fit):null;observer?.observe(el);view?.addEventListener('resize',fit);
-  return()=>{observer?.disconnect();view?.removeEventListener('resize',fit);};
- },[]);
- const {measures,beats,markers}=useMemo(()=>measureHeaderLayout({row,tonic,changes,barBeats,beatBeats,phraseStarts,measureMap,width,selectedMeasure,hideInitialTonic}),[row,tonic,changes,barBeats,beatBeats,phraseStarts,measureMap,width,selectedMeasure,hideInitialTonic]);
- const x=beat=>(beat-row.start)/(row.end-row.start)*100;
- return <div ref={element} className="rawln-measure-grid" style={{height}}>
-  {measures.map(measure=><div className={'rawln-bar'+(measure.isPhraseStart?' rawln-phrase-bar':'')} key={'bar-'+measure.beat} data-beat={measure.beat} data-phrase-boundary={measure.isPhraseStart?'true':undefined} data-terminal={measure.terminal?'true':undefined} style={{left:atRowStart(measure.beat,row.start)?0:`calc(${measure.left}% - 1px)`}}/>)}
-  {beats.map(beat=><div className="rawln-beat-bar" key={'beat-'+beat} data-beat={beat} style={{left:x(beat)+'%'}}/>)}
-  <div className="rawln-modulations">
-   {markers.map(marker=><div key={marker.beat} className="rawln-modulation" data-beat={marker.beat} data-tonic={marker.tonic} data-join={marker.join?marker.name:undefined} data-onset-override={marker.onsetOverride?'true':undefined} data-origin-beat={marker.originBeat} data-continued={marker.continued?'true':undefined} style={{left:marker.pixelOffset?`calc(${marker.left}% - 1px)`:marker.left+'%'}} title={marker.name}>
-    <TonicSymbol left={0} number={marker.number} previousTonic={marker.previousTonic} modulationDiff={marker.delta===null?null:mod(marker.delta)} tonicStart={marker.tonic} alignToOnset={marker.onsetOverride&&!marker.continued} labelClassName="rawln-modulation-label" flagClassName="rawln-modulation-flag" labelAttributes={{style:{left:marker.labelOffset}}} flagAttributes={{'data-degree':marker.delta===null?undefined:mod(marker.delta),style:{background:marker.delta===null?undefined:RAWL_COLORS[mod(marker.delta)].background}}} renderArrow={({direction})=><svg viewBox="0 0 24 24" aria-hidden="true">{direction==='down'?<><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></>:<><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></>}</svg>}/>
-   </div>)}
-  </div>
-  <div className="rawln-measure-labels" aria-hidden={onMeasureSelect?undefined:true}>
-   {measures.filter(measure=>!measure.terminal).map(measure=><div
-    className="rawln-measure-position" key={measure.beat}
-    style={{gridTemplateColumns:`minmax(0, calc(${measure.left}% + 6px)) max-content`}}>
-    <div className="rawln-measure-number"
-     role={onMeasureSelect?'button':undefined} tabIndex={onMeasureSelect?0:undefined}
-     aria-pressed={onMeasureSelect?selectedMeasure===measure.beat:undefined}
-     onClick={onMeasureSelect?event=>{event.stopPropagation();onMeasureSelect(measure.beat);}:undefined}
-     onKeyDown={onMeasureSelect?event=>{
-      if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();onMeasureSelect(measure.beat);}
-     }:undefined}
-     data-beat={measure.beat} data-modulation={measure.hasModulation?'true':undefined}
-     style={{color:measure.color,pointerEvents:onMeasureSelect?'auto':undefined,cursor:onMeasureSelect?'pointer':undefined}}>
-     <span>{measure.number}</span>
-    </div>
-   </div>)}
-  </div>
- </div>;
-}
+export {RawlMeasureHeader} from './RawlMeasureHeader.jsx';
+export {TonalGrid} from './TonalGrid.jsx';
 
 function notePlaybackSpan(note,row,independentPlayback){
  if(!independentPlayback)return [note.start,note.start+note.duration];
@@ -166,9 +131,9 @@ export function RawlNotation({notes,beats,rows,tonic=0,changes=EMPTY_CHANGES,bar
     {renderHeader&&<div className="rawln-header">{renderHeader(row)}</div>}
     <div className="rawln-score" data-seekable={selectedMeasure===null||undefined} role="group" aria-label="Rawl notation" style={{height:axis.notesBottom}} onClick={e=>{if(selectedMeasure!==null)return;const box=e.currentTarget.getBoundingClientRect();if(box.width>0)seek(row.start+Math.max(0,Math.min(1,(e.clientX-box.left)/box.width))*span);}}>
      <PlaybackMeasureLayer row={row} clock={clock} measureMap={measureMap} barBeats={barBeats}/>
-     <div className="rawln-grid" aria-hidden="true">
-      {regions.flatMap((region,i)=>tonalLines(range,axis,region.tonic).map((line,j)=><div key={`${i}-${j}`} data-tonic={region.tonic} className={`rawln-${line.kind}-line`} style={{left:x(region.start)+'%',width:(region.end-region.start)/span*100+'%',top:line.y}}/>))}
-     </div>
+     <TonalGrid range={range} pitchToY={pitch=>axis.pitchToY(pitch)+axis.pitchStep}
+      regions={regions.map(region=>({...region,left:x(region.start)+'%',width:(region.end-region.start)/span*100+'%'}))}
+     />
      {renderUnderlay?.(row,axis)}
      <RawlMeasureHeader row={row} height={axis.notesBottom} tonic={tonic} changes={changes} barBeats={barBeats} beatBeats={beatBeats} phraseStarts={phraseStarts} measureMap={measureMap} selectedMeasure={selectedMeasure} onMeasureSelect={onMeasureSelect} hideInitialTonic={hideInitialTonic}/>
      <BeatNoteLayer visible={visible} row={row} axis={axis} tonic={tonic} changes={changes} mutedVoices={mutedVoices} hoveredKey={hoveredKey} setHoveredKey={setHoveredKey} hoveredRef={hoveredRef} onNote={note=>{if(automatic&&editor.chooseNote(note))return;if(onNote)onNote(note);else if(selectedMeasure===null)seek(Math.max(row.start,note.start));}} onNoteAudition={audition} auditionEnabled={selectedMeasure==null} onNoteHover={onNoteHover} clock={clock}/>

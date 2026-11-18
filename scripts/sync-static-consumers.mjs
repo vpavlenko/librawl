@@ -10,6 +10,7 @@ const caplinArtifacts = new Map([
   ['librawl-tempo-keys.js', ['dist/browser/tempo-keys.js', 'tempoArtifactSha256']],
   ['librawl-native.css', ['dist/native.css', 'nativeStyleArtifactSha256']],
   ['librawl-harmony.js', ['dist/browser/harmony-annotations.js', 'harmonyArtifactSha256']],
+  ['tonal-grid.js', ['dist/browser/score-grid.js', 'scoreGridArtifactSha256']],
 ]);
 const hash = (bytes, algorithm = 'sha256', encoding = 'hex') =>
   createHash(algorithm).update(bytes).digest(encoding);
@@ -115,12 +116,8 @@ export function syncStaticConsumers({repos, libraryRoot, archive, version, sha25
   }
 
   const operations = new Map();
-  const mirrorSource = 'packages/music/soundfont-playback.js';
-  const mirrorName = 'reader/dist/soundfont-playback.js';
   const sharedManifest = path.join(root, 'packages/shared-modules.json');
   const shared = readJSON(sharedManifest);
-  const mirror = shared.modules.find(item => item.source === mirrorSource && item.caplinMirror === mirrorName);
-  if (!mirror) throw Error('Caplin SoundFont compatibility mirror is absent');
 
   for (const [destination, [packageEntry, fingerprint]] of caplinArtifacts) {
     const bytes = extract(packageEntry);
@@ -130,17 +127,23 @@ export function syncStaticConsumers({repos, libraryRoot, archive, version, sha25
     operations.set(path.join(reader, target), bytes);
   }
 
-  const soundfont = operations.get(path.join(root, mirrorName));
-  const original = fs.readFileSync(path.join(root, mirrorSource));
-  const compatibility = fs.readFileSync(path.join(root, mirrorName));
-  const expectedHashes = new Set([mirror.sha256, oldLock.soundfontArtifactSha256, hash(soundfont)]);
-  // Either side can already be at the new hash after an interrupted sync.
-  if (!original.equals(compatibility) &&
-      !(expectedHashes.has(hash(original)) && expectedHashes.has(hash(compatibility)))) {
-    throw Error('Caplin SoundFont compatibility mirror drifted; inspect it before syncing librawl');
+  for (const name of ['soundfont-playback.js', 'tonal-grid.js']) {
+    const source = 'packages/music/' + name;
+    const caplinMirror = 'reader/dist/' + name;
+    const mirror = shared.modules.find(item => item.source === source && item.caplinMirror === caplinMirror);
+    if (!mirror) throw Error('Compatibility mirror is absent: ' + caplinMirror);
+    const next = operations.get(path.join(root, caplinMirror));
+    const original = fs.readFileSync(path.join(root, source));
+    const compatibility = fs.readFileSync(path.join(root, caplinMirror));
+    const fingerprint = caplinArtifacts.get(name)[1];
+    const expected = new Set([mirror.sha256, oldLock[fingerprint], hash(next)]);
+    // Either side can be at the new hash after an interrupted sync.
+    if (!original.equals(compatibility) && ![original, compatibility].every(bytes => expected.has(hash(bytes)))) {
+      throw Error('Compatibility mirror drifted: ' + caplinMirror);
+    }
+    operations.set(path.join(root, source), next);
+    mirror.sha256 = hash(next);
   }
-  operations.set(path.join(root, mirrorSource), soundfont);
-  mirror.sha256 = hash(soundfont);
   operations.set(sharedManifest, json(shared));
   operations.set(path.join(reader, artifact), archiveBytes);
 
@@ -152,7 +155,7 @@ export function syncStaticConsumers({repos, libraryRoot, archive, version, sha25
       operations.set(path.join(mortensenPreview, 'librawl-playback-keys.js'), keys);
       operations.set(path.join(mortensenPreview, 'librawl-harmony-annotations.js'),
         operations.get(path.join(reader, 'dist/librawl-harmony.js')));
-      for (const filename of ['soundfont-playback.js', 'librawl-caplin-notes.js', 'librawl-native.css']) {
+      for (const filename of ['soundfont-playback.js', 'librawl-caplin-notes.js', 'librawl-native.css', 'tonal-grid.js']) {
         operations.set(path.join(mortensenPreview, filename), operations.get(path.join(reader, 'dist', filename)));
       }
     }

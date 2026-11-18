@@ -7,6 +7,7 @@ import path from 'node:path';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {transformSync} from 'esbuild';
+import * as scoreGrid from '../src/notation/score-grid.mjs';
 
 const require=createRequire(import.meta.url),base=fileURLToPath(new URL('.',import.meta.url));
 const read=name=>fs.readFileSync(path.join(base,name),'utf8');
@@ -16,7 +17,7 @@ const reference=read('fixtures/tonic-symbol-reference.tsx'),source=read('../src/
 function compile(text,loader){
  const code=transformSync(text,{loader,format:'cjs',target:'es2018',jsxFactory:'React.createElement',jsxFragment:'React.Fragment'}).code;
  const module={exports:{}};
- vm.runInNewContext('(function(module,exports,require){'+code+'\n})',{},{filename:'tonic-symbol-test.js'})(module,module.exports,require);
+ vm.runInNewContext('(function(module,exports,require){'+code+'\n})',{},{filename:'tonic-symbol-test.js'})(module,module.exports,name=>name==='../notation/score-grid.mjs'?scoreGrid:require(name));
  return module.exports;
 }
 const React=require('react'),{renderToStaticMarkup}=require('react-dom/server');

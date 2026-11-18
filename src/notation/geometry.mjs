@@ -1,3 +1,6 @@
+import {markersForRow, measureSubdivisionBeats, tonicEvents, tonicMarkers, tonicRegions, tonalGuideLines, visibleBeatLines} from './score-grid.mjs';
+export {TONIC_NAMES, guidePitches, markersForRow, measureSubdivisionBeats, tonicMarkers, tonicRegions, visibleBeatLines} from './score-grid.mjs';
+
 // Pitch geometry follows Caplin packages/music/rawl-layout.js, based on Rawl.
 // GPL-3.0-only. Note rectangles are 5 px high, with 3 px per semitone.
 export const PITCH_STEP=3,NOTE_HEIGHT=5,TOP_CLEARANCE=20,BOTTOM_CLEARANCE=2;
@@ -13,7 +16,6 @@ export function staveGeometry(range,{above=0,transpose=0,noteScale=1}={}){
 }
 export const mod=n=>((n%12)+12)%12;
 export function tonicAt(tonic,changes,beat){let result=tonic;for(const c of changes){if(c.beat<beat)result=c.tonic;else break;}return result;}
-export const TONIC_NAMES=['C','D♭','D','E♭','E','F','F♯','G','A♭','A','B♭','B'];
 // Rawl AnalysisGrid.NewTonicSymbol (73fe6ab): initial label clears the
 // measure's digit count; later labels sit 30px after the flag. An explicit
 // modulation-onset override anchors both flag and label at the musical onset.
@@ -23,9 +25,7 @@ export function modulationLabelOffset(beat,barBeats,{initial=beat===0,onsetOverr
  return initial?String(Math.floor(measure)+1).length*8+10:30;
 }
 export function keyMarkers(tonic,changes){
- const events=[{beat:0,tonic},...changes].sort((a,b)=>a.beat-b.beat),onsets=[];
- for(const event of events){if(onsets.at(-1)?.beat===event.beat)onsets[onsets.length-1]=event;else onsets.push(event);}
- return onsets.map((event,i)=>{const previousTonic=i?onsets[i-1].tonic:null,delta=previousTonic===null?null:mod(event.tonic-previousTonic);return {...event,previousTonic,delta:delta!==null&&delta>6?delta-12:delta};});
+ return tonicMarkers(tonicEvents(tonic,changes));
 }
 /** Copy of AnalysisGrid's Measure/NewTonicSymbol layout in quarter beats.
  * Section starts use the phrase accent when they coincide with an existing bar.
@@ -54,40 +54,26 @@ export function measureHeaderLayout({row,tonic=0,changes=[],barBeats=4,beatBeats
      continue;
     }
     const unit=measure.beatBeats??beatBeats;
-    for(let beat=measure.start+unit;beat<measure.start+measure.duration-EPS;beat+=unit)if(beat>=row.start-EPS&&beat<=row.end+EPS)beats.push(beat);
+    for(const beat of measureSubdivisionBeats(measure.start,measure.start+measure.duration,unit,EPS))if(beat>=row.start-EPS&&beat<=row.end+EPS)beats.push(beat);
    }
   }
   else for(let beat=Math.ceil((row.start-EPS)/beatBeats)*beatBeats;beat<=row.end+EPS;beat+=beatBeats)if(Math.abs(beat/barBeats-Math.round(beat/barBeats))>EPS)beats.push(beat);
  }
- const relevant=[...barlines,...beats].filter(beat=>beat!==0).sort((a,b)=>a-b),showBeats=relevant.length>1&&(relevant.at(-1)-relevant[0])*ppb/(relevant.length+1)>=10;
- const events=keyMarkers(tonic,changes).filter(marker=>marker.delta!==0);
- const activeAtStart=events.findLast(marker=>marker.beat<=row.start);
- const markers=events.flatMap(marker=>{
-  if((hideInitialTonic&&marker.previousTonic===null)||marker.beat>=row.end)return [];
-  const initial=marker.previousTonic===null,measure=marker.beat/barBeats,onsetOverride=!initial&&(marker.onsetOverride??(explicit?!explicit.some(m=>Math.abs(m.start-marker.beat)<EPS):Math.abs(measure-Math.round(measure))>EPS)),badgeLeft=(marker.beat-row.start)*ppb-(onsetOverride?0:1),continued=marker.beat<row.start&&marker===activeAtStart&&width>0&&badgeLeft+80>0;
-  if(marker.beat<row.start&&!continued)return [];
-  // A carried badge supplies current-tonic context, never another modulation.
-  // Use the original initial-tonic label and the current row's measure number.
-  if(continued)return [{...marker,originBeat:marker.beat,beat:row.start,number:numberAt(row.start),previousTonic:null,delta:null,join:false,name:undefined,initial:true,onsetOverride:false,continued:true,left:0,pixelOffset:-1,labelOffset:String(numberAt(row.start)).length*8+10}];
-  return [{...marker,number:numberAt(marker.beat),initial,onsetOverride,continued:false,left:x(marker.beat),pixelOffset:!onsetOverride?-1:0,labelOffset:initial&&explicit?String(numberAt(marker.beat)).length*8+10:modulationLabelOffset(marker.beat,barBeats,{initial,onsetOverride})}];
- });
+ const events=keyMarkers(tonic,changes).map(marker=>({
+  ...marker,onsetOverride:marker.onsetOverride??(explicit
+   ? !explicit.some(measure=>Math.abs(measure.start-marker.beat)<EPS)
+   : Math.abs(marker.beat/barBeats-Math.round(marker.beat/barBeats))>EPS),
+ }));
+ const markers=markersForRow(events,{...row,numberAt,hideInitialTonic,toPixels:width>0?beat=>beat*ppb:null})
+  .map(marker=>({...marker,left:x(marker.beat)}));
  for(const measure of measures){measure.hasModulation=markers.some(marker=>marker.beat===measure.beat&&marker.delta!==null);if(measure.color==='#666'&&measure.hasModulation)measure.color='black';}
- return {measures,beats:showBeats?beats:[],markers};
+ return {measures,beats:visibleBeatLines(barlines,beats,beat=>beat*ppb),markers};
 }
 export function tonalSegments(tonic,changes,start,end){
- const events=[{beat:0,tonic},...changes].sort((a,b)=>a.beat-b.beat),result=[];
- let current=tonic,cursor=start;
- for(const e of events){if(e.beat<=start){current=e.tonic;continue;}if(e.beat>=end)break;if(e.tonic!==current){result.push({start:cursor,end:e.beat,tonic:current});cursor=e.beat;current=e.tonic;}}
- result.push({start:cursor,end,tonic:current});return result;
+ return tonicRegions(tonicEvents(tonic,changes),start,end).map(({start,end,tonic})=>({start,end,tonic}));
 }
 export function tonalLines(range,axis,tonic){
- const result=[];const rawlY=p=>axis.pitchToY(p)+axis.pitchStep;
- for(let octave=Math.ceil((range.low+7-tonic)/12);octave<=Math.floor((range.high+12-tonic)/12);octave++){
-  const midi=tonic+octave*12;
-  if(midi-12>=range.low&&midi-12<=range.high)result.push({kind:'tonic',y:rawlY(midi-13+.5)});
-  if(midi-7>=range.low&&midi-7<=range.high)result.push({kind:'fifth',y:rawlY(midi-6)-.5});
- }
- return result;
+ return tonalGuideLines(range,pitch=>axis.pitchToY(pitch)+axis.pitchStep,tonic).map(({kind,y})=>({kind,y}));
 }
 
 /** Authored boundaries are geometry only: note/playback times are unchanged. */
