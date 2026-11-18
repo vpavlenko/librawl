@@ -5,7 +5,10 @@ import {RAWL_COLORS} from './palette.mjs';
 const escape=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const supers='⁰¹²³⁴⁵⁶⁷⁸⁹',subs='₀₁₂₃₄₅₆₇₈₉';
 const roots={I:0,II:2,III:4,IV:5,V:7,VI:9,VII:11};
-const palette=RAWL_COLORS.map(color=>color.background);
+// Keep the hex spellings used by the score and prose HTML serializers.
+export const romanNumeralColors = RAWL_COLORS.map(({background}) =>
+  ({white: '#fff', red: '#ff0000'})[background] ?? background);
+const palette=romanNumeralColors;
 const atom='(?:[♭♯]?[IViv]+[°ø]?|It|Fr|Ger|Gr|N)[⁺⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉]*(?:\\([⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉–—\\s-]+\\))?';
 const chordPattern=new RegExp('(?<![\\p{L}\\p{N}])('+atom+'(?:/'+atom+')*)(?![\\p{L}\\p{N}])','gu');
 const mod=(value,n=12)=>(value%n+n)%n;
@@ -210,6 +213,6 @@ export function romanNumeralHTML(notation, options = {}) {
   return `<span class="rawln-roman" data-roman-theme="${options.theme==='light'?'light':'dark'}"${options.font==='sans-serif'?' data-roman-font="sans-serif"':''}>${romanNumeralContent(notation,options)}</span>`;
 }
 
-// Share the parsed pitch context with the tooltip renderer.
-export {chordContext, figurePitch, qualityPitch};
-export const firstRomanChord = notation => String(notation).matchAll(chordPattern).next().value?.[0];
+export {beforeChord, chordContext, figurePitch, partInfo, qualityPitch, rootOf, typography};
+export const romanNumeralMatches = notation => String(notation).matchAll(chordPattern);
+export const firstRomanChord = notation => romanNumeralMatches(notation).next().value?.[0];

@@ -1699,7 +1699,11 @@ var escape = (value) => String(value).replace(/[&<>"']/g, (c) => ({ "&": "&amp;"
 var supers = "\u2070\xB9\xB2\xB3\u2074\u2075\u2076\u2077\u2078\u2079";
 var subs = "\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089";
 var roots = { I: 0, II: 2, III: 4, IV: 5, V: 7, VI: 9, VII: 11 };
-var palette = RAWL_COLORS.map((color2) => color2.background);
+var romanNumeralColors = RAWL_COLORS.map(({ background }) => {
+  var _a;
+  return (_a = { white: "#fff", red: "#ff0000" }[background]) != null ? _a : background;
+});
+var palette = romanNumeralColors;
 var atom = "(?:[\u266D\u266F]?[IViv]+[\xB0\xF8]?|It|Fr|Ger|Gr|N)[\u207A\u2070\xB9\xB2\xB3\u2074\u2075\u2076\u2077\u2078\u2079\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089]*(?:\\([\u2070\xB9\xB2\xB3\u2074\u2075\u2076\u2077\u2078\u2079\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089\u2013\u2014\\s-]+\\))?";
 var chordPattern = new RegExp("(?<![\\p{L}\\p{N}])(" + atom + "(?:/" + atom + ")*)(?![\\p{L}\\p{N}])", "gu");
 var mod2 = (value, n = 12) => (value % n + n) % n;
@@ -1897,9 +1901,10 @@ function romanNumeralContent(notation, options = {}) {
 function romanNumeralHTML(notation, options = {}) {
   return `<span class="rawln-roman" data-roman-theme="${options.theme === "light" ? "light" : "dark"}"${options.font === "sans-serif" ? ' data-roman-font="sans-serif"' : ""}>${romanNumeralContent(notation, options)}</span>`;
 }
+var romanNumeralMatches = (notation) => String(notation).matchAll(chordPattern);
 var firstRomanChord = (notation) => {
   var _a;
-  return (_a = String(notation).matchAll(chordPattern).next().value) == null ? void 0 : _a[0];
+  return (_a = romanNumeralMatches(notation).next().value) == null ? void 0 : _a[0];
 };
 
 // src/notation/roman-numeral-tooltip.mjs
@@ -1983,13 +1988,12 @@ var explanations = {
   diminishedTriad: "o \u2014 \u0443\u043C\u0435\u043D\u044C\u0448\u0435\u043D\u043D\u043E\u0435 \u0442\u0440\u0435\u0437\u0432\u0443\u0447\u0438\u0435.",
   diminishedSeventh: "o7 \u2014 \u0443\u043C\u0435\u043D\u044C\u0448\u0435\u043D\u043D\u044B\u0439 \u0441\u0435\u043F\u0442\u0430\u043A\u043A\u043E\u0440\u0434.",
   halfDiminished: "\xF87 \u2014 \u043F\u043E\u043B\u0443\u0443\u043C\u0435\u043D\u044C\u0448\u0435\u043D\u043D\u044B\u0439 \u0441\u0435\u043F\u0442\u0430\u043A\u043A\u043E\u0440\u0434.",
+  minor: "\u043C\u0438\u043D\u043E\u0440\u043D\u044B\u0439 \u0441\u0435\u043F\u0442\u0430\u043A\u043A\u043E\u0440\u0434",
   neapolitan: "\u043D\u0435\u0430\u043F\u043E\u043B\u0438\u0442\u0430\u043D\u0441\u043A\u0438\u0439 \u0430\u043A\u043A\u043E\u0440\u0434",
   applied: "/ \u2014 \u0430\u043A\u043A\u043E\u0440\u0434 \u0440\u0430\u0441\u0441\u0447\u0438\u0442\u0430\u043D \u043E\u0442\u043D\u043E\u0441\u0438\u0442\u0435\u043B\u044C\u043D\u043E \u0441\u0442\u0443\u043F\u0435\u043D\u0438 \u0441\u043F\u0440\u0430\u0432\u0430 \u043A\u0430\u043A \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0439 \u0442\u043E\u043D\u0438\u043A\u0438.",
   figureParentheses: "\u0421\u043A\u043E\u0431\u043A\u0438 \u043E\u0431\u044A\u0435\u0434\u0438\u043D\u044F\u044E\u0442 \u0444\u0438\u0433\u0443\u0440\u044B, \u043E\u0442\u043D\u043E\u0441\u044F\u0449\u0438\u0435\u0441\u044F \u043A \u043E\u0434\u043D\u043E\u0439 \u0433\u0430\u0440\u043C\u043E\u043D\u0438\u0438.",
   augmentedSixth: "+6 \u2014 \u0443\u0432\u0435\u043B\u0438\u0447\u0435\u043D\u043D\u0430\u044F \u0441\u0435\u043A\u0441\u0442\u0430; It, Fr, Ger \u2014 \u0438\u0442\u0430\u043B\u044C\u044F\u043D\u0441\u043A\u0438\u0439, \u0444\u0440\u0430\u043D\u0446\u0443\u0437\u0441\u043A\u0438\u0439 \u0438 \u043D\u0435\u043C\u0435\u0446\u043A\u0438\u0439 \u0432\u0430\u0440\u0438\u0430\u043D\u0442\u044B \u0430\u043A\u043A\u043E\u0440\u0434\u0430.",
-  cadentialSixFour: "\u041A\u0430\u0434\u0430\u043D\u0441\u043E\u0432\u044B\u0439 6/4 \u2014 \u0437\u0430\u0434\u0435\u0440\u0436\u0430\u043D\u0438\u044F \u043D\u0430\u0434 \u0434\u043E\u043C\u0438\u043D\u0430\u043D\u0442\u043E\u0432\u044B\u043C \u0431\u0430\u0441\u043E\u043C \u0441 \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u0435\u043C \u0432 5/3.",
-  // Caplin printed 27 / PDF 50, canonical translation p50-b5.
-  harmonicParentheses: "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 \u043A\u0440\u0443\u0433\u043B\u044B\u0435 \u0441\u043A\u043E\u0431\u043A\u0438 \u0434\u043B\u044F \u043E\u0431\u043E\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u044F \u0433\u0430\u0440\u043C\u043E\u043D\u0438\u0447\u0435\u0441\u043A\u043E\u0433\u043E \u043F\u043E\u0434\u0447\u0438\u043D\u0435\u043D\u0438\u044F, \u043E\u0441\u043E\u0431\u0435\u043D\u043D\u043E \u0432\u043D\u0443\u0442\u0440\u0438 \u043E\u0440\u0433\u0430\u043D\u043D\u044B\u0445 \u043F\u0443\u043D\u043A\u0442\u043E\u0432 \u0438 \u0441\u0435\u043A\u0432\u0435\u043D\u0446\u0438\u0439."
+  cadentialSixFour: "\u041A\u0430\u0434\u0430\u043D\u0441\u043E\u0432\u044B\u0439 6/4 \u2014 \u0437\u0430\u0434\u0435\u0440\u0436\u0430\u043D\u0438\u044F \u043D\u0430\u0434 \u0434\u043E\u043C\u0438\u043D\u0430\u043D\u0442\u043E\u0432\u044B\u043C \u0431\u0430\u0441\u043E\u043C \u0441 \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u0435\u043C \u0432 5/3."
 };
 var figureIntervals = {
   6: "6 \u2014 \u0441\u0435\u043A\u0441\u0442\u0430",
@@ -2001,65 +2005,119 @@ var figureIntervals = {
   2: "2 \u2014 \u0441\u0435\u043A\u0443\u043D\u0434\u0430",
   53: "5/3 \u2014 \u043A\u0432\u0438\u043D\u0442\u0430 \u0438 \u0442\u0435\u0440\u0446\u0438\u044F"
 };
-function explanationRows(label, model, options) {
-  const rows = /* @__PURE__ */ new Map();
-  const byText = /* @__PURE__ */ new Map();
-  const colored = (text, pitch, kind = "root") => {
-    var _a;
-    if (!Number.isFinite(pitch)) return escape2(text);
-    const degree = colorIndex(pitch + ((_a = options.colorOffset) != null ? _a : 0));
-    return `<span class="chord-${kind} colored" data-root="${degree}" style="--chord-color:${RAWL_COLORS[degree].background}">${escape2(text)}</span>`;
+var harmonicParentheses = "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 \u043A\u0440\u0443\u0433\u043B\u044B\u0435 \u0441\u043A\u043E\u0431\u043A\u0438 \u0434\u043B\u044F \u043E\u0431\u043E\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u044F \u0433\u0430\u0440\u043C\u043E\u043D\u0438\u0447\u0435\u0441\u043A\u043E\u0433\u043E \u043F\u043E\u0434\u0447\u0438\u043D\u0435\u043D\u0438\u044F, \u043E\u0441\u043E\u0431\u0435\u043D\u043D\u043E \u0432\u043D\u0443\u0442\u0440\u0438 \u043E\u0440\u0433\u0430\u043D\u043D\u044B\u0445 \u043F\u0443\u043D\u043A\u0442\u043E\u0432 \u0438 \u0441\u0435\u043A\u0432\u0435\u043D\u0446\u0438\u0439.";
+function romanNumeralSymbolNotes(model) {
+  var _a, _b, _c, _d, _e, _f, _g;
+  const token = (_d = (_c = (_b = firstRomanChord((_a = model.label) != null ? _a : "")) != null ? _b : model.token) != null ? _c : model.label) != null ? _d : "", context = chordContext(token, { mode: model.mode }), notes = [];
+  const add = (symbol, key, contextChord = token) => {
+    if (!notes.some((n) => n.key === key && n.symbol === symbol)) notes.push({ symbol, key, contextChord });
   };
-  const add = (key, symbol, text = explanations[key]) => {
-    if (!text) return;
-    if (!byText.has(text)) byText.set(text, { key, symbols: /* @__PURE__ */ new Set() });
-    byText.get(text).symbols.add(symbol);
-  };
-  const describe = (token, displayedLabel, cadentialSixFour) => {
-    const parts = token.split("/");
-    for (const [index, part] of parts.entries()) {
-      const context2 = chordContext(parts.slice(index).join("/"), { ...options, cadentialSixFour });
-      const info = context2 == null ? void 0 : context2.first;
-      if (!info) continue;
+  const parts = token.split("/");
+  for (const [partIndex, part] of parts.entries()) {
+    const contextChord = parts.slice(partIndex).join("/"), addPart = (symbol, key) => add(symbol, key, contextChord);
+    const info = (_e = chordContext(part, { mode: model.mode })) == null ? void 0 : _e.first;
+    if (info) {
       if (info.named) {
-        if (info.name === "N") add("neapolitan", colored("N", context2.root));
-        else add("augmentedSixth", colored(info.name === "Gr" ? "Gr / Ger" : info.name, context2.root) + " " + colored("+6", figurePitch(6, context2), "figure"));
+        addPart(
+          info.name + (info.name === "N" ? "" : " +6"),
+          info.name === "N" ? "neapolitan" : "augmentedSixth"
+        );
       } else {
-        const symbol = colored(info.name, context2.root) + " = " + colored(info.degree + 1, context2.root);
-        add("roman", symbol);
-        if (!info.quality) add("case", symbol);
+        const symbol = info.name + " = " + (info.degree + 1);
+        addPart(symbol, "roman");
+        if (!info.quality) addPart(symbol, "case");
       }
-      if (info.accidental) add(info.accidental === "\u266D" ? "flat" : "sharp", colored(info.accidental, context2.root));
-      if (info.quality) {
-        const seventh = index === 0 ? model.seventh : /[⁷₅₃₂]/u.test(part);
-        const key = info.quality === "\xF8" ? "halfDiminished" : seventh ? "diminishedSeventh" : "diminishedTriad";
-        add(key, colored(info.quality === "\xB0" ? "o" : "\xF8", qualityPitch(context2), "quality"));
-      }
+      if (info.accidental) addPart(info.accidental, info.accidental === "\u266D" ? "flat" : "sharp");
+      if (info.quality)
+        addPart(
+          info.quality === "\xB0" ? "o" : "\xF8",
+          info.quality === "\xF8" ? "halfDiminished" : (partIndex === 0 ? model.seventh : /[⁷₅₃₂]/u.test(info.tail)) ? "diminishedSeventh" : "diminishedTriad"
+        );
     }
-    const context = chordContext(token, { ...options, cadentialSixFour });
-    const figures = context == null ? void 0 : context.figures;
-    if (figures && (!context.first.named || context.first.name === "N")) {
-      const text = figures === "6453" ? "6/4\u20135/3" : figures.replace(/^(65|64|43|42|53)$/u, (m) => m[0] + "/" + m[1]);
-      const symbol = [...text].map((c) => /\d/.test(c) ? colored(c, figurePitch(Number(c), context), "figure") : escape2(c)).join("");
-      if (cadentialSixFour) add("cadentialSixFour", symbol);
-      else if (figureIntervals[figures]) add(
-        `figures${figures}`,
-        symbol,
-        "\u0426\u0438\u0444\u0440\u044B \u0441\u043F\u0440\u0430\u0432\u0430 \u043E\u0431\u043E\u0437\u043D\u0430\u0447\u0430\u044E\u0442 \u0438\u043D\u0442\u0435\u0440\u0432\u0430\u043B\u044B \u043D\u0430\u0434 \u0431\u0430\u0441\u043E\u043C: " + figureIntervals[figures] + "."
-      );
-    }
-    if (parts.length > 1) add("applied", "/");
-    if (context == null ? void 0 : context.first.tail.includes("(")) add("figureParentheses", "( )");
-    else if (/^\(|\)$/u.test(displayedLabel)) add("harmonicParentheses", "( )");
-  };
-  if (model.inversion && !model.special && model.rootNotation) {
-    describe(model.rootNotation, model.rootNotation, false);
   }
-  describe(model.token, label, model.cadentialSixFour);
-  for (const [text, { key, symbols }] of byText) {
-    const symbol = [...symbols].join(", ");
+  if (!context && /[m°ø]/u.test(token))
+    add(
+      token.includes("m") ? "m" : token.includes("\xF8") ? "\xF8" : "o",
+      token.includes("m") ? "minor" : token.includes("\xF8") ? "halfDiminished" : "diminishedSeventh"
+    );
+  if ((context == null ? void 0 : context.figures) && (!context.first.named || context.first.name === "N"))
+    add(context.figures, model.cadentialSixFour ? "cadentialSixFour" : "figures" + context.figures);
+  else if (/[⁷]/u.test(token)) add("7", "figures7");
+  if (parts.length > 1) add("/", "applied");
+  if (context == null ? void 0 : context.first.tail.includes("(")) add("( )", "figureParentheses");
+  if (/^\(/u.test((_f = model.label) != null ? _f : token) || /\)$/u.test((_g = model.label) != null ? _g : token) && !(context == null ? void 0 : context.first.tail.includes("(")))
+    add("( )", "harmonicParentheses");
+  return notes;
+}
+function explanationSymbol(note, model) {
+  var _a, _b, _c;
+  const context = chordContext(note.contextChord, {
+    mode: model.mode,
+    seventhInterval: model.seventhInterval,
+    cadentialSixFour: !!model.cadentialSixFour
+  });
+  const colored = (text, pitch, kind = "root") => {
+    var _a2;
+    if (!Number.isFinite(pitch)) return escape2(text);
+    pitch = colorIndex(pitch + ((_a2 = model.colorOffset) != null ? _a2 : 0));
+    return `<span class="chord-${kind} colored" data-root="${pitch}" style="--chord-color:${romanNumeralColors[pitch]}">${escape2(text)}</span>`;
+  };
+  const symbol = note.symbol === "6453" ? "6/4\u20135/3" : note.symbol === "Gr +6" ? "Gr / Ger +6" : note.symbol.replace(/^(65|64|43|42|53)$/u, (m) => m[0] + "/" + m[1]);
+  const pitchForFigure = (n) => {
+    var _a2, _b2;
+    return (_b2 = figurePitch(n, context)) != null ? _b2 : !context && n === 7 && Number.isInteger(model.rootPitch) ? model.rootPitch - ((_a2 = model.colorOffset) != null ? _a2 : 0) + (note.contextChord.includes("\xB0") ? 9 : 10) : null;
+  };
+  if (note.key === "roman" || note.key === "case") {
+    const [roman, degree] = symbol.split(" = ");
+    return colored(roman, context == null ? void 0 : context.root) + " = " + colored(degree, context == null ? void 0 : context.root);
+  }
+  if (note.key === "flat" || note.key === "sharp" || note.key === "neapolitan")
+    return colored(symbol, context == null ? void 0 : context.root);
+  if (note.key.startsWith("figures") || note.key === "cadentialSixFour")
+    return [...symbol].map((c) => /\d/.test(c) ? colored(c, pitchForFigure(Number(c)), "figure") : escape2(c)).join("");
+  if (note.key === "augmentedSixth")
+    return colored(symbol.replace(/ \+6$/u, ""), context == null ? void 0 : context.root) + " " + colored("+6", figurePitch(6, context), "figure");
+  if (["diminishedTriad", "diminishedSeventh", "halfDiminished"].includes(note.key))
+    return colored(
+      symbol,
+      (_b = qualityPitch(context)) != null ? _b : !context && Number.isInteger(model.rootPitch) ? model.rootPitch - ((_a = model.colorOffset) != null ? _a : 0) + 6 : null,
+      "quality"
+    );
+  if (note.key === "minor")
+    return colored(
+      symbol,
+      Number.isInteger(model.rootPitch) ? model.rootPitch - ((_c = model.colorOffset) != null ? _c : 0) : context == null ? void 0 : context.root
+    );
+  return escape2(symbol);
+}
+function romanNumeralExplanations(model) {
+  const rootModel = model.inversion && !model.special && model.rootPitches ? {
+    ...model,
+    pitches: model.rootPitches,
+    inversion: 0,
+    label: model.rootLabel,
+    token: model.rootLabel,
+    originalLabel: model.rootLabel,
+    cadentialSixFour: false
+  } : null;
+  const notes = [
+    ...rootModel ? romanNumeralSymbolNotes(rootModel).map((note) => ({ note, owner: rootModel })) : [],
+    ...romanNumeralSymbolNotes(model).map((note) => ({ note, owner: model }))
+  ], byText = /* @__PURE__ */ new Map(), rows = /* @__PURE__ */ new Map();
+  for (const { note, owner } of notes) {
+    let text = note.key === "harmonicParentheses" ? harmonicParentheses : explanations[note.key];
+    if (note.key.startsWith("figures")) {
+      const intervals = figureIntervals[note.key.slice(7)];
+      if (intervals) text = "\u0426\u0438\u0444\u0440\u044B \u0441\u043F\u0440\u0430\u0432\u0430 \u043E\u0431\u043E\u0437\u043D\u0430\u0447\u0430\u044E\u0442 \u0438\u043D\u0442\u0435\u0440\u0432\u0430\u043B\u044B \u043D\u0430\u0434 \u0431\u0430\u0441\u043E\u043C: " + intervals + ".";
+    }
+    if (!text) continue;
+    if (!byText.has(text)) byText.set(text, { key: note.key, symbols: /* @__PURE__ */ new Set() });
+    byText.get(text).symbols.add(explanationSymbol(note, owner));
+  }
+  for (const [text, item] of byText) {
+    const symbol = [...item.symbols].join(", ");
     if (!rows.has(symbol)) rows.set(symbol, []);
-    rows.get(symbol).push(`<span data-symbol="${key}">${escape2(text)}</span>`);
+    rows.get(symbol).push(`<span data-symbol="${escape2(item.key)}">${escape2(text)}</span>`);
   }
   return rows.size ? `<dl class="rawln-rn-explanations">${[...rows].map(([symbol, texts]) => `<div><dt>${symbol}</dt><dd>${texts.join(" ")}</dd></div>`).join("")}</dl>` : "";
 }
@@ -2089,7 +2147,7 @@ function pitchGeometry(columns) {
 }
 function caption(column, options) {
   if (column.cadentialSixFour) return ["6/4"];
-  if (column.special) return [options.jazz ? "augmented sixth" : "\u0443\u0432\u0435\u043B\u0438\u0447\u0435\u043D\u043D\u0430\u044F \u0441\u0435\u043A\u0441\u0442\u0430"];
+  if (column.special) return [options.jazz || options.english ? "augmented sixth" : "\u0443\u0432\u0435\u043B\u0438\u0447\u0435\u043D\u043D\u0430\u044F \u0441\u0435\u043A\u0441\u0442\u0430"];
   const inversion = column.inversion;
   if (options.jazz) {
     const third = column.pitches.length === 3 && !/(?:sus|add|omit|no)/i.test(column.notation);
@@ -2099,21 +2157,27 @@ function caption(column, options) {
       typeof inversion === "number" ? englishInversions[inversion] : ""
     ];
   }
-  return [column.seventh ? seventhNames[inversion] : triadNames[inversion], inversionNames[inversion]];
+  if (options.english) {
+    const kinds = column.seventh ? ["seventh chord", "six-five chord", "four-three chord", "four-two chord"] : ["triad", "sixth chord", "six-four chord"];
+    return [kinds[inversion != null ? inversion : 0], englishInversions[inversion != null ? inversion : 0]];
+  }
+  return [column.seventh ? seventhNames[inversion != null ? inversion : 0] : triadNames[inversion != null ? inversion : 0], inversionNames[inversion != null ? inversion : 0]];
 }
-function romanNumeralTooltipHTML(notation, options, model) {
-  const columns = [
-    ...model.inversion && !model.special && model.rootPitches && model.rootNotation ? [{ ...model, pitches: model.rootPitches, notation: model.rootNotation, inversion: 0, cadentialSixFour: false }] : [],
-    { ...model, notation }
-  ];
+function romanNumeralDiagramColumns(columns, options = {}) {
   const geometry = pitchGeometry(columns);
-  const guides = geometry.guides.map(({ pitch, degree, y }) => `<span class="rawln-rn-tooltip-guide" data-degree="${degree}" data-pitch="${pitch}" style="top:${y}px"></span>`).join("");
+  const guides = geometry.guides.map(({ pitch, degree, y }) => `<span class="rawln-rn-tooltip-guide" data-degree="${degree}" data-pitch="${pitch}" style="top:${y}px;height:1px"></span>`).join("");
   const diagram = columns.map((column) => {
-    const label = romanNumeralHTML(column.notation, {
+    var _a, _b;
+    const notation = (_b = (_a = column.label) != null ? _a : column.notation) != null ? _b : "";
+    const { mode, seventhInterval, cadentialSixFour, colorOffset, rootPitch } = column;
+    const context = { mode, seventhInterval, cadentialSixFour, colorOffset, rootPitch };
+    const supplied = Object.fromEntries(Object.entries(context).filter(([, value]) => value !== void 0));
+    const label = romanNumeralHTML(notation, {
       ...options,
+      ...supplied,
       theme: "dark",
       colorRoots: true,
-      ...column.notation !== notation ? { bassPitch: null } : {}
+      ...column.labelOptions
     });
     const notes = column.pitches.map((pitch) => {
       const degree = colorIndex(pitch);
@@ -2123,11 +2187,25 @@ function romanNumeralTooltipHTML(notation, options, model) {
       const previous = column.pitches[index], y = (geometry.y(pitch) + geometry.y(previous) + geometry.height) / 2;
       return `<span class="rawln-rn-tooltip-interval" data-semitones="${pitch - previous}" style="top:${y}px">+${pitch - previous}</span>`;
     }).join("");
-    const [kind, inversion] = caption(column, options);
-    return `<section class="rawln-rn-tooltip-column"><div class="rawln-rn-tooltip-label">${label}</div><div class="rawln-rn-tooltip-grid" style="height:${geometry.gridHeight}px">${guides}${notes}${intervals}</div>${kind ? `<div class="rawln-rn-tooltip-kind">${kind}</div>` : ""}${inversion ? `<div class="rawln-rn-tooltip-inversion">${inversion}</div>` : ""}</section>`;
-  }).join("");
-  const copy = !options.jazz && model.token ? explanationRows(notation, model, options) : "";
-  return `<div class="rawln-rn-tooltip-columns">${diagram}</div>${copy}`;
+    const [kind, inversion] = options.sequence ? [] : caption({ ...column, notation }, options);
+    const kindHTML = kind ? `<div class="rawln-rn-tooltip-kind">${kind}</div>` : "";
+    const inversionHTML = inversion ? `<div class="rawln-rn-tooltip-inversion">${inversion}</div>` : "";
+    return `<section class="rawln-rn-tooltip-column" data-chord="${escape2(notation)}"><div class="rawln-rn-tooltip-label">${label}</div><div class="rawln-rn-tooltip-grid" style="height:${geometry.gridHeight}px">${guides}${notes}${intervals}</div>${kindHTML}${inversionHTML}</section>`;
+  }).join(options.sequence ? '<span class="cadence-sequence-arrow" aria-hidden="true">\u2192</span>' : "");
+  return `<div class="rawln-rn-tooltip-columns${options.sequence ? " cadence-sequence" : ""}">${diagram}</div>`;
+}
+function romanNumeralTooltipHTML(notation, options, model) {
+  const columns = [
+    ...model.inversion && !model.special && model.rootPitches && model.rootNotation ? [{ ...model, pitches: model.rootPitches, notation: model.rootNotation, inversion: 0, cadentialSixFour: false, labelOptions: { bassPitch: null } }] : [],
+    { ...model, notation }
+  ];
+  const copy = !options.jazz && model.token ? romanNumeralExplanations({
+    ...options,
+    ...model,
+    label: notation,
+    rootLabel: model.rootNotation
+  }) : "";
+  return romanNumeralDiagramColumns(columns, options) + copy;
 }
 
 // src/notation/bind-roman-numeral-tooltip.mjs

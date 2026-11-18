@@ -20,13 +20,19 @@ var __toCommonJS = (mod2) => __copyProps(__defProp({}, "__esModule", { value: tr
 // src/notation/roman-numerals.mjs
 var roman_numerals_exports = {};
 __export(roman_numerals_exports, {
+  beforeChord: () => beforeChord,
   chordContext: () => chordContext,
   figurePitch: () => figurePitch,
   firstRomanChord: () => firstRomanChord,
   guitarChordHTML: () => guitarChordHTML,
+  partInfo: () => partInfo,
   qualityPitch: () => qualityPitch,
+  romanNumeralColors: () => romanNumeralColors,
   romanNumeralContent: () => romanNumeralContent,
-  romanNumeralHTML: () => romanNumeralHTML
+  romanNumeralHTML: () => romanNumeralHTML,
+  romanNumeralMatches: () => romanNumeralMatches,
+  rootOf: () => rootOf,
+  typography: () => typography
 });
 module.exports = __toCommonJS(roman_numerals_exports);
 
@@ -51,7 +57,11 @@ var escape = (value) => String(value).replace(/[&<>"']/g, (c) => ({ "&": "&amp;"
 var supers = "\u2070\xB9\xB2\xB3\u2074\u2075\u2076\u2077\u2078\u2079";
 var subs = "\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089";
 var roots = { I: 0, II: 2, III: 4, IV: 5, V: 7, VI: 9, VII: 11 };
-var palette = RAWL_COLORS.map((color) => color.background);
+var romanNumeralColors = RAWL_COLORS.map(({ background }) => {
+  var _a;
+  return (_a = { white: "#fff", red: "#ff0000" }[background]) != null ? _a : background;
+});
+var palette = romanNumeralColors;
 var atom = "(?:[\u266D\u266F]?[IViv]+[\xB0\xF8]?|It|Fr|Ger|Gr|N)[\u207A\u2070\xB9\xB2\xB3\u2074\u2075\u2076\u2077\u2078\u2079\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089]*(?:\\([\u2070\xB9\xB2\xB3\u2074\u2075\u2076\u2077\u2078\u2079\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089\u2013\u2014\\s-]+\\))?";
 var chordPattern = new RegExp("(?<![\\p{L}\\p{N}])(" + atom + "(?:/" + atom + ")*)(?![\\p{L}\\p{N}])", "gu");
 var mod = (value, n = 12) => (value % n + n) % n;
@@ -64,6 +74,10 @@ function partInfo(part) {
   const named = special[m[2]], degree = (_a = named == null ? void 0 : named.degree) != null ? _a : numeralIndex[m[2].toUpperCase()];
   if (degree === void 0) return null;
   return { accidental: m[1], name: m[2], quality: m[3], tail: m[4], degree, root: (_b = named == null ? void 0 : named.root) != null ? _b : mod(roots[m[2].toUpperCase()] + (m[1] === "\u266D" ? -1 : m[1] === "\u266F" ? 1 : 0)), named };
+}
+function rootOf(chord) {
+  const parts = chord.split("/").map(partInfo);
+  return parts.every(Boolean) ? mod(parts.reduce((root, part) => root + part.root, 0)) : null;
 }
 function chordContext(chord, options = {}) {
   var _a;
@@ -253,7 +267,8 @@ function romanNumeralContent(notation, options = {}) {
 function romanNumeralHTML(notation, options = {}) {
   return `<span class="rawln-roman" data-roman-theme="${options.theme === "light" ? "light" : "dark"}"${options.font === "sans-serif" ? ' data-roman-font="sans-serif"' : ""}>${romanNumeralContent(notation, options)}</span>`;
 }
+var romanNumeralMatches = (notation) => String(notation).matchAll(chordPattern);
 var firstRomanChord = (notation) => {
   var _a;
-  return (_a = String(notation).matchAll(chordPattern).next().value) == null ? void 0 : _a[0];
+  return (_a = romanNumeralMatches(notation).next().value) == null ? void 0 : _a[0];
 };

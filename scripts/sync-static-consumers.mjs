@@ -9,6 +9,7 @@ const caplinArtifacts = new Map([
   ['librawl-caplin-notes.js', ['dist/browser/caplin-notes.js', 'browserArtifactSha256']],
   ['librawl-tempo-keys.js', ['dist/browser/tempo-keys.js', 'tempoArtifactSha256']],
   ['librawl-native.css', ['dist/native.css', 'nativeStyleArtifactSha256']],
+  ['librawl-harmony.js', ['dist/browser/harmony-annotations.js', 'harmonyArtifactSha256']],
 ]);
 const hash = (bytes, algorithm = 'sha256', encoding = 'hex') =>
   createHash(algorithm).update(bytes).digest(encoding);
@@ -149,6 +150,8 @@ export function syncStaticConsumers({repos, libraryRoot, archive, version, sha25
     const keys = extract('dist/browser/playback-keys.js');
     if (fs.existsSync(path.join(mortensenPreview, 'index.html'))) {
       operations.set(path.join(mortensenPreview, 'librawl-playback-keys.js'), keys);
+      operations.set(path.join(mortensenPreview, 'librawl-harmony-annotations.js'),
+        operations.get(path.join(reader, 'dist/librawl-harmony.js')));
       for (const filename of ['soundfont-playback.js', 'librawl-caplin-notes.js', 'librawl-native.css']) {
         operations.set(path.join(mortensenPreview, filename), operations.get(path.join(reader, 'dist', filename)));
       }

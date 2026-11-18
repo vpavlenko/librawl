@@ -1,7 +1,10 @@
 import {romanNumeralHTML} from './roman-numerals.mjs';
 import {arrowCurve, arrowGeometry} from './harmony-arrows.mjs';
 
-export {guitarChordHTML, romanNumeralHTML, romanNumeralContent} from './roman-numerals.mjs';
+export * from './roman-numerals.mjs';
+export {romanNumeralTooltipModel, romanNumeralTooltipHTML, romanNumeralDiagramColumns,
+  romanNumeralSymbolNotes, romanNumeralExplanations} from './roman-numeral-tooltip.mjs';
+export {bindRomanNumeralTooltip} from './bind-roman-numeral-tooltip.mjs';
 export {arrowCurve, arrowGeometry} from './harmony-arrows.mjs';
 
 const ROW_HEIGHT = 22;

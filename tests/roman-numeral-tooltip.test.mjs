@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {JSDOM} from 'jsdom';
 import {bindRomanNumeralTooltip} from '../src/notation/bind-roman-numeral-tooltip.mjs';
-import {romanNumeralTooltipHTML, romanNumeralTooltipModel} from '../src/notation/roman-numeral-tooltip.mjs';
+import {romanNumeralDiagramColumns, romanNumeralExplanations, romanNumeralTooltipHTML, romanNumeralTooltipModel} from '../src/notation/roman-numeral-tooltip.mjs';
 
 const parse = html => new JSDOM(html).window.document;
 const notePitches = column => [...column.querySelectorAll('.rawln-rn-tooltip-note')].map(note => Number(note.dataset.pitch));
@@ -77,4 +77,18 @@ test('Tooltip opens on hover, focus and click, and preserves native Space handli
     detachSecond();
     window.close();
   }
+});
+
+test('source-resolved quality labels and cadence columns share tooltip rendering', () => {
+  const label = '(m⁷)';
+  const model = {label, pitches: [10, 13, 17, 20], rootPitch: 10, seventh: true, inversion: 0};
+  const document = parse(romanNumeralDiagramColumns([model]) + romanNumeralExplanations(model));
+  assert.deepEqual([...document.querySelectorAll('.rawln-rn-tooltip-note')].map(note => Number(note.dataset.pitch)), model.pitches);
+  assert.equal(document.querySelector('[data-symbol="minor"]').parentElement.previousElementSibling.querySelector('.colored').dataset.root, '10');
+  assert.equal(document.querySelector('[data-symbol="figures7"]').parentElement.previousElementSibling.querySelector('.colored').dataset.root, '8');
+  assert(document.querySelector('[data-symbol="harmonicParentheses"]'));
+  const cadence = parse(romanNumeralDiagramColumns([model, {label: 'I', pitches: [0, 4, 7]}], {sequence: true}));
+  assert.deepEqual([...cadence.querySelectorAll('[data-chord]')].map(column => column.dataset.chord), [label, 'I']);
+  assert(cadence.querySelector('.cadence-sequence-arrow'));
+  assert.equal(cadence.querySelector('.rawln-rn-tooltip-kind'), null);
 });

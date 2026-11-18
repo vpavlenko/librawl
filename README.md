@@ -82,7 +82,7 @@ const removeAnnotations = mountHarmonyAnnotations(score, {
 
 Use `guitarChordHTML("Dm7", {tonic: 0})` from `librawl/roman-numerals` for letter-name chords. The tonic pitch class sets the reference for the symbol colors. This uses the same stylesheet.
 
-Static readers can load `librawl/browser/harmony-annotations.js` for `LibrawlHarmony`, which exposes the same chord formatters and annotation renderer.
+Static readers can load `librawl/browser/harmony-annotations.js` for `LibrawlHarmony`. Load it before the reader's script and use the styles from the same archive. The bundle exposes the same chord formatters, score annotation renderer and tooltip helpers used by the React components. Readers can supply source-resolved pitches to `romanNumeralDiagramColumns` and use `romanNumeralTooltipModel` for a tooltip inferred from the written symbol.
 
 ## React notation
 
