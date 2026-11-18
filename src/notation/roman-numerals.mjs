@@ -136,40 +136,50 @@ function markup(text,options={}){
  return result+typography(text.slice(last),inherited,options);
 }
 
-const jazzNumeral = /^([b#♭♯]*)(VII|III|VI|IV|II|V|I|vii|iii|vi|iv|ii|v|i)(.*)$/u;
-const jazzFigures = /([b#♭♯]*)(13|11|[1-9])|(?:maj|sus|add|alt|no|omit|aug)|[^]/gu;
+const jazzNumeral = /^(?<accidentals>[b#♭♯]*)(?<written>VII|III|VI|IV|II|V|I|vii|iii|vi|iv|ii|v|i)(?<tail>.*)$/u;
+const guitarChord = /^(?<written>[A-G])(?<accidentals>[b#♭♯]*)(?<tail>.*)$/u;
+const noteRoots = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+const majorSeventh = /^(?:maj|M(?=\d)|[△Δ])/;
+const jazzFigures = /([b#♭♯]*)(13|11|[1-9])|(?:maj|dim|sus|add|alt|no|omit|aug)|[^]/gu;
 const jazzIntervals = {1:0,2:2,4:5,6:9,8:12,9:14,11:17,13:21};
 const prettyAccidental = text => text.replaceAll('b','♭').replaceAll('#','♯');
 
-function jazzMarkup(notation, options) {
+function jazzMarkup(notation, options, guitar = false) {
   const hasBass = options.bassPitch !== undefined && options.bassPitch !== null;
   const slash = hasBass ? notation.lastIndexOf('/') : -1;
   const symbol = slash < 0 ? notation : notation.slice(0, slash);
-  const match = jazzNumeral.exec(symbol);
+  const match = (guitar ? guitarChord : jazzNumeral).exec(symbol);
   if (!match) return escape(notation);
-  const [, accidentals, written, tail] = match;
+  const {accidentals, written, tail} = match.groups;
   const alteration = signs => [...signs].reduce((pitch, sign) => pitch + ('b♭'.includes(sign) ? -1 : 1), 0);
-  const computedRoot = mod(roots[written.toUpperCase()] + alteration(accidentals));
+  const spelledRoot = guitar ? noteRoots[written] - (options.tonic ?? 0) : roots[written.toUpperCase()];
+  const computedRoot = mod(spelledRoot + alteration(accidentals));
   const root = options.rootPitch ?? computedRoot;
   const halfDim = tail.startsWith('ø') || /^m7b5/.test(tail);
   const dim = /^(?:°|o|dim)/.test(tail);
   const explicitMinor = /^(?:m(?!aj)|-)/.test(tail);
   const minor = explicitMinor || written === written.toLowerCase();
-  const name = minor || dim || halfDim ? written.toLowerCase() : written;
+  const name = !guitar && (minor || dim || halfDim) ? written.toLowerCase() : written;
   const accidental = [...prettyAccidental(accidentals)].map(sign =>
     `<span class="chord-accidental${sign==='♯'?' sharp':''}">${sign}</span>`).join('');
   const quality = halfDim ? 'ø' : dim ? '°' : '';
-  const suffix = tail.replace(/^m7b5/, '7').replace(/^(?:ø|°|o|dim|m(?!aj)|-)/,'').replace(/^(?:maj|M(?=\d))/,'Δ');
-  const qualityContext = quality ? chordContext(name + quality + '⁷', {seventhInterval:dim?9:10}) : null;
+  const suffix = guitar ? tail : tail.replace(/^m7b5/, '7').replace(/^(?:ø|°|o|dim|m(?!aj)|-)/,'').replace(majorSeventh,'Δ');
+  const qualityContext = quality && !guitar ? chordContext(name + quality + '⁷', {seventhInterval:dim?9:10}) : null;
   const qualityMarkup = qualityContext ? typography(quality, qualityContext, {
     colorQuality:options.colorQuality??options.colorRoots, colorOffset:mod(root-roots[name.toUpperCase()]),
   }) : '';
   const color = options.colorRoots ? ` colored" ${colorStyle(mod(root))}` : '"';
-  const rootMarkup = `<span class="chord-root${color}>${accidental}${name}</span>`;
-  const figures = [...suffix.matchAll(jazzFigures)].map(([token, signs, digits]) => {
-    if (!digits) return escape(prettyAccidental(token));
+  const rootLabel = guitar ? name + prettyAccidental(accidentals) : accidental + name;
+  const rootMarkup = `<span class="chord-root${color}>${rootLabel}</span>`;
+  const figures = [...suffix.matchAll(jazzFigures)].map(([token, signs, digits], index) => {
+    if (!digits) {
+      const label = escape(prettyAccidental(token));
+      if (index !== 0 || !(options.colorQuality ?? options.colorRoots)) return label;
+      const third = guitar && token === 'm' ? 3 : !guitar && token === 'Δ' ? 4 : null;
+      return third === null ? label : `<span class="chord-quality colored" ${colorStyle(mod(root + third))}>${label}</span>`;
+    }
     const n = Number(digits);
-    const interval = n===7 ? (dim?9:suffix.includes('Δ')?11:10)
+    const interval = n===7 ? (dim?9:majorSeventh.test(suffix)?11:10)
       : n===3 ? (minor?3:4)
       : n===5 ? (quality?6:/^(?:\+|aug)/.test(suffix)?8:7)
       : jazzIntervals[n];
@@ -180,7 +190,13 @@ function jazzMarkup(notation, options) {
       : escape(label);
   }).join('');
   const bass = slash < 0 ? '' : `<span class="chord-slash">/</span><span class="chord-bass${options.colorRoots?' colored':''}" ${colorStyle(mod(options.bassPitch))}>${escape(prettyAccidental(notation.slice(slash+1)))}</span>`;
-  return `${rootMarkup}${qualityMarkup}${figures?`<sup class="roman-jazz-figures">${figures}</sup>`:''}${bass}`;
+  const suffixMarkup = guitar || !figures ? figures : `<sup class="roman-jazz-figures">${figures}</sup>`;
+  return `${rootMarkup}${qualityMarkup}${suffixMarkup}${bass}`;
+}
+
+export function guitarChordHTML(notation, options = {}) {
+  const content = jazzMarkup(String(notation), {colorRoots:true, ...options}, true);
+  return `<span class="rawln-roman rawln-guitar-chord" data-roman-theme="${options.theme==='light'?'light':'dark'}">${content}</span>`;
 }
 
 export function romanNumeralContent(notation, options = {}) {

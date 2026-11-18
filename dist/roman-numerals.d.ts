@@ -19,6 +19,12 @@ export interface RomanNumeralOptions {
   hideAppliedTarget?: boolean;
 }
 
+export type GuitarChordOptions = Pick<RomanNumeralOptions,
+  'theme' | 'rootPitch' | 'bassPitch' | 'figurePitches' | 'colorRoots' | 'colorFigures' | 'colorQuality'>;
+
+/** Format a letter-name chord using colors relative to the supplied tonic pitch class. */
+export function guitarChordHTML(notation: string, options?: GuitarChordOptions & { tonic?: number }): string;
+
 export interface RomanNumeralTooltipOptions {
   /** Tonic-relative semitone offsets. Keep octaves to show the desired voicing. */
   pitches: readonly number[];

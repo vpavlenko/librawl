@@ -1,5 +1,5 @@
 import type {RomanNumeralOptions} from './roman-numerals';
-export {romanNumeralHTML, romanNumeralContent} from './roman-numerals';
+export {guitarChordHTML, romanNumeralHTML, romanNumeralContent} from './roman-numerals';
 
 export interface HarmonyAnnotation {
   id?: string;

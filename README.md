@@ -45,7 +45,9 @@ const removeAnnotations = mountHarmonyAnnotations(score, {
 });
 ```
 
-Static readers can load `librawl/browser/harmony-annotations.js`, which exposes `LibrawlHarmony.mountHarmonyAnnotations` and `LibrawlHarmony.romanNumeralHTML`.
+Use `guitarChordHTML("Dm7", {tonic: 0})` from `librawl/roman-numerals` for letter-name chords. The tonic pitch class sets the reference for the symbol colors. This uses the same stylesheet.
+
+Static readers can load `librawl/browser/harmony-annotations.js` for `LibrawlHarmony`, which exposes the same chord formatters and annotation renderer.
 
 ```jsx
 import {RawlNotation} from 'librawl';

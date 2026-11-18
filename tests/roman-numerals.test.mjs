@@ -4,7 +4,7 @@ import {JSDOM} from 'jsdom';
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {RomanNumeral} from 'librawl/components';
-import {romanNumeralHTML} from 'librawl/roman-numerals';
+import {guitarChordHTML, romanNumeralHTML} from 'librawl/roman-numerals';
 import {staveGeometry} from 'librawl/geometry';
 
 const elements = (notation, options) => new JSDOM(romanNumeralHTML(notation, options)).window.document;
@@ -26,6 +26,28 @@ test('Jazz extensions retain atomic figures, minor case and independent slash-ba
   assert.deepEqual([...extended.querySelectorAll('.chord-figure')].map(node=>node.dataset.figure),['13','9']);
   assert.deepEqual(degree(extended,'.chord-figure'),[4,8]);
   assert.equal(elements('<script>alert(1)</script>',{jazz:true}).querySelector('script'),null);
+});
+
+test('Jazz major-seventh markers color the chord third independently of the seventh', () => {
+  for (const notation of ['IVmaj7', 'IVM7', 'IVΔ7', 'IV△7']) {
+    const document = elements(notation, {jazz:true});
+    assert.equal(document.body.textContent, 'IVΔ7');
+    assert.equal(document.querySelector('.chord-quality').textContent, 'Δ');
+    assert.deepEqual(degree(document,'.chord-quality'), [9]);
+    assert.deepEqual(degree(document,'.chord-figure'), [4]);
+  }
+  assert.equal(elements('IVmaj7',{jazz:true,colorQuality:false}).querySelector('.chord-quality'),null);
+});
+
+test('Letter-name chord colors use the current tonic while preserving the chord spelling', () => {
+  const document = new JSDOM(guitarChordHTML('Dm7',{tonic:2})).window.document;
+  assert.equal(document.body.textContent,'Dm7');
+  assert.deepEqual(degree(document,'.chord-root'),[0]);
+  assert.equal(document.querySelector('.chord-quality').textContent,'m');
+  assert.deepEqual(degree(document,'.chord-quality'),[3]);
+  assert.deepEqual(degree(document,'.chord-figure'),[10]);
+  assert.equal(new JSDOM(guitarChordHTML('Ddim')).window.document.querySelector('.chord-quality'),null);
+  assert.equal(new JSDOM(guitarChordHTML('Dm7<img src=x>')).window.document.querySelector('img'),null);
 });
 
 test('Score scaling preserves baseline pitch spacing and reserves room for growing notes', () => {

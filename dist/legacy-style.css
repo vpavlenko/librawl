@@ -223,6 +223,7 @@ body.harmony-rn .harmony-rns{visibility:visible}
 .rawln-roman .figures.quality-figure[data-quality="diminished"] { width: .5em; margin-left: 0; }
 .rawln-roman .quality-figure[data-quality="diminished"] + .figures { margin-left: 0; }
 .rawln-roman .figures.quality-figure sup { position: static; font-size: inherit; line-height: inherit; margin: 0; }
+.rawln-roman.rawln-guitar-chord { font: inherit; }
 .rawln-roman .chord-root { font-kerning: normal; white-space: nowrap; }
 .rawln-roman .chord-accidental { display: inline-block; margin-left: -.08em; margin-right: -.14em; font-style: normal; }
 .rawln-roman .chord-accidental.sharp { margin-right: -.1em; }
