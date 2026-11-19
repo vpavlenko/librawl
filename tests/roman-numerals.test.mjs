@@ -1,14 +1,40 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {JSDOM} from 'jsdom';
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {RomanNumeral} from 'librawl/components';
-import {guitarChordHTML, romanNumeralHTML} from 'librawl/roman-numerals';
+import {guitarChordHTML, romanNumeralContent, romanNumeralHTML} from 'librawl/roman-numerals';
 import {staveGeometry} from 'librawl/geometry';
 
 const elements = (notation, options) => new JSDOM(romanNumeralHTML(notation, options)).window.document;
 const degree = (document, selector) => [...document.querySelectorAll(selector)].map(node => Number(node.dataset.root));
+
+test('light surfaces outline both spellings of the tonic glyph', () => {
+  const theme = 'light';
+  const stylesheet = readFileSync(new URL('../dist/roman-numerals.css', import.meta.url), 'utf8');
+  const dom = new JSDOM(`<style>${stylesheet}</style>
+    ${romanNumeralHTML('I⁶₄', {theme})} ${romanNumeralHTML('i', {theme})}
+    ${romanNumeralHTML('Imaj7', {theme, jazz: true, colorRoots: false})}
+    ${romanNumeralHTML('i')} ${romanNumeralHTML('I/V', {theme})}
+    ${romanNumeralHTML('♭III', {theme, colorOffset: 9})}
+    ${guitarChordHTML('C', {theme})}
+    <article data-roman-theme="light"><span data-roman-notation="i">${romanNumeralContent('i')}</span></article>`);
+  const {document} = dom.window;
+  try {
+    const rule = [...document.styleSheets[0].cssRules].find(entry =>
+      entry.style?.getPropertyValue('-webkit-text-fill-color') === 'transparent');
+    assert(rule);
+    assert.match(rule.style.getPropertyValue('-webkit-text-stroke'), /#222$/);
+    const outlined = () => [...document.querySelectorAll(rule.selectorText)].map(node => node.textContent);
+    assert.deepEqual(outlined(), ['I', 'i', 'I', 'i']);
+    document.querySelector('article').dataset.romanTheme = 'dark';
+    assert.deepEqual(outlined(), ['I', 'i', 'I']);
+  } finally {
+    dom.window.close();
+  }
+});
 
 test('Caplin colors applied roots and stacked inversion figures by sounding pitch', () => {
   const document = elements('V⁶₅/V');

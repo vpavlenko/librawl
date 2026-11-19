@@ -62,6 +62,8 @@ When a host injects the same palette rules through CSS-in-JS, use `nativeColorSt
 
 Use `RomanNumeral` from `librawl/components` in React, or `romanNumeralHTML` from `librawl/roman-numerals` in static markup. Both use `librawl/roman-numerals.css`.
 
+On a light surface, set `theme: 'light'` to outline the tonic glyphs I and i. For prose assembled with `romanNumeralContent`, set `data-roman-theme="light"` on the paper container and `data-roman-notation` on each chord wrapper.
+
 Mount score annotations against the rendered score element. Pass that row's absolute beat range, then remove the lanes with the returned cleanup function when replacing the row. Lanes default to below the score. Use `position: 'above'` for an upper lane and `options.theme: 'light'` for paper. Set `endInclusive` only when a label at the last edge belongs to that row. Arrows join explicit annotation IDs on the same row and side.
 
 ```js

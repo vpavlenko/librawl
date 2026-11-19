@@ -133,7 +133,8 @@ function markup(text,options={}){
    const info=partInfo(part),context=chordContext(parts.slice(index).join('/'),options),root=displayPitch(context?.root,options);
    if(!info||root===null||root===undefined)return typography(part);
    const accidental=info.accidental?`<span class="chord-accidental${info.accidental==='♯'?' sharp':''}">${info.accidental}</span>`:'';
-   return `<span class="chord-root${colorRoots?' colored':''}" data-root="${root}"${colorRoots?` style="--chord-color:${palette[root]}"`:''}>${accidental}${info.name}</span>${typography(info.quality+info.tail,context,options)}`;
+   const tonicGlyph = !info.accidental && /^[Ii]$/.test(info.name) ? ' data-roman-tonic' : '';
+   return `<span class="chord-root${colorRoots?' colored':''}" data-root="${root}"${colorRoots?` style="--chord-color:${palette[root]}"`:''}${tonicGlyph}>${accidental}${info.name}</span>${typography(info.quality+info.tail,context,options)}`;
   }).join('/');last=match.index+match[0].length;
  }
  return result+typography(text.slice(last),inherited,options);
@@ -171,9 +172,11 @@ function jazzMarkup(notation, options, guitar = false) {
   const qualityMarkup = qualityContext ? typography(quality, qualityContext, {
     colorQuality:options.colorQuality??options.colorRoots, colorOffset:mod(root-roots[name.toUpperCase()]),
   }) : '';
-  const color = options.colorRoots ? ` colored" ${colorStyle(mod(root))}` : '"';
+  const tonicGlyph = !guitar && !accidentals && /^[Ii]$/.test(name);
+  const color = options.colorRoots ? ` colored" ${colorStyle(mod(root))}`
+    : tonicGlyph ? `" data-root="${mod(root)}"` : '"';
   const rootLabel = guitar ? name + prettyAccidental(accidentals) : accidental + name;
-  const rootMarkup = `<span class="chord-root${color}>${rootLabel}</span>`;
+  const rootMarkup = `<span class="chord-root${color}${tonicGlyph ? ' data-roman-tonic' : ''}>${rootLabel}</span>`;
   const qualityIntervals = guitar ? {m:3, '+':8} : {'Δ':4, '+':8};
   const figures = [...suffix.matchAll(jazzFigures)].map(([token, signs, digits], index) => {
     if (!digits) {
