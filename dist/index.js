@@ -47,7 +47,7 @@ function visibleBeatLines(barTimes, beatTimes, toPixels) {
 function markersForRow(events, { start, end, toPixels, numberAt, hideInitialTonic = false }) {
   const activeAtStart = events.findLast((marker) => marker.beat <= start);
   return events.flatMap((marker) => {
-    var _a;
+    var _a, _b;
     const initial2 = marker.previousTonic === null;
     if (marker.tonic == null || marker.delta === 0 || marker.beat >= end || hideInitialTonic && initial2) return [];
     const onsetOverride = !initial2 && marker.onsetOverride === true;
@@ -69,7 +69,7 @@ function markersForRow(events, { start, end, toPixels, numberAt, hideInitialToni
     const number = numberAt(start);
     return [{
       ...marker,
-      originBeat: marker.beat,
+      originBeat: (_b = marker.originBeat) != null ? _b : marker.beat,
       beat: start,
       number,
       previousTonic: null,
@@ -139,7 +139,7 @@ function modulationLabelOffset(beat, barBeats, { initial: initial2 = beat === 0,
 function keyMarkers(tonic, changes) {
   return tonicMarkers(tonicEvents(tonic, changes));
 }
-function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatBeats = 1, phraseStarts, measureMap, width = 0, selectedMeasure = null, hideInitialTonic = false }) {
+function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatBeats = 1, phraseStarts, measureMap, width = 0, selectedMeasure = null, hideInitialTonic = false, modulationMarkerPlacement }) {
   var _a;
   const EPS = 1e-7, span = row.end - row.start, ppb = width / span, x = (beat) => (beat - row.start) / span * 100;
   const explicit = measureMap === void 0 ? null : validateMeasureMap(measureMap);
@@ -172,17 +172,24 @@ function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatB
       }
     } else for (let beat = Math.ceil((row.start - EPS) / beatBeats) * beatBeats; beat <= row.end + EPS; beat += beatBeats) if (Math.abs(beat / barBeats - Math.round(beat / barBeats)) > EPS) beats.push(beat);
   }
-  const events = keyMarkers(tonic, changes).map((marker) => {
-    var _a2;
-    return {
-      ...marker,
-      onsetOverride: (_a2 = marker.onsetOverride) != null ? _a2 : explicit ? !explicit.some((measure) => Math.abs(measure.start - marker.beat) < EPS) : Math.abs(marker.beat / barBeats - Math.round(marker.beat / barBeats)) > EPS
-    };
+  const actualEvents = keyMarkers(tonic, changes);
+  const events = actualEvents.map((marker, index) => {
+    var _a2, _b, _c;
+    const onsetOverride = (_a2 = marker.onsetOverride) != null ? _a2 : explicit ? !explicit.some((measure) => Math.abs(measure.start - marker.beat) < EPS) : Math.abs(marker.beat / barBeats - Math.round(marker.beat / barBeats)) > EPS;
+    if (modulationMarkerPlacement === "following-measure" && explicit && onsetOverride && marker.onsetOverride !== true && marker.delta !== null) {
+      const next = explicit.find((measure) => measure.start > marker.beat + EPS);
+      if (next && ((_c = (_b = actualEvents[index + 1]) == null ? void 0 : _b.beat) != null ? _c : Infinity) > next.start + EPS) {
+        return { ...marker, beat: next.start, originBeat: marker.beat, number: next.sourceNumber, onsetOverride: false };
+      }
+    }
+    return { ...marker, onsetOverride };
   });
   const markers = markersForRow(events, { ...row, numberAt, hideInitialTonic, toPixels: width > 0 ? (beat) => beat * ppb : null }).map((marker) => ({ ...marker, left: x(marker.beat) }));
   for (const measure of measures) {
-    measure.hasModulation = markers.some((marker) => marker.beat === measure.beat && marker.delta !== null);
-    if (measure.color === "#666" && measure.hasModulation) measure.color = "black";
+    const modulation = markers.find((marker) => marker.beat === measure.beat && marker.delta !== null);
+    measure.hasModulation = !!modulation;
+    if ((modulation == null ? void 0 : modulation.originBeat) !== void 0) measure.modulationBeat = modulation.originBeat;
+    if (measure.color === "#666" && modulation) measure.color = "black";
   }
   return { measures, beats: visibleBeatLines(barlines, beats, (beat) => beat * ppb), markers };
 }
@@ -315,7 +322,8 @@ function RawlMeasureHeader({
   hideInitialTonic = false,
   showHeader = true,
   transpose = 0,
-  renderMeasureExtras
+  renderMeasureExtras,
+  modulationMarkerPlacement
 }) {
   const element = useRef(null);
   const [width, setWidth] = useState(0);
@@ -345,8 +353,9 @@ function RawlMeasureHeader({
     measureMap,
     width,
     selectedMeasure,
-    hideInitialTonic
-  }), [positioned, row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic]);
+    hideInitialTonic,
+    modulationMarkerPlacement
+  }), [positioned, row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic, modulationMarkerPlacement]);
   const select = (event, measure) => {
     event.stopPropagation();
     onMeasureSelect(measure.beat, measure);
@@ -505,10 +514,11 @@ function useTonicRecoloring({ changes, barBeats = 4, measureMap, onChange }) {
   return {
     changes: (_a = state.preview) != null ? _a : state.committed,
     selectedMeasure: state.selectedMeasure,
-    selectMeasure(beat) {
+    selectMeasure(beat, measure) {
       setStored((previous) => {
+        var _a2;
         const current = previous.source === changes ? previous : initial(changes), selectedMeasure = current.selectedMeasure === beat ? null : beat;
-        return { ...current, selectedMeasure, boundary: selectedMeasure === null ? null : recolorBoundary(current.committed, beat, barBeats, measureMap), preview: null };
+        return { ...current, selectedMeasure, boundary: selectedMeasure === null ? null : (_a2 = measure == null ? void 0 : measure.modulationBeat) != null ? _a2 : recolorBoundary(current.committed, beat, barBeats, measureMap), preview: null };
       });
     },
     hoverNote(note) {
@@ -639,7 +649,7 @@ function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, hovere
     return { role: "button", tabIndex: -1, "aria-label": noteName(original.pitch), "data-note": original.id, "data-pitch": original.pitch, "data-degree": degree, "data-voice": original.voice, className: `rawln-note rawln-voice-${original.voice}${muted ? " rawln-muted" : ""}`, style: { left: (start - row.start) / span * 100 + "%", width: (end - start) / span * 100 + "%", ...!((_a = note.pitchBend) == null ? void 0 : _a.length) && RAWL_COLORS[degree] ? { background: RAWL_COLORS[degree].background } : {}, zIndex: 100 + (84 - original.pitch) + (original.voice === 1 ? 128 : 0) } };
   } })));
 }
-function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = [], onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, renderHeader, renderUnderlay, renderFooter, className = "", style, ref }) {
+function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, modulationMarkerPlacement, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = [], onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, renderHeader, renderUnderlay, renderFooter, className = "", style, ref }) {
   const root = useRef2(null), hoveredRef = useRef2(null), [hoveredKey, setHoveredKey] = useState3(null), ownClock = useMemo2(createSectionPlaybackClock, []), clock = playbackClock != null ? playbackClock : ownClock;
   const audition = onNoteAudition != null ? onNoteAudition : onNote;
   const seek = onSeek != null ? onSeek : ((beat) => (playbackClock == null ? void 0 : playbackClock.seek) ? playbackClock.seek(beat) : clock.advance(beat));
@@ -678,7 +688,7 @@ function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2,
         pitchToY: (pitch) => axis.pitchToY(pitch) + axis.pitchStep,
         regions: regions.map((region) => ({ ...region, left: x(region.start) + "%", width: (region.end - region.start) / span * 100 + "%" }))
       }
-    ), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ React5.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic }), /* @__PURE__ */ React5.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, hoveredKey, setHoveredKey, hoveredRef, onNote: (note) => {
+    ), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ React5.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic, modulationMarkerPlacement }), /* @__PURE__ */ React5.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, hoveredKey, setHoveredKey, hoveredRef, onNote: (note) => {
       if (automatic && editor.chooseNote(note)) return;
       if (onNote) onNote(note);
       else if (selectedMeasure === null) seek(Math.max(row.start, note.start));

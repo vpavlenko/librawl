@@ -68,7 +68,7 @@ export function markersForRow(events, {start, end, toPixels, numberAt, hideIniti
       toPixels(marker.beat) - toPixels(start) + pixelOffset + MODULATION_BADGE_WIDTH > 0;
     if (!intersects) return [];
     const number = numberAt(start);
-    return [{...marker, originBeat: marker.beat, beat: start, number, previousTonic: null, delta: null,
+    return [{...marker, originBeat: marker.originBeat ?? marker.beat, beat: start, number, previousTonic: null, delta: null,
       join: false, name: undefined, initial: true, onsetOverride: false, continued: true,
       pixelOffset: -1, labelOffset: String(number).length * 8 + 10}];
   });

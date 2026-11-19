@@ -21,7 +21,7 @@ export function useTonicRecoloring({changes,barBeats=4,measureMap,onChange}){
  useEffect(()=>{if(state.selectedMeasure===null)return;const escape=event=>{if(event.key==='Escape')cancel();};document.addEventListener('keydown',escape);return()=>document.removeEventListener('keydown',escape);},[state.selectedMeasure]);
  return {
   changes:state.preview??state.committed,selectedMeasure:state.selectedMeasure,
-  selectMeasure(beat){setStored(previous=>{const current=previous.source===changes?previous:initial(changes),selectedMeasure=current.selectedMeasure===beat?null:beat;return {...current,selectedMeasure,boundary:selectedMeasure===null?null:recolorBoundary(current.committed,beat,barBeats,measureMap),preview:null};});},
+  selectMeasure(beat,measure){setStored(previous=>{const current=previous.source===changes?previous:initial(changes),selectedMeasure=current.selectedMeasure===beat?null:beat;return {...current,selectedMeasure,boundary:selectedMeasure===null?null:measure?.modulationBeat??recolorBoundary(current.committed,beat,barBeats,measureMap),preview:null};});},
   hoverNote(note){if(state.boundary===null)return;setStored(previous=>({...previous,preview:note?recolorModulation(state.committed,state.boundary,note.pitch):null}));},
   chooseNote(note){if(state.boundary===null)return false;const committed=recolorModulation(state.committed,state.boundary,note.pitch);setStored({...state,committed,preview:null,selectedMeasure:null,boundary:null});onChange?.(committed);return true;},
   cancel

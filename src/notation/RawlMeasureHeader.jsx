@@ -36,7 +36,7 @@ export function RawlMeasureHeader({
   row, layout: positioned, height = '100%', tonic = 0, changes = EMPTY_CHANGES,
   barBeats = 4, beatBeats = 1, phraseStarts, measureMap, selectedMeasure = null,
   onMeasureSelect, hideInitialTonic = false, showHeader = true, transpose = 0,
-  renderMeasureExtras,
+  renderMeasureExtras, modulationMarkerPlacement,
 }) {
   const element = useRef(null);
   const [width, setWidth] = useState(0);
@@ -53,8 +53,8 @@ export function RawlMeasureHeader({
     return () => { observer?.disconnect(); view?.removeEventListener('resize', fit); };
   }, [hasPositionedLayout]);
   const {measures, beats, markers} = useMemo(() => positioned ?? rowLayout({
-    row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic,
-  }), [positioned, row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic]);
+    row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic, modulationMarkerPlacement,
+  }), [positioned, row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic, modulationMarkerPlacement]);
   const select = (event, measure) => {
     event.stopPropagation();
     onMeasureSelect(measure.beat, measure);

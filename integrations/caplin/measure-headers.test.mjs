@@ -74,3 +74,39 @@ test('shared headers carry source numbers and recolor selected tonic regions acr
     dom.window.close();
   }
 });
+
+test('selecting a measure with a displaced flag recolors from the sounding onset', async () => {
+  const dom = new JSDOM('<main><div></div><div></div></main>', {pretendToBeVisual: true});
+  const window = dom.window;
+  Object.assign(globalThis, {window, document: window.document});
+  const panel = document.querySelector('main');
+  const scores = [...panel.children];
+  const changes = [{beat: 3.5, tonic: 7}];
+  const colors = [];
+  const handle = mountMeasureHeaders(panel, {
+    tonic: 0, changes, modulationMarkerPlacement: 'following-measure',
+    measureMap: [{start: 0, duration: 4, sourceNumber: 8},{start: 4, duration: 4, sourceNumber: 9}],
+    rows: [{start: 0, end: 4},{start: 4, end: 8}].map((row, index) => ({
+      score: scores[index], row, axis: {guideTop: 4, notesBottom: 70},
+    })),
+    onTonicChange: next => colors.push(next),
+  });
+  try {
+    assert.equal(scores[0].querySelector('.rawln-modulation[data-origin-beat="3.5"]'), null);
+    const flag = () => scores[1].querySelector('.rawln-modulation[data-beat="4"][data-origin-beat="3.5"]');
+    assert.equal(flag().dataset.tonic, '7');
+    flushSync(() => scores[1].querySelector('.rawln-measure-number').click());
+    handle.hoverNote({pitch: 62});
+    await Promise.resolve();
+    assert.deepEqual(colors.at(-1).map(({beat, tonic}) => [beat, tonic]), [[3.5, 2]]);
+    assert.equal(flag().dataset.tonic, '2');
+    assert.equal(handle.chooseNote({pitch: 64}), true);
+    await Promise.resolve();
+    assert.deepEqual(colors.at(-1).map(({beat, tonic}) => [beat, tonic]), [[3.5, 4]]);
+    assert.equal(flag().dataset.tonic, '4');
+    assert.deepEqual(changes, [{beat: 3.5, tonic: 7}]);
+  } finally {
+    handle.destroy();
+    dom.window.close();
+  }
+});

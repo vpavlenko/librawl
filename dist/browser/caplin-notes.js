@@ -15297,7 +15297,7 @@ var LibrawlCaplinNotes = (() => {
   function markersForRow(events, { start, end, toPixels, numberAt, hideInitialTonic = false }) {
     const activeAtStart = events.findLast((marker) => marker.beat <= start);
     return events.flatMap((marker) => {
-      var _a;
+      var _a, _b;
       const initial2 = marker.previousTonic === null;
       if (marker.tonic == null || marker.delta === 0 || marker.beat >= end || hideInitialTonic && initial2) return [];
       const onsetOverride = !initial2 && marker.onsetOverride === true;
@@ -15319,7 +15319,7 @@ var LibrawlCaplinNotes = (() => {
       const number = numberAt(start);
       return [{
         ...marker,
-        originBeat: marker.beat,
+        originBeat: (_b = marker.originBeat) != null ? _b : marker.beat,
         beat: start,
         number,
         previousTonic: null,
@@ -15348,7 +15348,7 @@ var LibrawlCaplinNotes = (() => {
   function keyMarkers(tonic, changes) {
     return tonicMarkers(tonicEvents(tonic, changes));
   }
-  function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatBeats = 1, phraseStarts, measureMap, width = 0, selectedMeasure = null, hideInitialTonic = false }) {
+  function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatBeats = 1, phraseStarts, measureMap, width = 0, selectedMeasure = null, hideInitialTonic = false, modulationMarkerPlacement }) {
     var _a;
     const EPS2 = 1e-7, span = row.end - row.start, ppb = width / span, x = (beat) => (beat - row.start) / span * 100;
     const explicit = measureMap === void 0 ? null : validateMeasureMap(measureMap);
@@ -15381,17 +15381,24 @@ var LibrawlCaplinNotes = (() => {
         }
       } else for (let beat = Math.ceil((row.start - EPS2) / beatBeats) * beatBeats; beat <= row.end + EPS2; beat += beatBeats) if (Math.abs(beat / barBeats - Math.round(beat / barBeats)) > EPS2) beats.push(beat);
     }
-    const events = keyMarkers(tonic, changes).map((marker) => {
-      var _a2;
-      return {
-        ...marker,
-        onsetOverride: (_a2 = marker.onsetOverride) != null ? _a2 : explicit ? !explicit.some((measure) => Math.abs(measure.start - marker.beat) < EPS2) : Math.abs(marker.beat / barBeats - Math.round(marker.beat / barBeats)) > EPS2
-      };
+    const actualEvents = keyMarkers(tonic, changes);
+    const events = actualEvents.map((marker, index) => {
+      var _a2, _b, _c;
+      const onsetOverride = (_a2 = marker.onsetOverride) != null ? _a2 : explicit ? !explicit.some((measure) => Math.abs(measure.start - marker.beat) < EPS2) : Math.abs(marker.beat / barBeats - Math.round(marker.beat / barBeats)) > EPS2;
+      if (modulationMarkerPlacement === "following-measure" && explicit && onsetOverride && marker.onsetOverride !== true && marker.delta !== null) {
+        const next = explicit.find((measure) => measure.start > marker.beat + EPS2);
+        if (next && ((_c = (_b = actualEvents[index + 1]) == null ? void 0 : _b.beat) != null ? _c : Infinity) > next.start + EPS2) {
+          return { ...marker, beat: next.start, originBeat: marker.beat, number: next.sourceNumber, onsetOverride: false };
+        }
+      }
+      return { ...marker, onsetOverride };
     });
     const markers = markersForRow(events, { ...row, numberAt, hideInitialTonic, toPixels: width > 0 ? (beat) => beat * ppb : null }).map((marker) => ({ ...marker, left: x(marker.beat) }));
     for (const measure of measures) {
-      measure.hasModulation = markers.some((marker) => marker.beat === measure.beat && marker.delta !== null);
-      if (measure.color === "#666" && measure.hasModulation) measure.color = "black";
+      const modulation = markers.find((marker) => marker.beat === measure.beat && marker.delta !== null);
+      measure.hasModulation = !!modulation;
+      if ((modulation == null ? void 0 : modulation.originBeat) !== void 0) measure.modulationBeat = modulation.originBeat;
+      if (measure.color === "#666" && modulation) measure.color = "black";
     }
     return { measures, beats: visibleBeatLines(barlines, beats, (beat) => beat * ppb), markers };
   }
@@ -15638,7 +15645,8 @@ var LibrawlCaplinNotes = (() => {
     hideInitialTonic = false,
     showHeader = true,
     transpose = 0,
-    renderMeasureExtras
+    renderMeasureExtras,
+    modulationMarkerPlacement
   }) {
     const element = (0, import_react6.useRef)(null);
     const [width, setWidth] = (0, import_react6.useState)(0);
@@ -15668,8 +15676,9 @@ var LibrawlCaplinNotes = (() => {
       measureMap,
       width,
       selectedMeasure,
-      hideInitialTonic
-    }), [positioned, row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic]);
+      hideInitialTonic,
+      modulationMarkerPlacement
+    }), [positioned, row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic, modulationMarkerPlacement]);
     const select = (event, measure) => {
       event.stopPropagation();
       onMeasureSelect(measure.beat, measure);
@@ -15793,10 +15802,11 @@ var LibrawlCaplinNotes = (() => {
     return {
       changes: (_a = state.preview) != null ? _a : state.committed,
       selectedMeasure: state.selectedMeasure,
-      selectMeasure(beat) {
+      selectMeasure(beat, measure) {
         setStored((previous) => {
+          var _a2;
           const current = previous.source === changes ? previous : initial(changes), selectedMeasure = current.selectedMeasure === beat ? null : beat;
-          return { ...current, selectedMeasure, boundary: selectedMeasure === null ? null : recolorBoundary(current.committed, beat, barBeats, measureMap), preview: null };
+          return { ...current, selectedMeasure, boundary: selectedMeasure === null ? null : (_a2 = measure == null ? void 0 : measure.modulationBeat) != null ? _a2 : recolorBoundary(current.committed, beat, barBeats, measureMap), preview: null };
         });
       },
       hoverNote(note) {
@@ -15816,7 +15826,7 @@ var LibrawlCaplinNotes = (() => {
 
   // integrations/caplin/measure-headers.jsx
   var emptyChanges = [];
-  function MeasureHeaders({ rows, tonic, changes, measureMap, beatBeats, barBeats, phraseStarts, publish }) {
+  function MeasureHeaders({ rows, tonic, changes, measureMap, beatBeats, barBeats, phraseStarts, modulationMarkerPlacement, publish }) {
     const editor = useTonicRecoloring({ changes, barBeats, measureMap });
     (0, import_react8.useLayoutEffect)(() => publish(editor));
     return rows.map(({ score, row, axis }) => (0, import_react_dom.createPortal)(
@@ -15831,6 +15841,7 @@ var LibrawlCaplinNotes = (() => {
           beatBeats,
           barBeats,
           phraseStarts,
+          modulationMarkerPlacement,
           selectedMeasure: editor.selectedMeasure,
           onMeasureSelect: editor.selectMeasure
         }

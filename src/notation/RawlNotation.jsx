@@ -109,7 +109,7 @@ function BeatNoteLayer({visible,row,axis,tonic,changes,mutedVoices,hoveredKey,se
 }
 
 /** A host-independent Rawl score. Times are quarter-note beats, pitches MIDI. */
-export function RawlNotation({notes,beats,rows,tonic=0,changes=EMPTY_CHANGES,barBeats=4,beatBeats=1,phraseStarts,measureMap,hideInitialTonic=false,showTonalGuides=true,noteScale=1,position,playbackClock,mutedVoices=[],onSeek,onNote,onNoteAudition,onNoteHover,onMeasureSelect,selectedMeasure=null,onChangesChange,recolorable=true,renderHeader,renderUnderlay,renderFooter,className='',style,ref}){
+export function RawlNotation({notes,beats,rows,tonic=0,changes=EMPTY_CHANGES,barBeats=4,beatBeats=1,phraseStarts,measureMap,hideInitialTonic=false,modulationMarkerPlacement,showTonalGuides=true,noteScale=1,position,playbackClock,mutedVoices=[],onSeek,onNote,onNoteAudition,onNoteHover,onMeasureSelect,selectedMeasure=null,onChangesChange,recolorable=true,renderHeader,renderUnderlay,renderFooter,className='',style,ref}){
  const root=useRef(null),hoveredRef=useRef(null),[hoveredKey,setHoveredKey]=useState(null),ownClock=useMemo(createSectionPlaybackClock,[]),clock=playbackClock??ownClock;
  const audition=onNoteAudition??onNote;
  const seek=onSeek??(beat=>playbackClock?.seek?playbackClock.seek(beat):clock.advance(beat));
@@ -135,7 +135,7 @@ export function RawlNotation({notes,beats,rows,tonic=0,changes=EMPTY_CHANGES,bar
       regions={regions.map(region=>({...region,left:x(region.start)+'%',width:(region.end-region.start)/span*100+'%'}))}
      />
      {renderUnderlay?.(row,axis)}
-     <RawlMeasureHeader row={row} height={axis.notesBottom} tonic={tonic} changes={changes} barBeats={barBeats} beatBeats={beatBeats} phraseStarts={phraseStarts} measureMap={measureMap} selectedMeasure={selectedMeasure} onMeasureSelect={onMeasureSelect} hideInitialTonic={hideInitialTonic}/>
+     <RawlMeasureHeader row={row} height={axis.notesBottom} tonic={tonic} changes={changes} barBeats={barBeats} beatBeats={beatBeats} phraseStarts={phraseStarts} measureMap={measureMap} selectedMeasure={selectedMeasure} onMeasureSelect={onMeasureSelect} hideInitialTonic={hideInitialTonic} modulationMarkerPlacement={modulationMarkerPlacement}/>
      <BeatNoteLayer visible={visible} row={row} axis={axis} tonic={tonic} changes={changes} mutedVoices={mutedVoices} hoveredKey={hoveredKey} setHoveredKey={setHoveredKey} hoveredRef={hoveredRef} onNote={note=>{if(automatic&&editor.chooseNote(note))return;if(onNote)onNote(note);else if(selectedMeasure===null)seek(Math.max(row.start,note.start));}} onNoteAudition={audition} auditionEnabled={selectedMeasure==null} onNoteHover={onNoteHover} clock={clock}/>
     </div>
     {renderFooter&&<div className="rawln-footer">{renderFooter(row,{changes,selectedMeasure})}</div>}

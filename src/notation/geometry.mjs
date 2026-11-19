@@ -32,7 +32,7 @@ export function keyMarkers(tonic,changes){
  * Terminal phrase boundaries retain their bar without acquiring a number.
  * Pixel width is needed only for Rawl's 80px carried flag and beat density.
  */
-export function measureHeaderLayout({row,tonic=0,changes=[],barBeats=4,beatBeats=1,phraseStarts,measureMap,width=0,selectedMeasure=null,hideInitialTonic=false}){
+export function measureHeaderLayout({row,tonic=0,changes=[],barBeats=4,beatBeats=1,phraseStarts,measureMap,width=0,selectedMeasure=null,hideInitialTonic=false,modulationMarkerPlacement}){
  const EPS=1e-7,span=row.end-row.start,ppb=width/span,x=beat=>(beat-row.start)/span*100;
  const explicit=measureMap===undefined?null:validateMeasureMap(measureMap);
  const numberAt=beat=>explicit?.findLast(measure=>measure.start<=beat+EPS)?.sourceNumber??Math.floor(beat/barBeats)+1;
@@ -59,14 +59,29 @@ export function measureHeaderLayout({row,tonic=0,changes=[],barBeats=4,beatBeats
   }
   else for(let beat=Math.ceil((row.start-EPS)/beatBeats)*beatBeats;beat<=row.end+EPS;beat+=beatBeats)if(Math.abs(beat/barBeats-Math.round(beat/barBeats))>EPS)beats.push(beat);
  }
- const events=keyMarkers(tonic,changes).map(marker=>({
-  ...marker,onsetOverride:marker.onsetOverride??(explicit
+ const actualEvents=keyMarkers(tonic,changes);
+ const events=actualEvents.map((marker,index)=>{
+  const onsetOverride=marker.onsetOverride??(explicit
    ? !explicit.some(measure=>Math.abs(measure.start-marker.beat)<EPS)
-   : Math.abs(marker.beat/barBeats-Math.round(marker.beat/barBeats))>EPS),
- }));
+   : Math.abs(marker.beat/barBeats-Math.round(marker.beat/barBeats))>EPS);
+  if(modulationMarkerPlacement==='following-measure'&&explicit&&onsetOverride&&marker.onsetOverride!==true&&marker.delta!==null){
+   // Move the flag within the header only. If a newer event takes effect by
+   // that bar, keep this marker at its own onset so the flags do not coincide.
+   const next=explicit.find(measure=>measure.start>marker.beat+EPS);
+   if(next&&(actualEvents[index+1]?.beat??Infinity)>next.start+EPS){
+    return {...marker,beat:next.start,originBeat:marker.beat,number:next.sourceNumber,onsetOverride:false};
+   }
+  }
+  return {...marker,onsetOverride};
+ });
  const markers=markersForRow(events,{...row,numberAt,hideInitialTonic,toPixels:width>0?beat=>beat*ppb:null})
   .map(marker=>({...marker,left:x(marker.beat)}));
- for(const measure of measures){measure.hasModulation=markers.some(marker=>marker.beat===measure.beat&&marker.delta!==null);if(measure.color==='#666'&&measure.hasModulation)measure.color='black';}
+ for(const measure of measures){
+  const modulation=markers.find(marker=>marker.beat===measure.beat&&marker.delta!==null);
+  measure.hasModulation=!!modulation;
+  if(modulation?.originBeat!==undefined)measure.modulationBeat=modulation.originBeat;
+  if(measure.color==='#666'&&modulation)measure.color='black';
+ }
  return {measures,beats:visibleBeatLines(barlines,beats,beat=>beat*ppb),markers};
 }
 export function tonalSegments(tonic,changes,start,end){

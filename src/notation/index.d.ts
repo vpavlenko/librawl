@@ -7,6 +7,8 @@ export interface MidiNote {
 }
 export interface ScoreRow { start:number; end:number; label?:number; style?:React.CSSProperties; }
 export interface TonicChange { beat:number; tonic:number; join?:boolean; name?:string; onsetOverride?:boolean; }
+/** Place mid-measure flags at the following printed measure when a measure map is provided. */
+export type ModulationMarkerPlacement = 'onset' | 'following-measure';
 export interface SourceMeasure {
  start:number; duration:number; sourceNumber:number|string; beatBeats?:number;
  /** Absolute positions of annotated beats inside the measure, in display units. Overrides beatBeats. */
@@ -25,7 +27,7 @@ export interface RawlNotationHandle { setPosition(beat:number|null):void; elemen
 export interface RawlNotationProps {
  ref?:React.Ref<RawlNotationHandle>;
  notes:MidiNote[]; beats:number; rows?:ScoreRow[]; tonic?:number; changes?:TonicChange[];
- barBeats?:number; beatBeats?:number; phraseStarts?:number[]; measureMap?:SourceMeasure[]; hideInitialTonic?:boolean; position?:number|null; mutedVoices?:number[]; className?:string; style?:React.CSSProperties;
+ barBeats?:number; beatBeats?:number; phraseStarts?:number[]; measureMap?:SourceMeasure[]; hideInitialTonic?:boolean; modulationMarkerPlacement?:ModulationMarkerPlacement; position?:number|null; mutedVoices?:number[]; className?:string; style?:React.CSSProperties;
  /** An externally advanced clock. When position is omitted, its lifecycle belongs to the host. */
  playbackClock?:NotePlaybackClock & {seek?:(beat:number)=>void};
  showTonalGuides?:boolean; noteScale?:number;
@@ -41,6 +43,8 @@ export interface PositionedMeasure {
  beat:number; number?:number|string|null; left:number|string; barLeft?:number|string; width?:number;
  isPhraseStart?:boolean; terminal?:boolean; showLabel?:boolean; color?:string; highlighted?:boolean;
  labelOffset?:number; hasModulation?:boolean;
+ /** Sounding beat of a displaced flag displayed on this measure. */
+ modulationBeat?:number;
 }
 export interface KeyMarker {
  beat:number; tonic:number; previousTonic:number|null; delta:number|null;
@@ -60,7 +64,7 @@ export interface MeasureHeaderLayout {
 export type RawlMeasureHeaderProps = ({
  row:ScoreRow; layout?:never; tonic?:number; changes?:TonicChange[]; barBeats?:number; beatBeats?:number;
  /** Absolute quarter-beat phrase starts; optional closing boundary has no label. */
- phraseStarts?:number[]; measureMap?:SourceMeasure[]; hideInitialTonic?:boolean;
+ phraseStarts?:number[]; measureMap?:SourceMeasure[]; hideInitialTonic?:boolean; modulationMarkerPlacement?:ModulationMarkerPlacement;
 } | {layout:MeasureHeaderLayout; row?:never}) & {
  height?:number|string; selectedMeasure?:number|null; onMeasureSelect?:(beat:number,measure:PositionedMeasure)=>void;
  showHeader?:boolean; transpose?:number; renderMeasureExtras?:(measure:PositionedMeasure)=>React.ReactNode;
@@ -80,4 +84,4 @@ export const RAWL_COLORS:ReadonlyArray<{background:string;foreground:string;dot?
 
 export function recolorModulation(changes:TonicChange[],beat:number,pitch:number):TonicChange[];
 export function recolorBoundary(changes:TonicChange[],measureBeat:number,barBeats:number,measureMap?:SourceMeasure[]):number;
-export function useTonicRecoloring(options:{changes:TonicChange[];barBeats?:number;measureMap?:SourceMeasure[];onChange?:(changes:TonicChange[])=>void}):{changes:TonicChange[];selectedMeasure:number|null;selectMeasure(beat:number):void;hoverNote(note:MidiNote|null):void;chooseNote(note:MidiNote):boolean;cancel():void};
+export function useTonicRecoloring(options:{changes:TonicChange[];barBeats?:number;measureMap?:SourceMeasure[];onChange?:(changes:TonicChange[])=>void}):{changes:TonicChange[];selectedMeasure:number|null;selectMeasure(beat:number,measure?:PositionedMeasure):void;hoverNote(note:MidiNote|null):void;chooseNote(note:MidiNote):boolean;cancel():void};

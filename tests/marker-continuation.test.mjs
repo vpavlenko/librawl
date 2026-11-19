@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {keyMarkers,measureHeaderLayout} from '../src/notation/geometry.mjs';
+import {keyMarkers,measureHeaderLayout,tonalSegments} from '../src/notation/geometry.mjs';
 const fixtures=[273,303].map(id=>JSON.parse(fs.readFileSync(new URL('./fixtures/marker-continuation/'+id+'.json',import.meta.url),'utf8')));
 const actual=markers=>markers.filter(marker=>marker.delta!==null).map(({beat,tonic,delta})=>({beat,tonic,delta}));
 for(const fixture of fixtures)test(fixture.index+' source/performance and aligned rows render every actual key change exactly once',()=>{
@@ -30,4 +30,43 @@ test('only the currently active tonic can carry; later actual changes stay visib
  assert.equal(layout.markers.filter(m=>m.continued).length,1);assert.equal(layout.markers[0].tonic,9);assert.equal(layout.markers[0].originBeat,3.5);assert.deepEqual(actual(layout.markers),[{beat:6,tonic:2,delta:5}]);assert.equal(layout.markers.find(m=>m.beat===6).onsetOverride,true);
  const initial=measureHeaderLayout({row:{start:0,end:4},width:320,changes:[{beat:0,tonic:0}]});assert.equal(initial.markers.length,1);assert.equal(initial.markers[0].initial,true);assert.equal(initial.markers[0].tonic,0);assert.equal(initial.markers[0].delta,null);
  assert.equal(measureHeaderLayout({row:{start:.1,end:4},width:320,changes:[],hideInitialTonic:true}).markers.length,0);
+});
+
+const followingMeasure={
+ tonic:0,width:320,modulationMarkerPlacement:'following-measure',
+ measureMap:[{start:0,duration:3,sourceNumber:5},{start:3,duration:4,sourceNumber:6},{start:7,duration:2,sourceNumber:7}],
+};
+test('a displaced flag follows the printed ruler while note and tonal regions retain the true beat',()=>{
+ const changes=Object.freeze([Object.freeze({beat:1.5,tonic:7})]);
+ const result=measureHeaderLayout({...followingMeasure,changes,row:{start:0,end:7}});
+ const marker=result.markers.find(m=>m.delta!==null),measure=result.measures.find(m=>m.number===6);
+ assert.equal(marker.beat,3);assert.equal(marker.originBeat,1.5);assert.equal(marker.number,6);
+ assert.equal(marker.left,measure.left);assert.equal(marker.labelOffset,30);assert.equal(marker.onsetOverride,false);
+ assert.equal(measure.modulationBeat,1.5);assert.equal(measure.hasModulation,true);
+ assert.deepEqual(tonalSegments(0,changes,0,7),[{start:0,end:1.5,tonic:0},{start:1.5,end:7,tonic:7}]);
+ assert.deepEqual(actual(keyMarkers(0,changes)),[{beat:1.5,tonic:7,delta:-5}]);
+});
+
+test('a displaced flag crossing a row is drawn once at the next row opening and can carry its true onset',()=>{
+ const props={...followingMeasure,changes:[{beat:2.5,tonic:7}]};
+ const rows=[{start:0,end:3},{start:3,end:7}].map(row=>measureHeaderLayout({...props,row}));
+ assert.deepEqual(actual(rows[0].markers),[]);
+ assert.deepEqual(actual(rows[1].markers),[{beat:3,tonic:7,delta:-5}]);
+ assert.equal(rows[1].markers.length,1);
+ assert.equal(rows[1].markers[0].originBeat,2.5);
+ const clipped=measureHeaderLayout({...props,row:{start:3.125,end:7}});
+ assert.equal(clipped.markers.length,1);assert.equal(clipped.markers[0].originBeat,2.5);
+ assert.equal(clipped.markers[0].continued,true);assert.equal(clipped.markers[0].delta,null);
+});
+
+test('the last relevant change gets the following bar; actual bar, explicit and terminal flags keep their positions',()=>{
+ const row={start:0,end:9};
+ const changes=[{beat:1,tonic:2},{beat:2,tonic:7},{beat:3,tonic:9},
+  {beat:4,tonic:5,onsetOverride:true},{beat:5,tonic:4},{beat:6,tonic:8},{beat:8,tonic:0}];
+ const result=measureHeaderLayout({...followingMeasure,changes,row});
+ assert.deepEqual(result.markers.filter(m=>m.delta!==null).map(m=>[m.beat,m.originBeat]),[
+  [1,undefined],[2,undefined],[3,undefined],[4,undefined],[5,undefined],[7,6],[8,undefined],
+ ]);
+ assert.equal(result.markers.find(m=>m.beat===4).onsetOverride,true);
+ assert.equal(result.markers.find(m=>m.beat===8).onsetOverride,true);
 });

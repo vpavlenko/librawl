@@ -6,14 +6,14 @@ import {useTonicRecoloring} from '../../src/notation/recolor.jsx';
 
 const emptyChanges = [];
 
-function MeasureHeaders({rows, tonic, changes, measureMap, beatBeats, barBeats, phraseStarts, publish}) {
+function MeasureHeaders({rows, tonic, changes, measureMap, beatBeats, barBeats, phraseStarts, modulationMarkerPlacement, publish}) {
   const editor = useTonicRecoloring({changes, barBeats, measureMap});
   useLayoutEffect(() => publish(editor));
   return rows.map(({score, row, axis}) => createPortal(
     <div className="rawln" style={{position: 'absolute', inset: `${axis.guideTop}px 0 0`, pointerEvents: 'none'}}>
       <RawlMeasureHeader row={row} height={axis.notesBottom - axis.guideTop}
         tonic={tonic} changes={editor.changes} measureMap={measureMap} beatBeats={beatBeats}
-        barBeats={barBeats} phraseStarts={phraseStarts} selectedMeasure={editor.selectedMeasure}
+        barBeats={barBeats} phraseStarts={phraseStarts} modulationMarkerPlacement={modulationMarkerPlacement} selectedMeasure={editor.selectedMeasure}
         onMeasureSelect={editor.selectMeasure} />
     </div>, score, String(row.start),
   ));
