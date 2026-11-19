@@ -21,6 +21,7 @@ var TonalGrid = (() => {
   // src/notation/score-grid-browser.mjs
   var score_grid_browser_exports = {};
   __export(score_grid_browser_exports, {
+    alignScoreRows: () => alignScoreRows,
     appendMeasureGuides: () => appendMeasureGuides,
     guidePitches: () => guidePitches,
     keyMarkers: () => keyMarkers,
@@ -103,6 +104,21 @@ var TonalGrid = (() => {
   }
   function positionedTonalGuides(regions, range, pitchToY) {
     return regions.flatMap(({ tonic, left, width }) => tonalGuideLines(range, pitchToY, tonic).map((guide) => ({ ...guide, tonic, left, width })));
+  }
+
+  // src/notation/geometry.mjs
+  function alignScoreRows(rows) {
+    const offsets = rows.map(({ start, end, anchor = start }) => Math.max(0, Math.min(end, anchor) - start));
+    const pickup = Math.max(0, ...offsets);
+    const width = pickup + Math.max(0, ...rows.map(({ start, end }, index) => end - start - offsets[index]));
+    return { width, rows: rows.map((row, index) => ({
+      ...row,
+      style: {
+        ...row.style,
+        width: width ? (row.end - row.start) / width * 100 + "%" : "0%",
+        marginLeft: width ? (pickup - offsets[index]) / width * 100 + "%" : "0%"
+      }
+    })) };
   }
 
   // src/notation/score-grid-browser.mjs

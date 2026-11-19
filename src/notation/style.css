@@ -9,3 +9,4 @@
 
 
 .rawln-score[data-seekable]{cursor:pointer}
+.rawln-measure-number:focus-visible{outline:1px solid #ddd;outline-offset:2px}

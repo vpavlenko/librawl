@@ -7,6 +7,7 @@ import {
 
 export {guidePitches};
 export {measureSubdivisionBeats} from './score-grid.mjs';
+export {alignScoreRows} from './geometry.mjs';
 
 const timeline = ({tonic, changes, beats}) => Number.isFinite(beats) && beats > 0
   ? tonicEvents(tonic, changes, beats) : [];

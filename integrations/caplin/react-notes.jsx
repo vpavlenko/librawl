@@ -48,3 +48,4 @@ export function mount(score,options){
 
 export {createShiftHoverAudition} from '../../src/shift-hover-audition.js';
 export {setPlaybackMeasure} from './playback-measure.mjs';
+export {mountMeasureHeaders} from './measure-headers.jsx';
