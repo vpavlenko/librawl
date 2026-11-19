@@ -6,6 +6,8 @@ export interface MediaScoreProps {
   score: Omit<RawlNotationProps, 'position' | 'playbackClock' | 'onSeek'>;
   src: string;
   secondsPerBeat: number;
+  /** Strictly increasing pairs of written and performed quarter-note beats. */
+  beatAnchors?: readonly (readonly [displayBeat: number, playedBeat: number])[];
   label?: string;
   labels?: PlaybackLabels & {error?: string};
 }

@@ -54,6 +54,10 @@
     "./piano-legend.css": "./dist/piano-legend.css",
     "./playback-footer.css": "./dist/playback-footer.css",
     "./media-score.css": "./dist/media-score.css",
+    "./media-beat-clock": {
+      "types": "./dist/media-beat-clock.d.mts",
+      "import": "./dist/media-beat-clock.mjs"
+    },
     "./browser/*": "./dist/browser/*",
     "./legacy-style.css": "./dist/legacy-style.css",
     "./harmony.css": "./dist/harmony.css",

@@ -6,7 +6,7 @@ import {flushSync} from 'react-dom';
 import {createRoot} from 'react-dom/client';
 import {MediaScore} from 'librawl/components';
 
-test('inline media scores share transport ownership and reset the native note clock on stop and end', async () => {
+test('inline media scores share ownership and seek, highlight and reset on the authored media clock', async () => {
   const {window} = new JSDOM('<div id="root"></div>');
   const {document} = window;
   const frames = new Map();
@@ -49,6 +49,11 @@ test('inline media scores share transport ownership and reset the native note cl
       {id: 'second', pitch: 62, start: 1, duration: 1, voice: 0},
     ],
   };
+  const swingScore = {...score, phraseStarts: [.5], notes: [
+    {...score.notes[0], duration: .5},
+    {id: 'offbeat', pitch: 61, start: .5, duration: .5, voice: 0},
+    score.notes[1],
+  ]};
   function click(panel, label) {
     flushSync(() => panel.querySelector(`button[aria-label="${label}"]`).click());
   }
@@ -76,9 +81,11 @@ test('inline media scores share transport ownership and reset the native note cl
     });
   }
   try {
-    flushSync(() => root.render(React.createElement(React.Fragment, null, ...['a', 'b'].map(key =>
-      React.createElement(MediaScore, {key, score, labels, src: `${key}.mp3`, secondsPerBeat: .5}),
-    ))));
+    flushSync(() => root.render(React.createElement(React.Fragment, null,
+      React.createElement(MediaScore, {score, labels, src: 'a.mp3', secondsPerBeat: .5}),
+      React.createElement(MediaScore, {score: swingScore, labels, src: 'b.mp3', secondsPerBeat: .5,
+        beatAnchors: [[0, 0], [.5, 2 / 3], [1, 1], [2, 2]]}),
+    )));
     const [first, second] = host.querySelectorAll('.rawlp-media-score');
     const firstAudio = first.querySelector('audio');
     const secondAudio = second.querySelector('audio');
@@ -97,13 +104,15 @@ test('inline media scores share transport ownership and reset the native note cl
     click(first, 'Играть');
     const notation = second.querySelector('.rawln-score');
     notation.getBoundingClientRect = () => ({left: 0, width: 100});
-    flushSync(() => notation.dispatchEvent(new window.MouseEvent('click', {clientX: 75, bubbles: true})));
+    flushSync(() => notation.dispatchEvent(new window.MouseEvent('click', {clientX: 25, bubbles: true})));
     assert.equal(firstAudio.paused, true);
     assert.equal(firstAudio.currentTime, 0);
     assert.equal(first.querySelector('.rawln-sounding'), null);
     assert.equal(secondAudio.paused, false);
-    assert.equal(secondAudio.currentTime, .75);
-    assert.equal(second.querySelector('.rawln-sounding').dataset.note, 'second');
+    assert.equal(secondAudio.currentTime, 1 / 3);
+    assert.equal(second.querySelector('.rawln-sounding').dataset.note, 'offbeat');
+    const phrasePosition = parseFloat(second.querySelector('.rawlp-phrase-mark').style.left);
+    assert(Math.abs(phrasePosition - (100 * (1 / 3) / 1.5)) < 1e-10);
     click(second, 'Стоп');
     assert.equal(secondAudio.paused, true);
     assert.equal(secondAudio.currentTime, 0);
@@ -111,7 +120,14 @@ test('inline media scores share transport ownership and reset the native note cl
     scrub(second, .25);
     assert.equal(secondAudio.paused, true);
     assert.equal(secondAudio.currentTime, .25);
+    assert.equal(second.querySelector('.rawln-sounding').dataset.note, 'first');
     click(second, 'Играть');
+    secondAudio.currentTime = .32;
+    advance();
+    assert.equal(second.querySelector('.rawln-sounding').dataset.note, 'first');
+    secondAudio.currentTime = .34;
+    advance();
+    assert.equal(second.querySelector('.rawln-sounding').dataset.note, 'offbeat');
     secondAudio.currentTime = 1.5;
     flushSync(() => secondAudio.dispatchEvent(new window.Event('ended')));
     assert.equal(secondAudio.currentTime, 0);

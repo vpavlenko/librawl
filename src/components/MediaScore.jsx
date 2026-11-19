@@ -1,6 +1,7 @@
 import React, {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useNotePlaybackClock} from 'librawl/native';
 import {bindPlaybackKeys} from '../audio/playback-keys.js';
+import {createMediaBeatClock} from '../audio/media-beat-clock.mjs';
 import {RawlNotation} from '../notation/RawlNotation.jsx';
 import {PlaybackFooter} from './PlaybackFooter.jsx';
 import {observePlaybackPosition} from './playback-position.js';
@@ -9,24 +10,22 @@ const activeByDocument = new WeakMap();
 
 /** Keep a new source's initial clock and controls independent of the old media. */
 export function MediaScore(props) {
-  if (!Number.isFinite(props.secondsPerBeat) || props.secondsPerBeat <= 0) {
-    throw new RangeError('MediaScore needs a positive secondsPerBeat');
-  }
   return <MediaScorePlayer key={props.src} {...props} />;
 }
 
-function MediaScorePlayer({score, src, secondsPerBeat, label, labels}) {
+function MediaScorePlayer({score, src, secondsPerBeat, beatAnchors, label, labels}) {
   const mediaRef = useRef(null);
   const controlsRef = useRef(null);
   const clock = useNotePlaybackClock();
-  const scoreDuration = score.beats * secondsPerBeat;
+  const mediaClock = useMemo(() => createMediaBeatClock(secondsPerBeat, beatAnchors), [secondsPerBeat, beatAnchors]);
+  const scoreDuration = mediaClock.secondsAt(score.beats);
   const [status, setStatus] = useState({
     duration: scoreDuration, position: 0, playing: false, failed: false, rejected: false,
   });
   const timeline = useMemo(() => ({
-    sections: score.rows?.map(row => row.start * secondsPerBeat),
-    phrases: score.phraseStarts?.map(beat => beat * secondsPerBeat),
-  }), [score.rows, score.phraseStarts, secondsPerBeat]);
+    sections: score.rows?.map(row => mediaClock.secondsAt(row.start)),
+    phrases: score.phraseStarts?.map(mediaClock.secondsAt),
+  }), [score.rows, score.phraseStarts, mediaClock]);
 
   useLayoutEffect(() => {
     const media = mediaRef.current;
@@ -48,7 +47,7 @@ function MediaScorePlayer({score, src, secondsPerBeat, label, labels}) {
     }
 
     function paintNotes(seconds) {
-      if (positioned) clock.advance(seconds / secondsPerBeat);
+      if (positioned) clock.advance(mediaClock.beatAt(seconds));
     }
 
     function settle() {
@@ -148,9 +147,9 @@ function MediaScorePlayer({score, src, secondsPerBeat, label, labels}) {
       if (!media.paused) media.pause();
       clock.reset();
     };
-  }, [clock, scoreDuration, secondsPerBeat]);
+  }, [clock, scoreDuration, mediaClock]);
 
-  const seekBeat = useCallback(beat => controlsRef.current?.start(beat * secondsPerBeat), [secondsPerBeat]);
+  const seekBeat = useCallback(beat => controlsRef.current?.start(mediaClock.secondsAt(beat)), [mediaClock]);
   const getPosition = useCallback(() => mediaRef.current?.currentTime ?? 0, []);
   return (
     <div className="rawlp-media-score" role={label ? 'group' : undefined} aria-label={label}>

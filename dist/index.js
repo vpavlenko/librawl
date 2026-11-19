@@ -1772,6 +1772,40 @@ function bindPlaybackKeys({
   };
 }
 
+// src/audio/media-beat-clock.mjs
+function createMediaBeatClock(secondsPerBeat, beatAnchors = []) {
+  if (!Number.isFinite(secondsPerBeat) || secondsPerBeat <= 0) {
+    throw new RangeError("Media playback needs a positive secondsPerBeat");
+  }
+  const anchors = beatAnchors.map(([displayBeat, playedBeat], index) => {
+    const previous = beatAnchors[index - 1];
+    if (!Number.isFinite(displayBeat) || !Number.isFinite(playedBeat) || previous && (previous[0] >= displayBeat || previous[1] >= playedBeat)) {
+      throw new RangeError("Media beat anchors must increase in both clocks");
+    }
+    return [displayBeat, playedBeat];
+  });
+  function interpolate(value, from, to) {
+    if (!anchors.length || !Number.isFinite(value)) return value;
+    let left = 0;
+    let right = anchors.length - 1;
+    if (value <= anchors[left][from]) return anchors[left][to] + (value - anchors[left][from]);
+    if (value >= anchors[right][from]) return anchors[right][to] + (value - anchors[right][from]);
+    while (right - left > 1) {
+      const middle = Math.floor((left + right) / 2);
+      if (anchors[middle][from] <= value) left = middle;
+      else right = middle;
+    }
+    const start = anchors[left];
+    const end = anchors[right];
+    const fraction = (value - start[from]) / (end[from] - start[from]);
+    return start[to] + fraction * (end[to] - start[to]);
+  }
+  return {
+    secondsAt: (displayBeat) => interpolate(displayBeat, 0, 1) * secondsPerBeat,
+    beatAt: (seconds) => interpolate(seconds / secondsPerBeat, 1, 0)
+  };
+}
+
 // src/components/PlaybackFooter.jsx
 import React8, { memo, useCallback, useEffect as useEffect3, useLayoutEffect as useLayoutEffect4, useMemo as useMemo4, useRef as useRef5 } from "react";
 
@@ -1995,17 +2029,15 @@ function PlaybackFooter({
 // src/components/MediaScore.jsx
 var activeByDocument = /* @__PURE__ */ new WeakMap();
 function MediaScore(props) {
-  if (!Number.isFinite(props.secondsPerBeat) || props.secondsPerBeat <= 0) {
-    throw new RangeError("MediaScore needs a positive secondsPerBeat");
-  }
   return /* @__PURE__ */ React9.createElement(MediaScorePlayer, { key: props.src, ...props });
 }
-function MediaScorePlayer({ score, src, secondsPerBeat, label, labels }) {
+function MediaScorePlayer({ score, src, secondsPerBeat, beatAnchors, label, labels }) {
   var _a;
   const mediaRef = useRef6(null);
   const controlsRef = useRef6(null);
   const clock = useNotePlaybackClock();
-  const scoreDuration = score.beats * secondsPerBeat;
+  const mediaClock = useMemo5(() => createMediaBeatClock(secondsPerBeat, beatAnchors), [secondsPerBeat, beatAnchors]);
+  const scoreDuration = mediaClock.secondsAt(score.beats);
   const [status, setStatus] = useState4({
     duration: scoreDuration,
     position: 0,
@@ -2016,10 +2048,10 @@ function MediaScorePlayer({ score, src, secondsPerBeat, label, labels }) {
   const timeline = useMemo5(() => {
     var _a2, _b;
     return {
-      sections: (_a2 = score.rows) == null ? void 0 : _a2.map((row) => row.start * secondsPerBeat),
-      phrases: (_b = score.phraseStarts) == null ? void 0 : _b.map((beat) => beat * secondsPerBeat)
+      sections: (_a2 = score.rows) == null ? void 0 : _a2.map((row) => mediaClock.secondsAt(row.start)),
+      phrases: (_b = score.phraseStarts) == null ? void 0 : _b.map(mediaClock.secondsAt)
     };
-  }, [score.rows, score.phraseStarts, secondsPerBeat]);
+  }, [score.rows, score.phraseStarts, mediaClock]);
   useLayoutEffect5(() => {
     var _a2;
     const media = mediaRef.current;
@@ -2041,7 +2073,7 @@ function MediaScorePlayer({ score, src, secondsPerBeat, label, labels }) {
       });
     }
     function paintNotes(seconds) {
-      if (positioned) clock.advance(seconds / secondsPerBeat);
+      if (positioned) clock.advance(mediaClock.beatAt(seconds));
     }
     function settle() {
       stopFrames == null ? void 0 : stopFrames();
@@ -2138,11 +2170,11 @@ function MediaScorePlayer({ score, src, secondsPerBeat, label, labels }) {
       if (!media.paused) media.pause();
       clock.reset();
     };
-  }, [clock, scoreDuration, secondsPerBeat]);
+  }, [clock, scoreDuration, mediaClock]);
   const seekBeat = useCallback2((beat) => {
     var _a2;
-    return (_a2 = controlsRef.current) == null ? void 0 : _a2.start(beat * secondsPerBeat);
-  }, [secondsPerBeat]);
+    return (_a2 = controlsRef.current) == null ? void 0 : _a2.start(mediaClock.secondsAt(beat));
+  }, [mediaClock]);
   const getPosition = useCallback2(() => {
     var _a2, _b;
     return (_b = (_a2 = mediaRef.current) == null ? void 0 : _a2.currentTime) != null ? _b : 0;

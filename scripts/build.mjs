@@ -20,7 +20,9 @@ fs.writeFileSync(path.join(out,'native.css'),nativeColorStyles()+fs.readFileSync
 fs.writeFileSync(path.join(out,'legacy-style.css'),['style.css','native.css','harmony.css','roman-numerals.css','harmony-annotations.css'].map(name=>fs.readFileSync(path.join(out,name),'utf8')).join(''));
 await build({entryPoints:[path.join(root,'integrations/caplin/react-notes.jsx')],outfile:path.join(out,'browser/caplin-notes.js'),bundle:true,format:'iife',globalName:'LibrawlCaplinNotes',platform:'browser',target:'es2018',jsx:'transform',define:{'process.env.NODE_ENV':'"production"'},banner:{js:banner},logLevel:'error'});
 await build({entryPoints:[path.join(root,'integrations/media-score/browser.jsx')],outfile:path.join(out,'browser/media-score.js'),bundle:true,format:'iife',globalName:'LibrawlMediaScore',platform:'browser',target:'es2018',jsx:'transform',minify:true,define:{'process.env.NODE_ENV':'"production"'},banner:{js:banner},logLevel:'error'});
-fs.writeFileSync(path.join(out,'media-score.css'),['style.css','native.css','roman-numerals.css','harmony-annotations.css','playback-footer.css'].map(name=>fs.readFileSync(path.join(out,name),'utf8')).join(''));
+fs.writeFileSync(path.join(out,'media-score.css'),['style.css','native.css','roman-numerals.css','harmony-annotations.css','playback-footer.css'].map(name=>fs.readFileSync(path.join(out,name),'utf8')).join('').replace(/[ \t]+$/gm,''));
+fs.copyFileSync(path.join(root,'src/audio/media-beat-clock.mjs'),path.join(out,'media-beat-clock.mjs'));
+fs.copyFileSync(path.join(root,'types/media-beat-clock.d.mts'),path.join(out,'media-beat-clock.d.mts'));
 const environment="typeof window==='undefined'?globalThis:window";
 const base="(function(global){global.SoundFontPlayback=LibrawlAudio.createSoundFontPlayback({environment:global,importLibrary:()=>import('./vendor/spessasynth/index.js')";
 const profiles={

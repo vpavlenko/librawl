@@ -88,17 +88,17 @@
     background-color: var(--pitch-color-0);
   }
 
-  
+
     [data-pitch-class="0"], .noteColor_0_colors:where(:not([data-pitch-class])) {
       background-color: var(--pitch-color-0);
     }
-    
-  
+
+
 
     [data-pitch-class="1"], .noteColor_1_colors:where(:not([data-pitch-class])) {
       background-color: var(--pitch-color-1);
     }
-    
+
       [data-pitch-class="1"]::after, .noteColor_1_colors:where(:not([data-pitch-class]))::after, .pitchDot_1:where(:not([data-pitch-class]))::after {
         content: "";
         position: absolute;
@@ -111,37 +111,37 @@
         transform: translate(-50%, -50%);
         pointer-events: none;
       }
-    
-  
+
+
 
     [data-pitch-class="2"], .noteColor_2_colors:where(:not([data-pitch-class])) {
       background-color: var(--pitch-color-2);
     }
-    
-  
+
+
 
     [data-pitch-class="3"], .noteColor_3_colors:where(:not([data-pitch-class])) {
       background-color: var(--pitch-color-3);
     }
-    
-  
+
+
 
     [data-pitch-class="4"], .noteColor_4_colors:where(:not([data-pitch-class])) {
       background-color: var(--pitch-color-4);
     }
-    
-  
+
+
 
     [data-pitch-class="5"], .noteColor_5_colors:where(:not([data-pitch-class])) {
       background-color: var(--pitch-color-5);
     }
-    
-  
+
+
 
     [data-pitch-class="6"], .noteColor_6_colors:where(:not([data-pitch-class])) {
       background-color: var(--pitch-color-6);
     }
-    
+
       [data-pitch-class="6"]::after, .noteColor_6_colors:where(:not([data-pitch-class]))::after, .pitchDot_6:where(:not([data-pitch-class]))::after {
         content: "";
         position: absolute;
@@ -154,38 +154,38 @@
         transform: translate(-50%, -50%);
         pointer-events: none;
       }
-    
-  
+
+
 
     [data-pitch-class="7"], .noteColor_7_colors:where(:not([data-pitch-class])) {
       background-color: var(--pitch-color-7);
     }
-    
-  
+
+
 
     [data-pitch-class="8"], .noteColor_8_colors:where(:not([data-pitch-class])) {
       background-color: var(--pitch-color-8);
     }
-    
-  
+
+
 
     [data-pitch-class="9"], .noteColor_9_colors:where(:not([data-pitch-class])) {
       background-color: var(--pitch-color-9);
     }
-    
-  
+
+
 
     [data-pitch-class="10"], .noteColor_10_colors:where(:not([data-pitch-class])) {
       background-color: var(--pitch-color-10);
     }
-    
-  
+
+
 
     [data-pitch-class="11"], .noteColor_11_colors:where(:not([data-pitch-class])) {
       background-color: var(--pitch-color-11);
     }
-    
-  
+
+
 .voiceShape-0 {
     border-radius: 6px 6px 6px 6px;
 

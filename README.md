@@ -128,6 +128,8 @@ This scheduler consumes prepared note/program/CC plans. It does not claim arbitr
 ## Inline media scores
 
 `MediaScore` combines `RawlNotation` and the inline `PlaybackFooter` using a supplied audio file and fixed seconds per quarter beat. The media clock highlights native notes and measures. Each document has one active clip.
+Supply optional `beatAnchors` as increasing `[displayBeat, playedBeat]` pairs for timing such as swing.
+Offline renderers can use the same map with `createMediaBeatClock` from `librawl/media-beat-clock`.
 
 ```jsx
 import {MediaScore} from 'librawl';
