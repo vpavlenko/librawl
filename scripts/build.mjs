@@ -14,11 +14,13 @@ for(const name of ['style.css','harmony.css','roman-numerals.css','harmony-annot
 for(const name of ['playback-footer.css','score-size-sliders.css','piano-legend.css'])fs.copyFileSync(path.join(root,'src/components',name),path.join(out,name));
 
 fs.copyFileSync(path.join(root,'src/notation/index.d.ts'),path.join(out,'notation.d.ts'));
-for(const name of ['index','components','audio','geometry','palette','native','native-audio','roman-numerals','piano-legend','harmony-annotations'])fs.copyFileSync(path.join(root,`types/${name}.d.ts`),path.join(out,`${name}.d.ts`));
+for(const name of ['index','components','audio','geometry','palette','native','native-audio','roman-numerals','piano-legend','harmony-annotations','media-score'])fs.copyFileSync(path.join(root,`types/${name}.d.ts`),path.join(out,`${name}.d.ts`));
 fs.copyFileSync(path.join(root,'src/rawlnative/voice-shapes.css'),path.join(out,'voice-shapes.css'));
 fs.writeFileSync(path.join(out,'native.css'),nativeColorStyles()+fs.readFileSync(path.join(out,'voice-shapes.css'),'utf8'));
 fs.writeFileSync(path.join(out,'legacy-style.css'),['style.css','native.css','harmony.css','roman-numerals.css','harmony-annotations.css'].map(name=>fs.readFileSync(path.join(out,name),'utf8')).join(''));
 await build({entryPoints:[path.join(root,'integrations/caplin/react-notes.jsx')],outfile:path.join(out,'browser/caplin-notes.js'),bundle:true,format:'iife',globalName:'LibrawlCaplinNotes',platform:'browser',target:'es2018',jsx:'transform',define:{'process.env.NODE_ENV':'"production"'},banner:{js:banner},logLevel:'error'});
+await build({entryPoints:[path.join(root,'integrations/media-score/browser.jsx')],outfile:path.join(out,'browser/media-score.js'),bundle:true,format:'iife',globalName:'LibrawlMediaScore',platform:'browser',target:'es2018',jsx:'transform',minify:true,define:{'process.env.NODE_ENV':'"production"'},banner:{js:banner},logLevel:'error'});
+fs.writeFileSync(path.join(out,'media-score.css'),['style.css','native.css','roman-numerals.css','harmony-annotations.css','playback-footer.css'].map(name=>fs.readFileSync(path.join(out,name),'utf8')).join(''));
 const environment="typeof window==='undefined'?globalThis:window";
 const base="(function(global){global.SoundFontPlayback=LibrawlAudio.createSoundFontPlayback({environment:global,importLibrary:()=>import('./vendor/spessasynth/index.js')";
 const profiles={

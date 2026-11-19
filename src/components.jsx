@@ -7,3 +7,5 @@ export {RomanNumeral} from './components/RomanNumeral.jsx';
 export {ScoreSizeSliders} from './components/ScoreSizeSliders.jsx';
 export {PianoLegend,InlinePianoLegend,FoldablePianoLegend} from './components/PianoLegend.jsx';
 export {ScorePinchContent,useScorePinch} from './components/score-pinch.ts';
+
+export {MediaScore} from './components/MediaScore.jsx';

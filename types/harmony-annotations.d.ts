@@ -5,6 +5,7 @@ export interface HarmonyAnnotation {
   id?: string;
   beat: number;
   notation: string;
+  original?: string;
   position?: 'above' | 'below';
   options?: RomanNumeralOptions;
 }

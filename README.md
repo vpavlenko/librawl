@@ -125,6 +125,27 @@ The same clock object continues reporting the audible beat. `clock.endTime()` re
 
 This scheduler consumes prepared note/program/CC plans. It does not claim arbitrary SMF, pitch-bend, aftertouch, multi-port or Rawl WASM backend equivalence. Rawl's threaded transport and consumed-sample clock are available through `librawl/native-audio`; the host retains its existing sequencer, worker and synthesis assets. See [migration status](docs/migration.md).
 
+## Inline media scores
+
+`MediaScore` combines `RawlNotation` and the inline `PlaybackFooter` using a supplied audio file and fixed seconds per quarter beat. The media clock highlights native notes and measures. Each document has one active clip.
+
+```jsx
+import {MediaScore} from 'librawl';
+import 'librawl/media-score.css';
+
+<MediaScore score={{notes, beats, measureMap, sourceAnnotations}}
+  src={audioURL} secondsPerBeat={60 / tempo} label={instrument} />
+```
+
+A buildless reader can load `librawl/browser/media-score.js` and call
+`LibrawlMediaScore.mountMediaScore(element, props)`. Keep that bundle and
+`media-score.css` from the same build. The mount returns an unmount callback.
+
+Pass source annotations to `RawlNotation` or through `MediaScore.score`.
+Absolute beats anchor printed double bars, chord labels, spans and comments.
+A note ID anchors centered stars and arrows without changing pitch or
+duration. The media supplies any audio for unpitched marks.
+
 ## Development
 
 ```sh

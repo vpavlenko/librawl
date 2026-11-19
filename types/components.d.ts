@@ -12,6 +12,14 @@ export interface PlaybackTimeline {
   bassBars?: readonly {start: number; end: number; color: string}[];
 }
 
+export interface PlaybackLabels {
+  playback?: string;
+  play?: string;
+  pause?: string;
+  stop?: string;
+  seek?: string;
+}
+
 /** All timeline positions and the duration are in seconds. Volume 1 is 100%. */
 export interface PlaybackFooterProps {
   position: number;
@@ -21,6 +29,8 @@ export interface PlaybackFooterProps {
   getPosition?: () => number;
   onTogglePlay: () => void;
   onSeek: (seconds: number) => void;
+  onStop?: () => void;
+  stopDisabled?: boolean;
   rate?: number;
   onRateChange?: (rate: number) => void;
   volume?: number;
@@ -30,10 +40,14 @@ export interface PlaybackFooterProps {
   keyboardShortcuts?: boolean;
   allowSpaceInInputs?: boolean;
   disabled?: boolean;
+  inline?: boolean;
+  labels?: PlaybackLabels;
   beforeTimeline?: React.ReactNode;
   children?: React.ReactNode;
 }
 export const PlaybackFooter: React.FC<PlaybackFooterProps>;
+export {MediaScore} from './media-score';
+export type {MediaScoreProps} from './media-score';
 /** Read and paint immediately, then on each animation frame until disposed. */
 export function observePlaybackPosition(readPosition: () => number, paintPosition: (position: number) => void): () => void;
 

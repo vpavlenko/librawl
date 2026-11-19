@@ -810,6 +810,7 @@ var LibrawlHarmony = (() => {
       label.className = "rawln-harmony-label";
       label.setAttribute("role", "math");
       label.dataset.beat = point.beat;
+      if (point.original !== void 0) label.title = point.original;
       if (point.id !== void 0) label.dataset.annotationId = point.id;
       label.setAttribute("aria-label", point.notation);
       label.innerHTML = romanNumeralHTML(point.notation, point.options);

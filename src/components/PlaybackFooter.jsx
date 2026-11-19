@@ -56,6 +56,7 @@ export function PlaybackFooter({
   position, duration, playing, getPosition, onTogglePlay, onSeek, rate, onRateChange,
   volume, onVolumeChange, volumeMax = 1, timeline = EMPTY_TIMELINE, keyboardShortcuts = true,
   allowSpaceInInputs = false, disabled = false, beforeTimeline, children,
+  onStop, stopDisabled = false, inline = false, labels,
 }) {
   const length = Number.isFinite(duration) && duration > 0 ? duration : 0;
   const hasTempo = Number.isFinite(rate) && !!onRateChange;
@@ -114,21 +115,30 @@ export function PlaybackFooter({
   }, [keyboardShortcuts, disabled, hasTempo, onRateChange, rate]);
 
   return (
-    <footer className="rawlp-footer" aria-label="Playback">
+    <footer className={inline ? 'rawlp-footer rawlp-footer-inline' : 'rawlp-footer'}
+      aria-label={labels?.playback ?? 'Playback'}>
       <div className="rawlp-playback">
         <button type="button" className="rawlp-play" disabled={disabled}
-          aria-label={playing ? 'Pause' : 'Play'} onClick={onTogglePlay}>
+          aria-label={playing ? (labels?.pause ?? 'Pause') : (labels?.play ?? 'Play')} onClick={onTogglePlay}>
           <svg aria-hidden="true" width="14" height="16" viewBox="0 0 14 16" fill="currentColor">
             {playing ? <path d="M2 1h4v14H2zm6 0h4v14H8z" /> : <path d="M2 1l12 7L2 15z" />}
           </svg>
         </button>
+        {onStop && (
+          <button type="button" className="rawlp-play rawlp-stop" disabled={disabled || stopDisabled}
+            aria-label={labels?.stop ?? 'Stop'} onClick={onStop}>
+            <svg aria-hidden="true" width="14" height="16" viewBox="0 0 14 16" fill="currentColor">
+              <rect x="2" y="3" width="10" height="10" />
+            </svg>
+          </button>
+        )}
         {beforeTimeline}
       </div>
       <div className="rawlp-timeline">
         <span className="rawlp-time" ref={elapsedRef}>{formatTime(elapsed)}</span>
         <div className="rawlp-track">
           <TimelineMarks geometry={geometry} />
-          <input ref={seekRef} aria-label="Seek" aria-valuetext={formatTime(elapsed)}
+          <input ref={seekRef} aria-label={labels?.seek ?? 'Seek'} aria-valuetext={formatTime(elapsed)}
             type="range" min={0} max={length || 1} step="any" defaultValue={elapsed}
             disabled={disabled || !length} onPointerDown={beginScrub}
             onPointerUp={event => finishScrub(event, true)}

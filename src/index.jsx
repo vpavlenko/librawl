@@ -1,5 +1,6 @@
 export * from './notation/RawlNotation.jsx';
 export {TonicSymbol} from './components/TonicSymbol.jsx';
+export {MediaScore} from './components/MediaScore.jsx';
 export {PlaybackFooter} from './components/PlaybackFooter.jsx';
 export {createSoundFontPlayback} from './audio/soundfont-playback.js';
 export {createTransport} from './audio/transport.js';

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import type { NotePlaybackClock } from './native';
+import type { RomanNumeralOptions } from './roman-numerals';
 export interface MidiNote {
  id:string; pitch:number; start:number; duration:number; voice:number; velocity?:number;
  /** If set, highlight in playback-clock units while laying out start/duration in beats. */
@@ -24,8 +25,20 @@ export function PlaybackMeasureBorders(props:PlaybackMeasureBordersProps):React.
 /** Tracks the current measure in a host-rendered relative score row. */
 export const PlaybackMeasureLayer:React.FC<{row:ScoreRow;clock:NotePlaybackClock;measureMap?:readonly SourceMeasure[];barBeats?:number}>;
 export interface RawlNotationHandle { setPosition(beat:number|null):void; element:HTMLDivElement|null; }
+/** Authored markings in the same quarter-beat coordinates as the score. */
+export interface ScoreSourceAnnotations {
+ harmony?: readonly {beat:number;notation:string;options?:RomanNumeralOptions;original?:string;position?:'above'|'below'}[];
+ noteMarks?: readonly {noteId:string|number;star?:boolean;arrow?:boolean}[];
+ unpitched?: readonly {beat:number;pitch?:number;label?:string}[];
+ spans?: readonly {start:number;end:number;kind:'bracket'|'circle'}[];
+ comments?: readonly {beat:number;measure:number|string;text:string;fragments?:readonly
+  ({text:string} | {notation:string;options?:RomanNumeralOptions})[]}[];
+ /** Printed double bars, separate from the analytical phrase boundaries. */
+ doubleBarlines?: readonly number[];
+}
 export interface RawlNotationProps {
  ref?:React.Ref<RawlNotationHandle>;
+ sourceAnnotations?:ScoreSourceAnnotations;
  notes:MidiNote[]; beats:number; rows?:ScoreRow[]; tonic?:number; changes?:TonicChange[];
  barBeats?:number; beatBeats?:number; phraseStarts?:number[]; measureMap?:SourceMeasure[]; hideInitialTonic?:boolean; modulationMarkerPlacement?:ModulationMarkerPlacement; position?:number|null; mutedVoices?:number[]; className?:string; style?:React.CSSProperties;
  /** An externally advanced clock. When position is omitted, its lifecycle belongs to the host. */
@@ -76,7 +89,7 @@ export type RawlMeasureHeaderProps = ({
  /** Absolute quarter-beat phrase starts; optional closing boundary has no label. */
  phraseStarts?:number[]; measureMap?:SourceMeasure[]; hideInitialTonic?:boolean; modulationMarkerPlacement?:ModulationMarkerPlacement;
 } | {layout:MeasureHeaderLayout; row?:never}) & {
- height?:number|string; selectedMeasure?:number|null; onMeasureSelect?:(beat:number,measure:PositionedMeasure,element?:HTMLDivElement)=>void;
+ height?:number|string; doubleBarlines?:readonly number[]; selectedMeasure?:number|null; onMeasureSelect?:(beat:number,measure:PositionedMeasure,element?:HTMLDivElement)=>void;
  showHeader?:boolean; transpose?:number; sectionEditing?:MeasureSectionEditing; renderMeasureExtras?:RenderMeasureExtras;
 };
 export const RawlMeasureHeader:React.FC<RawlMeasureHeaderProps>;

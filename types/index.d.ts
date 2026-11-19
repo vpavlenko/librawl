@@ -7,3 +7,5 @@ export {createShiftHoverAudition,ShiftHoverAudition,ShiftHoverAuditionOptions} f
 
 export {RomanNumeral,ScoreSizeSliders,ScoreSizeSlidersProps} from './components';
 export * from './piano-legend';
+
+export {MediaScore, type MediaScoreProps} from './media-score';

@@ -91,6 +91,7 @@ function createLane(score, position, points, arrows, start, end) {
     label.className = 'rawln-harmony-label';
     label.setAttribute('role', 'math');
     label.dataset.beat = point.beat;
+    if (point.original !== undefined) label.title = point.original;
     if (point.id !== undefined) label.dataset.annotationId = point.id;
     label.setAttribute('aria-label', point.notation);
     label.innerHTML = romanNumeralHTML(point.notation, point.options);

@@ -15655,7 +15655,8 @@ var LibrawlCaplinNotes = (() => {
     transpose = 0,
     renderMeasureExtras,
     modulationMarkerPlacement,
-    sectionEditing
+    sectionEditing,
+    doubleBarlines
   }) {
     const element = (0, import_react6.useRef)(null);
     const [width, setWidth] = (0, import_react6.useState)(0);
@@ -15688,6 +15689,8 @@ var LibrawlCaplinNotes = (() => {
       hideInitialTonic,
       modulationMarkerPlacement
     }), [positioned, row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic, modulationMarkerPlacement]);
+    const isDouble = (beat) => doubleBarlines == null ? void 0 : doubleBarlines.some((boundary) => Math.abs(boundary - beat) < 1e-7);
+    const terminal = row && isDouble(row.end) && !measures.some((measure) => Math.abs(measure.beat - row.end) < 1e-7) ? [{ beat: row.end, terminal: true, left: "100%" }] : [];
     const select = (event, measure) => {
       event.stopPropagation();
       onMeasureSelect(measure.beat, measure, event.currentTarget);
@@ -15705,16 +15708,17 @@ var LibrawlCaplinNotes = (() => {
         onSplit(measure);
       }
     };
-    return /* @__PURE__ */ import_react6.default.createElement("div", { ref: element, className: "rawln-measure-grid", style: { height } }, measures.map((measure) => {
+    return /* @__PURE__ */ import_react6.default.createElement("div", { ref: element, className: "rawln-measure-grid", style: { height } }, [...measures, ...terminal].map((measure) => {
       var _a;
       return /* @__PURE__ */ import_react6.default.createElement(
         "div",
         {
-          className: "rawln-bar" + (measure.isPhraseStart ? " rawln-phrase-bar" : ""),
+          className: "rawln-bar" + (measure.isPhraseStart ? " rawln-phrase-bar" : "") + (isDouble(measure.beat) ? " rawln-double-bar" : ""),
           key: measure.beat,
           "data-beat": measure.beat,
           "data-phrase-boundary": measure.isPhraseStart || void 0,
           "data-terminal": measure.terminal || void 0,
+          "data-double-barline": isDouble(measure.beat) || void 0,
           style: { left: (_a = measure.barLeft) != null ? _a : measure.left }
         }
       );

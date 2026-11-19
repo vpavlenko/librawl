@@ -36,7 +36,7 @@ export function RawlMeasureHeader({
   row, layout: positioned, height = '100%', tonic = 0, changes = EMPTY_CHANGES,
   barBeats = 4, beatBeats = 1, phraseStarts, measureMap, selectedMeasure = null,
   onMeasureSelect, hideInitialTonic = false, showHeader = true, transpose = 0,
-  renderMeasureExtras, modulationMarkerPlacement, sectionEditing,
+  renderMeasureExtras, modulationMarkerPlacement, sectionEditing, doubleBarlines,
 }) {
   const element = useRef(null);
   const [width, setWidth] = useState(0);
@@ -55,6 +55,9 @@ export function RawlMeasureHeader({
   const {measures, beats, markers} = useMemo(() => positioned ?? rowLayout({
     row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic, modulationMarkerPlacement,
   }), [positioned, row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic, modulationMarkerPlacement]);
+  const isDouble = beat => doubleBarlines?.some(boundary => Math.abs(boundary - beat) < 1e-7);
+  const terminal = row && isDouble(row.end) && !measures.some(measure => Math.abs(measure.beat - row.end) < 1e-7)
+    ? [{beat: row.end, terminal: true, left: '100%'}] : [];
   const select = (event, measure) => {
     event.stopPropagation();
     onMeasureSelect(measure.beat, measure, event.currentTarget);
@@ -74,10 +77,11 @@ export function RawlMeasureHeader({
     }
   };
   return <div ref={element} className="rawln-measure-grid" style={{height}}>
-    {measures.map(measure => <div
-      className={'rawln-bar' + (measure.isPhraseStart ? ' rawln-phrase-bar' : '')}
+    {[...measures, ...terminal].map(measure => <div
+      className={'rawln-bar' + (measure.isPhraseStart ? ' rawln-phrase-bar' : '') +
+        (isDouble(measure.beat) ? ' rawln-double-bar' : '')}
       key={measure.beat} data-beat={measure.beat}
-      data-phrase-boundary={measure.isPhraseStart || undefined} data-terminal={measure.terminal || undefined}
+      data-phrase-boundary={measure.isPhraseStart || undefined} data-terminal={measure.terminal || undefined} data-double-barline={isDouble(measure.beat) || undefined}
       style={{left: measure.barLeft ?? measure.left}}
     />)}
     {beats.map(({beat, left}) => <div className="rawln-beat-bar" key={beat} data-beat={beat} style={{left}} />)}
