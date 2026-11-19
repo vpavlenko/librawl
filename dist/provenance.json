@@ -25,10 +25,10 @@
     "index.cjs": "8ea09094e8096bcc4734107c5ac7c372d17f630309ff915afc5b6a33ad4d9f49",
     "index.d.ts": "714b96f47d59a02ad9aaac2d27243d433c59180f6579802d4011a146aeeae8c9",
     "index.js": "a9af8f2f42d95561549edb0c1c0d0c8e4b8ffc8d34c09fed7a0f2b0716718d97",
-    "legacy-style.css": "4e16839122429f6f5f13537ed877062dcfe4661094c374b8627867b86c604e91",
+    "legacy-style.css": "df7735e2841b99e12bd88b52c39dc66d293f370d7f556e4e714b8726f970d143",
     "media-beat-clock.d.mts": "3dd6beb20f5737c3ba222c30cd30f6f3eaf5c525ff4eb6ba8f745d6f63c091f3",
     "media-beat-clock.mjs": "a3e3b3d5f0c7a6d29bdeb8f7acf1c7606fb10374997ee4de0f2dfbbfffa27b6d",
-    "media-score.css": "9bab007f1b7863a4619cefd2c30d01e985a3551a0114606409714a7aa60ebbec",
+    "media-score.css": "f009f7707d62577ba5c14dfc945af7019726b304ba8a1b352867ac4231e55d47",
     "media-score.d.ts": "4d768327181506e2223a40f1b25049fb24d7e3600d1b32781acce43710d9c0a5",
     "native-audio.cjs": "2826f6b2af19c93268d37dc3c1de13bb7df70ccc384610e851b7fd42c5934e29",
     "native-audio.d.ts": "19da0d0bb1b0c4cd9b7e5cc5b41999039a23d3e2fd24a6a0d5705a2400b87633",
@@ -49,7 +49,7 @@
     "roman-numerals.d.ts": "9c005023676c61a12125cb6005e0301428e95f5fa5edfd59de059e48e140c326",
     "roman-numerals.js": "6eaac66f0c7f45663a8d98b99e4991923d76c52257cae29b46c194431675ddbe",
     "score-size-sliders.css": "18014f05416bb4d1a73b4211a8d1fc5fc79367dbeb7611ca851cff889fc1a7e5",
-    "style.css": "a338409be8fcb6865c7d4ccfdc7cafd18732fdeee8941500dfdbe3b64f7c3c3b",
+    "style.css": "9e3bcaf78081f09f4b10ae7d6c98256b41b4908fb4593315c430837420b8358b",
     "voice-shapes.css": "84fd2408c40d394a998e93fed8c0c3a4aa104e37cf987146f2efd43dd4629f8f"
   }
 }

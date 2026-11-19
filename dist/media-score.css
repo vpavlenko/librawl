@@ -24,7 +24,7 @@
   pointer-events: none;
 }
 .rawln-note[data-note-star]::before { content: "*"; }
-.rawln-note[data-note-arrow]::before { content: "↓"; }
+.rawln-note[data-note-arrow]::before { bottom: calc(100% + 3px); content: "↓"; }
 .rawln-note[data-note-star][data-note-arrow]::before { content: "*\A↓"; }
 .rawln-double-bar { background: #e0e0e0; box-shadow: 2px 0 #e0e0e0; }
 .rawln-double-bar[data-terminal] { transform: translateX(-3px); }
