@@ -1,4 +1,4 @@
-import type {RomanNumeralOptions} from './roman-numerals';
+import type {RomanNumeralOptions, RomanNumeralTooltipOptions} from './roman-numerals';
 export {guitarChordHTML, romanNumeralHTML, romanNumeralContent} from './roman-numerals';
 
 export interface HarmonyAnnotation {
@@ -8,6 +8,7 @@ export interface HarmonyAnnotation {
   original?: string;
   position?: 'above' | 'below';
   options?: RomanNumeralOptions;
+  tooltip?: boolean | RomanNumeralTooltipOptions;
 }
 
 export interface HarmonyAnnotationOptions {

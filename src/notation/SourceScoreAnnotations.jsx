@@ -62,15 +62,14 @@ export function SourceBrackets({row, spans}) {
 export function SourceComments({comments, onSeek}) {
   return <ul className="rawln-source-comments">
     {comments.map(({beat, measure, text, fragments}, index) =>
-      <li key={index}>
-        <button type="button" className="rawln-source-comment" data-beat={beat}
-          onClick={() => onSeek(beat)}>
+      <li key={index} className="rawln-source-comment" data-beat={beat}>
+        <button type="button" aria-label={`${measure} ${text}`} onClick={() => onSeek(beat)}>
           <b>{measure}</b>
-          <span>{fragments ? fragments.map((fragment, index) => fragment.notation ?
-            <RomanNumeral key={index} notation={fragment.notation} options={fragment.options} /> :
-            <React.Fragment key={index}>{fragment.text}</React.Fragment>
-          ) : text}</span>
         </button>
+        <span>{fragments ? fragments.map((fragment, index) => fragment.notation ?
+          <RomanNumeral key={index} notation={fragment.notation} options={fragment.options} /> :
+          <React.Fragment key={index}>{fragment.text}</React.Fragment>
+        ) : text}</span>
       </li>
     )}
   </ul>;

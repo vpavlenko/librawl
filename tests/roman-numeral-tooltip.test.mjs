@@ -41,6 +41,13 @@ test('Jazz tooltip preserves explicit extensions and bass while avoiding figured
   assert.equal(document.querySelector('.rawln-rn-explanations'), null);
   assert.equal(romanNumeralTooltipModel(notation, options, {pitches: [Infinity]}), null);
   assert.equal(romanNumeralTooltipModel(notation, options, {pitches: [99999999999]}), null);
+  for (const [label, pitches] of [['IV(add6)', [5, 9, 12, 14]], ['iv(add6)', [5, 8, 12, 14]]]) {
+    const settings = {jazz: true};
+    const defaultModel = romanNumeralTooltipModel(label, settings);
+    assert.deepEqual(defaultModel.pitches, pitches);
+    assert.equal(parse(romanNumeralTooltipHTML(label, settings, defaultModel))
+      .querySelector('.rawln-rn-explanations'), null);
+  }
 });
 
 test('Tooltip opens on hover, focus and click, and preserves native Space handling', () => {

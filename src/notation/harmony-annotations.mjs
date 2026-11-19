@@ -1,5 +1,7 @@
 import {romanNumeralHTML} from './roman-numerals.mjs';
 import {arrowCurve, arrowGeometry} from './harmony-arrows.mjs';
+import {romanNumeralTooltipHTML, romanNumeralTooltipModel} from './roman-numeral-tooltip.mjs';
+import {bindRomanNumeralTooltip} from './bind-roman-numeral-tooltip.mjs';
 
 export * from './roman-numerals.mjs';
 export {romanNumeralTooltipModel, romanNumeralTooltipHTML, romanNumeralDiagramColumns,
@@ -86,15 +88,24 @@ function createLane(score, position, points, arrows, start, end) {
   overlay.setAttribute('aria-hidden', 'true');
   overlay.setAttribute('focusable', 'false');
   lane.append(overlay);
+  const unbind = [];
   const labels = points.map(point => {
     const label = document.createElement('span');
     label.className = 'rawln-harmony-label';
     label.setAttribute('role', 'math');
     label.dataset.beat = point.beat;
-    if (point.original !== undefined) label.title = point.original;
     if (point.id !== undefined) label.dataset.annotationId = point.id;
     label.setAttribute('aria-label', point.notation);
-    label.innerHTML = romanNumeralHTML(point.notation, point.options);
+    const {notation, options = {}, tooltip, original} = point;
+    label.innerHTML = romanNumeralHTML(notation, options);
+    const model = romanNumeralTooltipModel(notation, options, tooltip);
+    if (model) {
+      const trigger = label.firstElementChild;
+      trigger.dataset.rnTooltip = '';
+      trigger.tabIndex = 0;
+      unbind.push(bindRomanNumeralTooltip(trigger, () => romanNumeralTooltipHTML(notation, options, model)));
+    } else if (original !== undefined) label.title = original;
+    if (original !== undefined) label.dataset.original = original;
     lane.append(label);
     return {...point, label};
   });
@@ -135,7 +146,10 @@ function createLane(score, position, points, arrows, start, end) {
     lane.style.height = (maxY - minY) + 'px';
     overlay.setAttribute('viewBox', `0 ${minY} ${width} ${maxY - minY}`);
   }
-  return {lane, fit};
+  return {fit, remove() {
+    unbind.forEach(dispose => dispose());
+    lane.remove();
+  }};
 }
 
 /**
@@ -165,6 +179,6 @@ export function mountHarmonyAnnotations(score, {
   return () => {
     observer?.disconnect();
     view?.removeEventListener('resize', fit);
-    lanes.forEach(({lane}) => lane.remove());
+    lanes.forEach(lane => lane.remove());
   };
 }

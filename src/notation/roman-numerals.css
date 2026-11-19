@@ -46,7 +46,7 @@
 }
 .rawln-roman[data-roman-theme="dark"] .chord-root.colored[data-root="5"] { -webkit-text-stroke: 0; text-shadow: 0 0 min(.12em, 1.25px) var(--chord-color); }
 
-/* Caplin's chord diagram, scoped to the optional shared RN tooltip. */
+/* Caplin's chord diagram, scoped to the shared RN tooltip. */
 .rawln-roman[data-rn-tooltip] {
   cursor: pointer;
   pointer-events: auto;

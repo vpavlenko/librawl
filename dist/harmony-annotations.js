@@ -331,12 +331,22 @@ function explicitModel(tooltip) {
     seventh: (root != null ? root : pitches).length === 4
   };
 }
+function jazzModel(notation, options) {
+  var _a;
+  const triad = String(notation).match(/^([♭♯]?[IViv]+)(\(add6\))?$/u);
+  const context = triad && chordContext(triad[1]);
+  if (!context || options.bassPitch != null) return null;
+  const root = (_a = options.rootPitch) != null ? _a : context.root;
+  const pitches = context.tones.map(({ pitch }) => root + colorIndex(pitch - context.root));
+  if (triad[2]) pitches.push(pitches[0] + 9);
+  return explicitModel({ pitches, inversion: 0 });
+}
 function romanNumeralTooltipModel(notation, options = {}, tooltip = true) {
   var _a, _b, _c;
   if (tooltip !== true) {
     return tooltip ? explicitModel(tooltip) : null;
   }
-  if (options.jazz) return null;
+  if (options.jazz) return jazzModel(notation, options);
   const bare = String(notation).replace(/(?:…|\.{3})$/u, "").replace(/[[\]]/g, "");
   const token = (_a = firstRomanChord(bare)) != null ? _a : options.contextChord ? options.contextChord.replace(/^[^/]+/, (root2) => root2 + bare.replace(/[()\s–—-]/g, "")) : null;
   const context = token && chordContext(token, options);
@@ -760,15 +770,24 @@ function createLane(score, position, points, arrows, start, end) {
   overlay.setAttribute("aria-hidden", "true");
   overlay.setAttribute("focusable", "false");
   lane.append(overlay);
+  const unbind = [];
   const labels = points.map((point) => {
     const label = document.createElement("span");
     label.className = "rawln-harmony-label";
     label.setAttribute("role", "math");
     label.dataset.beat = point.beat;
-    if (point.original !== void 0) label.title = point.original;
     if (point.id !== void 0) label.dataset.annotationId = point.id;
     label.setAttribute("aria-label", point.notation);
-    label.innerHTML = romanNumeralHTML(point.notation, point.options);
+    const { notation, options = {}, tooltip, original } = point;
+    label.innerHTML = romanNumeralHTML(notation, options);
+    const model = romanNumeralTooltipModel(notation, options, tooltip);
+    if (model) {
+      const trigger = label.firstElementChild;
+      trigger.dataset.rnTooltip = "";
+      trigger.tabIndex = 0;
+      unbind.push(bindRomanNumeralTooltip(trigger, () => romanNumeralTooltipHTML(notation, options, model)));
+    } else if (original !== void 0) label.title = original;
+    if (original !== void 0) label.dataset.original = original;
     lane.append(label);
     return { ...point, label };
   });
@@ -805,7 +824,10 @@ function createLane(score, position, points, arrows, start, end) {
     lane.style.height = maxY - minY + "px";
     overlay.setAttribute("viewBox", `0 ${minY} ${width} ${maxY - minY}`);
   }
-  return { lane, fit };
+  return { fit, remove() {
+    unbind.forEach((dispose) => dispose());
+    lane.remove();
+  } };
 }
 function mountHarmonyAnnotations(score, {
   start,
@@ -837,7 +859,7 @@ function mountHarmonyAnnotations(score, {
   return () => {
     observer == null ? void 0 : observer.disconnect();
     view == null ? void 0 : view.removeEventListener("resize", fit);
-    lanes.forEach(({ lane }) => lane.remove());
+    lanes.forEach((lane) => lane.remove());
   };
 }
 export {

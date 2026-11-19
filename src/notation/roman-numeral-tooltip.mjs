@@ -36,11 +36,21 @@ function explicitModel(tooltip) {
   };
 }
 
+function jazzModel(notation, options) {
+  const triad = String(notation).match(/^([♭♯]?[IViv]+)(\(add6\))?$/u);
+  const context = triad && chordContext(triad[1]);
+  if (!context || options.bassPitch != null) return null;
+  const root = options.rootPitch ?? context.root;
+  const pitches = context.tones.map(({pitch}) => root + colorIndex(pitch - context.root));
+  if (triad[2]) pitches.push(pitches[0] + 9);
+  return explicitModel({pitches, inversion: 0});
+}
+
 export function romanNumeralTooltipModel(notation, options = {}, tooltip = true) {
   if (tooltip !== true) {
     return tooltip ? explicitModel(tooltip) : null;
   }
-  if (options.jazz) return null;
+  if (options.jazz) return jazzModel(notation, options);
   const bare = String(notation).replace(/(?:…|\.{3})$/u, '').replace(/[[\]]/g, '');
   const token = firstRomanChord(bare) ?? (options.contextChord
     ? options.contextChord.replace(/^[^/]+/, root => root + bare.replace(/[()\s–—-]/g, '')) : null);

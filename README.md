@@ -174,8 +174,9 @@ Trackpad pinch changes time spacing, and Shift+pinch changes note height.
 
 
 `FoldablePianoLegend` sits beside the corner sliders, with auditions delegated
-to its host. Enable Caplin's pitch-diagram popup with `RomanNumeral`'s `tooltip`
-prop. Jazz hosts can provide an ordered voicing directly.
+to its host. `RomanNumeral` and score harmony annotations show pitch diagrams
+by default for supported symbols. Provide a voicing through `tooltip` to show
+specific notes or pass `false` to disable the popup.
 
 The current measure has top and bottom edges by default. When playback uses
 recording seconds, supply each visible measure's `playbackSpans`, including

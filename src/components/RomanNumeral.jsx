@@ -3,7 +3,7 @@ import {romanNumeralContent} from '../notation/roman-numerals.mjs';
 import {romanNumeralTooltipHTML, romanNumeralTooltipModel} from '../notation/roman-numeral-tooltip.mjs';
 import {bindRomanNumeralTooltip} from '../notation/bind-roman-numeral-tooltip.mjs';
 
-export function RomanNumeral({notation, options, tooltip = false}) {
+export function RomanNumeral({notation, options, tooltip = true}) {
   const ref = useRef(null);
   const model = useMemo(() => romanNumeralTooltipModel(notation, options, tooltip), [notation, options, tooltip]);
   useEffect(() => {

@@ -804,12 +804,22 @@ function explicitModel(tooltip) {
     seventh: (root != null ? root : pitches).length === 4
   };
 }
+function jazzModel(notation, options) {
+  var _a;
+  const triad = String(notation).match(/^([♭♯]?[IViv]+)(\(add6\))?$/u);
+  const context = triad && chordContext(triad[1]);
+  if (!context || options.bassPitch != null) return null;
+  const root = (_a = options.rootPitch) != null ? _a : context.root;
+  const pitches = context.tones.map(({ pitch }) => root + colorIndex(pitch - context.root));
+  if (triad[2]) pitches.push(pitches[0] + 9);
+  return explicitModel({ pitches, inversion: 0 });
+}
 function romanNumeralTooltipModel(notation, options = {}, tooltip = true) {
   var _a, _b, _c;
   if (tooltip !== true) {
     return tooltip ? explicitModel(tooltip) : null;
   }
-  if (options.jazz) return null;
+  if (options.jazz) return jazzModel(notation, options);
   const bare = String(notation).replace(/(?:…|\.{3})$/u, "").replace(/[[\]]/g, "");
   const token = (_a = firstRomanChord(bare)) != null ? _a : options.contextChord ? options.contextChord.replace(/^[^/]+/, (root2) => root2 + bare.replace(/[()\s–—-]/g, "")) : null;
   const context = token && chordContext(token, options);
@@ -1167,7 +1177,7 @@ function bindRomanNumeralTooltip(anchor, render) {
 }
 
 // src/components/RomanNumeral.jsx
-function RomanNumeral({ notation, options, tooltip = false }) {
+function RomanNumeral({ notation, options, tooltip = true }) {
   const ref = (0, import_react4.useRef)(null);
   const model = (0, import_react4.useMemo)(() => romanNumeralTooltipModel(notation, options, tooltip), [notation, options, tooltip]);
   (0, import_react4.useEffect)(() => {
@@ -1312,15 +1322,24 @@ function createLane(score, position, points, arrows, start, end) {
   overlay.setAttribute("aria-hidden", "true");
   overlay.setAttribute("focusable", "false");
   lane.append(overlay);
+  const unbind = [];
   const labels = points.map((point) => {
     const label = document2.createElement("span");
     label.className = "rawln-harmony-label";
     label.setAttribute("role", "math");
     label.dataset.beat = point.beat;
-    if (point.original !== void 0) label.title = point.original;
     if (point.id !== void 0) label.dataset.annotationId = point.id;
     label.setAttribute("aria-label", point.notation);
-    label.innerHTML = romanNumeralHTML(point.notation, point.options);
+    const { notation, options = {}, tooltip, original } = point;
+    label.innerHTML = romanNumeralHTML(notation, options);
+    const model = romanNumeralTooltipModel(notation, options, tooltip);
+    if (model) {
+      const trigger = label.firstElementChild;
+      trigger.dataset.rnTooltip = "";
+      trigger.tabIndex = 0;
+      unbind.push(bindRomanNumeralTooltip(trigger, () => romanNumeralTooltipHTML(notation, options, model)));
+    } else if (original !== void 0) label.title = original;
+    if (original !== void 0) label.dataset.original = original;
     lane.append(label);
     return { ...point, label };
   });
@@ -1357,7 +1376,10 @@ function createLane(score, position, points, arrows, start, end) {
     lane.style.height = maxY - minY + "px";
     overlay.setAttribute("viewBox", `0 ${minY} ${width} ${maxY - minY}`);
   }
-  return { lane, fit };
+  return { fit, remove() {
+    unbind.forEach((dispose) => dispose());
+    lane.remove();
+  } };
 }
 function mountHarmonyAnnotations(score, {
   start,
@@ -1389,7 +1411,7 @@ function mountHarmonyAnnotations(score, {
   return () => {
     observer == null ? void 0 : observer.disconnect();
     view == null ? void 0 : view.removeEventListener("resize", fit);
-    lanes.forEach(({ lane }) => lane.remove());
+    lanes.forEach((lane) => lane.remove());
   };
 }
 
@@ -1480,19 +1502,9 @@ function SourceBrackets({ row, spans }) {
 }
 function SourceComments({ comments, onSeek }) {
   return /* @__PURE__ */ import_react5.default.createElement("ul", { className: "rawln-source-comments" }, comments.map(
-    ({ beat, measure, text, fragments }, index) => /* @__PURE__ */ import_react5.default.createElement("li", { key: index }, /* @__PURE__ */ import_react5.default.createElement(
-      "button",
-      {
-        type: "button",
-        className: "rawln-source-comment",
-        "data-beat": beat,
-        onClick: () => onSeek(beat)
-      },
-      /* @__PURE__ */ import_react5.default.createElement("b", null, measure),
-      /* @__PURE__ */ import_react5.default.createElement("span", null, fragments ? fragments.map(
-        (fragment, index2) => fragment.notation ? /* @__PURE__ */ import_react5.default.createElement(RomanNumeral, { key: index2, notation: fragment.notation, options: fragment.options }) : /* @__PURE__ */ import_react5.default.createElement(import_react5.default.Fragment, { key: index2 }, fragment.text)
-      ) : text)
-    ))
+    ({ beat, measure, text, fragments }, index) => /* @__PURE__ */ import_react5.default.createElement("li", { key: index, className: "rawln-source-comment", "data-beat": beat }, /* @__PURE__ */ import_react5.default.createElement("button", { type: "button", "aria-label": `${measure} ${text}`, onClick: () => onSeek(beat) }, /* @__PURE__ */ import_react5.default.createElement("b", null, measure)), /* @__PURE__ */ import_react5.default.createElement("span", null, fragments ? fragments.map(
+      (fragment, index2) => fragment.notation ? /* @__PURE__ */ import_react5.default.createElement(RomanNumeral, { key: index2, notation: fragment.notation, options: fragment.options }) : /* @__PURE__ */ import_react5.default.createElement(import_react5.default.Fragment, { key: index2 }, fragment.text)
+    ) : text))
   ));
 }
 

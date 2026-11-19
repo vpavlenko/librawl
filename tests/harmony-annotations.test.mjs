@@ -32,7 +32,7 @@ test('mounts two lanes without changing the score, packs collisions and cleans u
       {beat: 0, notation: 'I'},
       {beat: 4, notation: 'ii⁴₂'},
       {beat: 4.3, notation: 'V⁶₅'},
-      {beat: 6, notation: 'I', position: 'above'},
+      {beat: 6, notation: 'I', position: 'above', tooltip: false},
       {beat: 8, notation: 'I'},
     ],
   });
@@ -48,7 +48,13 @@ test('mounts two lanes without changing the score, packs collisions and cleans u
   assert.equal(labels[1].dataset.annotationRow, '1');
   resize(600);
   assert.equal(labels[1].dataset.annotationRow, '0');
+  assert.equal(above.querySelector('[data-rn-tooltip]'), null);
+  const trigger = labels[1].querySelector('[data-rn-tooltip]');
+  trigger.focus();
+  assert.equal(trigger.tabIndex, 0);
+  assert(dom.window.document.getElementById(trigger.getAttribute('aria-describedby')));
   remove();
+  assert.equal(dom.window.document.querySelector('[role="tooltip"]'), null);
   assert.equal(score.previousElementSibling, null);
   assert.equal(score.nextElementSibling, null);
   assert.equal(view.disconnected, true);

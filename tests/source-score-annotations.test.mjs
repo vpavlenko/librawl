@@ -63,8 +63,8 @@ test('authored score marks use native notes, harmony lanes and beat-based seekin
   assert.equal(host.querySelector('.rawln-source-circle').style.width, '25%');
 
   assert.deepEqual([...host.querySelectorAll('.rawln-harmony-label')].map(label => (
-    [label.dataset.beat, label.title, label.closest('.rawln-row').dataset.start]
-  )), [['0', 'F', '0'], ['8', '', '8']]);
+    [label.dataset.beat, label.dataset.original, label.closest('.rawln-row').dataset.start]
+  )), [['0', 'F', '0'], ['8', undefined, '8']]);
   assert.equal(host.querySelector('.rawln-harmony-lane').dataset.position, 'above');
 
   const [first, second] = host.querySelectorAll('.rawln-row');
@@ -78,7 +78,8 @@ test('authored score marks use native notes, harmony lanes and beat-based seekin
   const comment = host.querySelector('.rawln-source-comment');
   assert.equal(comment.textContent, 'т. 25Аккорд I');
   assert.ok(comment.querySelector('.chord-root'));
-  comment.click();
+  assert.ok(comment.querySelector('span [data-rn-tooltip]'));
+  comment.querySelector('button').click();
   assert.deepEqual(sought, [1.5]);
 
   render({...props, sourceAnnotations: undefined});
