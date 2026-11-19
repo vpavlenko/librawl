@@ -374,6 +374,11 @@ body.harmony-rn .harmony-rns{visibility:visible}
 .rawln-rn-explanations dd { margin: 0; color: #ddd; text-indent: 0; }
 .rawln-rn-explanations .colored { color: var(--chord-color); }
 
+/* The popup lives outside the score and always uses a black surface. */
+.rawln-rn-tooltip :is(.rawln-rn-tooltip-label, .rawln-rn-explanations) .colored[data-root="0"] {
+  color: #fff;
+}
+
 .rawln-rn-explanations .colored:is([data-root="1"], [data-root="3"], [data-root="5"], [data-root="8"]) {
   paint-order: stroke fill;
   -webkit-text-stroke: .075em var(--chord-color);

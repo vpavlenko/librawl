@@ -320,7 +320,7 @@ function RawlMeasureHeader({
   }), [positioned, row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic, modulationMarkerPlacement]);
   const select = (event, measure) => {
     event.stopPropagation();
-    onMeasureSelect(measure.beat, measure);
+    onMeasureSelect(measure.beat, measure, event.currentTarget);
   };
   return /* @__PURE__ */ React2.createElement("div", { ref: element, className: "rawln-measure-grid", style: { height } }, measures.map((measure) => {
     var _a;

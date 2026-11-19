@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {JSDOM} from 'jsdom';
 import {bindRomanNumeralTooltip} from '../src/notation/bind-roman-numeral-tooltip.mjs';
@@ -91,4 +92,32 @@ test('source-resolved quality labels and cadence columns share tooltip rendering
   assert.deepEqual([...cadence.querySelectorAll('[data-chord]')].map(column => column.dataset.chord), [label, 'I']);
   assert(cadence.querySelector('.cadence-sequence-arrow'));
   assert.equal(cadence.querySelector('.rawln-rn-tooltip-kind'), null);
+});
+
+test('tonic symbols use white on the tooltip even with a light-paper host stylesheet', () => {
+  const tooltipCSS = readFileSync(new URL('../src/notation/roman-numerals.css', import.meta.url), 'utf8');
+  const paperCSS = ':is(.chord-root,.chord-figure,.chord-quality).colored[data-root="0"]{color:#000}';
+  for (const [notation, options] of [['I', {}], ['i', {mode: 'minor'}], ['I⁶₄', {}]]) {
+    const model = romanNumeralTooltipModel(notation, options);
+    const tooltip = romanNumeralTooltipHTML(notation, options, model);
+    const dom = new JSDOM(`<style>${paperCSS}</style><style>${tooltipCSS}</style>
+      <span class="chord-root colored" data-root="0">I</span>
+      <div class="rawln-rn-tooltip" role="tooltip">${tooltip}</div>`);
+    const {window} = dom, {document} = window;
+    try {
+      const color = element => window.getComputedStyle(element).color;
+      assert.equal(color(document.body.querySelector(':scope > span')), 'rgb(0, 0, 0)');
+      const root = document.querySelector('.rawln-rn-tooltip-label .chord-root');
+      assert.equal(color(root), 'rgb(255, 255, 255)');
+      const symbols = [...document.querySelectorAll('.rawln-rn-explanations dt .colored[data-root="0"]')];
+      assert(symbols.some(symbol => symbol.textContent === '1'));
+      assert(symbols.every(symbol => color(symbol) === 'rgb(255, 255, 255)'));
+      const note = document.querySelector('.rawln-rn-tooltip-note[data-degree="0"]');
+      assert.equal(note.textContent, '1');
+      assert.equal(color(note), 'rgb(0, 0, 0)');
+      assert.equal(window.getComputedStyle(note).backgroundColor, 'rgb(255, 255, 255)');
+    } finally {
+      window.close();
+    }
+  }
 });

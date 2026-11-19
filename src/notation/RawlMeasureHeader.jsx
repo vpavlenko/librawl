@@ -57,7 +57,7 @@ export function RawlMeasureHeader({
   }), [positioned, row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic, modulationMarkerPlacement]);
   const select = (event, measure) => {
     event.stopPropagation();
-    onMeasureSelect(measure.beat, measure);
+    onMeasureSelect(measure.beat, measure, event.currentTarget);
   };
   return <div ref={element} className="rawln-measure-grid" style={{height}}>
     {measures.map(measure => <div

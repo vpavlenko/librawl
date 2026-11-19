@@ -12,18 +12,36 @@ export function recolorBoundary(changes,measureBeat,barBeats,measureMap){
  const measure=measureMap?.find(measure=>Math.abs(measure.start-measureBeat)<1e-7),end=measure?measure.start+measure.duration:measureBeat+barBeats;
  return changes.find(change=>change.beat>=measureBeat-1e-7&&change.beat<end-1e-7)?.beat??measureBeat;
 }
-const initial=source=>({source,committed:source,selectedMeasure:null,boundary:null,preview:null});
+const clearedSelection={selectedMeasure:null,selectedElement:null,boundary:null,preview:null};
+const initial=source=>({source,committed:source,...clearedSelection});
 /** Each mounted score owns its selection, hover preview and committed colors.
  * Hosts can share this controller with harmony labels or persist onChange. */
 export function useTonicRecoloring({changes,barBeats=4,measureMap,onChange}){
  const [stored,setStored]=useState(()=>initial(changes)),state=stored.source===changes?stored:initial(changes);
- const cancel=()=>setStored(previous=>({...previous,selectedMeasure:null,boundary:null,preview:null}));
- useEffect(()=>{if(state.selectedMeasure===null)return;const escape=event=>{if(event.key==='Escape')cancel();};document.addEventListener('keydown',escape);return()=>document.removeEventListener('keydown',escape);},[state.selectedMeasure]);
+ const cancel=()=>setStored(previous=>({...previous,...clearedSelection}));
+ useEffect(()=>{
+  if(state.selectedMeasure===null)return;
+  const {selectedElement}=state,ownerDocument=selectedElement?.ownerDocument??document;
+  const escape=event=>{
+   if(event.key!=='Escape')return;
+   cancel();
+   if(selectedElement&&ownerDocument.activeElement===selectedElement)selectedElement.blur();
+  };
+  ownerDocument.addEventListener('keydown',escape);
+  return()=>ownerDocument.removeEventListener('keydown',escape);
+ },[state.selectedMeasure,state.selectedElement]);
  return {
   changes:state.preview??state.committed,selectedMeasure:state.selectedMeasure,
-  selectMeasure(beat,measure){setStored(previous=>{const current=previous.source===changes?previous:initial(changes),selectedMeasure=current.selectedMeasure===beat?null:beat;return {...current,selectedMeasure,boundary:selectedMeasure===null?null:measure?.modulationBeat??recolorBoundary(current.committed,beat,barBeats,measureMap),preview:null};});},
+  selectMeasure(beat,measure,element){
+   setStored(previous=>{
+    const current=previous.source===changes?previous:initial(changes);
+    if(current.selectedMeasure===beat)return {...current,...clearedSelection};
+    const boundary=measure?.modulationBeat??recolorBoundary(current.committed,beat,barBeats,measureMap);
+    return {...current,selectedMeasure:beat,selectedElement:element??null,boundary,preview:null};
+   });
+  },
   hoverNote(note){if(state.boundary===null)return;setStored(previous=>({...previous,preview:note?recolorModulation(state.committed,state.boundary,note.pitch):null}));},
-  chooseNote(note){if(state.boundary===null)return false;const committed=recolorModulation(state.committed,state.boundary,note.pitch);setStored({...state,committed,preview:null,selectedMeasure:null,boundary:null});onChange?.(committed);return true;},
+  chooseNote(note){if(state.boundary===null)return false;const committed=recolorModulation(state.committed,state.boundary,note.pitch);setStored({...state,committed,...clearedSelection});onChange?.(committed);return true;},
   cancel
  };
 }

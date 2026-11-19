@@ -66,7 +66,7 @@ export type RawlMeasureHeaderProps = ({
  /** Absolute quarter-beat phrase starts; optional closing boundary has no label. */
  phraseStarts?:number[]; measureMap?:SourceMeasure[]; hideInitialTonic?:boolean; modulationMarkerPlacement?:ModulationMarkerPlacement;
 } | {layout:MeasureHeaderLayout; row?:never}) & {
- height?:number|string; selectedMeasure?:number|null; onMeasureSelect?:(beat:number,measure:PositionedMeasure)=>void;
+ height?:number|string; selectedMeasure?:number|null; onMeasureSelect?:(beat:number,measure:PositionedMeasure,element?:HTMLDivElement)=>void;
  showHeader?:boolean; transpose?:number; renderMeasureExtras?:(measure:PositionedMeasure)=>React.ReactNode;
 };
 export const RawlMeasureHeader:React.FC<RawlMeasureHeaderProps>;
@@ -84,4 +84,4 @@ export const RAWL_COLORS:ReadonlyArray<{background:string;foreground:string;dot?
 
 export function recolorModulation(changes:TonicChange[],beat:number,pitch:number):TonicChange[];
 export function recolorBoundary(changes:TonicChange[],measureBeat:number,barBeats:number,measureMap?:SourceMeasure[]):number;
-export function useTonicRecoloring(options:{changes:TonicChange[];barBeats?:number;measureMap?:SourceMeasure[];onChange?:(changes:TonicChange[])=>void}):{changes:TonicChange[];selectedMeasure:number|null;selectMeasure(beat:number,measure?:PositionedMeasure):void;hoverNote(note:MidiNote|null):void;chooseNote(note:MidiNote):boolean;cancel():void};
+export function useTonicRecoloring(options:{changes:TonicChange[];barBeats?:number;measureMap?:SourceMeasure[];onChange?:(changes:TonicChange[])=>void}):{changes:TonicChange[];selectedMeasure:number|null;selectMeasure(beat:number,measure?:PositionedMeasure,element?:HTMLDivElement):void;hoverNote(note:MidiNote|null):void;chooseNote(note:MidiNote):boolean;cancel():void};

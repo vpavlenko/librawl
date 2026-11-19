@@ -15681,7 +15681,7 @@ var LibrawlCaplinNotes = (() => {
     }), [positioned, row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic, modulationMarkerPlacement]);
     const select = (event, measure) => {
       event.stopPropagation();
-      onMeasureSelect(measure.beat, measure);
+      onMeasureSelect(measure.beat, measure, event.currentTarget);
     };
     return /* @__PURE__ */ import_react6.default.createElement("div", { ref: element, className: "rawln-measure-grid", style: { height } }, measures.map((measure) => {
       var _a;
@@ -15786,27 +15786,34 @@ var LibrawlCaplinNotes = (() => {
     const measure = measureMap == null ? void 0 : measureMap.find((measure2) => Math.abs(measure2.start - measureBeat) < 1e-7), end = measure ? measure.start + measure.duration : measureBeat + barBeats;
     return (_b = (_a = changes.find((change) => change.beat >= measureBeat - 1e-7 && change.beat < end - 1e-7)) == null ? void 0 : _a.beat) != null ? _b : measureBeat;
   }
-  var initial = (source) => ({ source, committed: source, selectedMeasure: null, boundary: null, preview: null });
+  var clearedSelection = { selectedMeasure: null, selectedElement: null, boundary: null, preview: null };
+  var initial = (source) => ({ source, committed: source, ...clearedSelection });
   function useTonicRecoloring({ changes, barBeats = 4, measureMap, onChange }) {
     var _a;
     const [stored, setStored] = (0, import_react7.useState)(() => initial(changes)), state = stored.source === changes ? stored : initial(changes);
-    const cancel = () => setStored((previous) => ({ ...previous, selectedMeasure: null, boundary: null, preview: null }));
+    const cancel = () => setStored((previous) => ({ ...previous, ...clearedSelection }));
     (0, import_react7.useEffect)(() => {
+      var _a2;
       if (state.selectedMeasure === null) return;
+      const { selectedElement } = state, ownerDocument = (_a2 = selectedElement == null ? void 0 : selectedElement.ownerDocument) != null ? _a2 : document;
       const escape = (event) => {
-        if (event.key === "Escape") cancel();
+        if (event.key !== "Escape") return;
+        cancel();
+        if (selectedElement && ownerDocument.activeElement === selectedElement) selectedElement.blur();
       };
-      document.addEventListener("keydown", escape);
-      return () => document.removeEventListener("keydown", escape);
-    }, [state.selectedMeasure]);
+      ownerDocument.addEventListener("keydown", escape);
+      return () => ownerDocument.removeEventListener("keydown", escape);
+    }, [state.selectedMeasure, state.selectedElement]);
     return {
       changes: (_a = state.preview) != null ? _a : state.committed,
       selectedMeasure: state.selectedMeasure,
-      selectMeasure(beat, measure) {
+      selectMeasure(beat, measure, element) {
         setStored((previous) => {
           var _a2;
-          const current = previous.source === changes ? previous : initial(changes), selectedMeasure = current.selectedMeasure === beat ? null : beat;
-          return { ...current, selectedMeasure, boundary: selectedMeasure === null ? null : (_a2 = measure == null ? void 0 : measure.modulationBeat) != null ? _a2 : recolorBoundary(current.committed, beat, barBeats, measureMap), preview: null };
+          const current = previous.source === changes ? previous : initial(changes);
+          if (current.selectedMeasure === beat) return { ...current, ...clearedSelection };
+          const boundary = (_a2 = measure == null ? void 0 : measure.modulationBeat) != null ? _a2 : recolorBoundary(current.committed, beat, barBeats, measureMap);
+          return { ...current, selectedMeasure: beat, selectedElement: element != null ? element : null, boundary, preview: null };
         });
       },
       hoverNote(note) {
@@ -15816,7 +15823,7 @@ var LibrawlCaplinNotes = (() => {
       chooseNote(note) {
         if (state.boundary === null) return false;
         const committed = recolorModulation(state.committed, state.boundary, note.pitch);
-        setStored({ ...state, committed, preview: null, selectedMeasure: null, boundary: null });
+        setStored({ ...state, committed, ...clearedSelection });
         onChange == null ? void 0 : onChange(committed);
         return true;
       },

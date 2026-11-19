@@ -47,8 +47,10 @@ test('shared headers carry source numbers and recolor selected tonic regions acr
     assert.deepEqual(labels.map(label => label.textContent), ['17', '18', '19']);
     assert.equal(panel.querySelectorAll('.rawln-measure-grid').length, 2);
     assert.equal(scores[1].querySelector('.rawln-modulation').dataset.tonic, '7');
+    labels[1].focus();
     keyboard(labels[1], 'Enter');
     assert.equal(selected(), '18');
+    assert.equal(document.activeElement, labels[1]);
     handle.hoverNote({pitch: 62});
     await Promise.resolve();
     assert.equal(colors.at(-1)[0].tonic, 2);
@@ -61,6 +63,17 @@ test('shared headers carry source numbers and recolor selected tonic regions acr
     await Promise.resolve();
     assert.equal(selected(), undefined);
     assert.equal(colors.at(-1), changes);
+    assert.equal(document.activeElement, document.body);
+    assert.equal(labels[1].tabIndex, 0);
+    assert.equal(labels[1].getAttribute('aria-pressed'), 'false');
+    const otherControl = document.createElement('button');
+    document.body.append(otherControl);
+    keyboard(labels[1], 'Enter');
+    assert.equal(selected(), '18');
+    otherControl.focus();
+    keyboard(otherControl, 'Escape');
+    assert.equal(selected(), undefined);
+    assert.equal(document.activeElement, otherControl);
     flushSync(() => labels[1].click());
     assert.equal(handle.chooseNote({pitch: 64}), true);
     await Promise.resolve();
