@@ -20,12 +20,17 @@
   color: #fff;
   font: 11px/9px system-ui, sans-serif;
   text-align: center;
-  white-space: pre;
   pointer-events: none;
 }
 .rawln-note[data-note-star]::before { content: "*"; }
-.rawln-note[data-note-arrow]::before { bottom: calc(100% + 3px); content: "↓"; }
-.rawln-note[data-note-star][data-note-arrow]::before { content: "*\A↓"; }
+.rawln-note[data-note-arrow]::before {
+  bottom: calc(100% + 3px);
+  width: 7px;
+  height: 9px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 9'%3E%3Cpath d='M3.5 .5v8M1 6l2.5 2.5L6 6' fill='none' stroke='%23aaa' stroke-width='.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center bottom / 7px 9px no-repeat;
+  content: "";
+}
+.rawln-note[data-note-star][data-note-arrow]::before { height: 18px; content: "*"; }
 .rawln-double-bar { background: #e0e0e0; box-shadow: 2px 0 #e0e0e0; }
 .rawln-double-bar[data-terminal] { transform: translateX(-3px); }
 .rawln-source-cross,
@@ -33,14 +38,14 @@
 .rawln-source-cross { color: #fff; font: 10px/8px system-ui, sans-serif; }
 .rawln-source-circle {
   box-sizing: border-box;
-  border: 1px solid #c9aadb;
+  border: 1px solid #b2b2b2;
   border-radius: 1.2rem;
 }
 .rawln-source-brackets { display: grid; grid-auto-rows: 6px; }
 .rawln-source-bracket {
   grid-column: 1;
   box-sizing: border-box;
-  border: 1px solid #ac94be;
+  border: 1px solid #9c9c9c;
   border-top: 0;
 }
 .rawln-source-comments {
@@ -66,5 +71,5 @@
   cursor: pointer;
 }
 .rawln-source-comment b { font-weight: 550; font-variant-numeric: tabular-nums; }
-.rawln-source-comment:hover { background: #37323d; }
+.rawln-source-comment:hover { background: #333; }
 .rawln-source-comment:focus-visible { outline: 1px solid #ddd; outline-offset: -1px; }

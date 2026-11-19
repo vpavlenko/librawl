@@ -49,7 +49,7 @@ test('inline media scores share ownership and seek, highlight and reset on the a
       {id: 'second', pitch: 62, start: 1, duration: 1, voice: 0},
     ],
   };
-  const swingScore = {...score, phraseStarts: [.5], notes: [
+  const swingScore = {...score, barBeats: .5, phraseStarts: [.5], notes: [
     {...score.notes[0], duration: .5},
     {id: 'offbeat', pitch: 61, start: .5, duration: .5, voice: 0},
     score.notes[1],
@@ -113,6 +113,12 @@ test('inline media scores share ownership and seek, highlight and reset on the a
     assert.equal(second.querySelector('.rawln-sounding').dataset.note, 'offbeat');
     const phrasePosition = parseFloat(second.querySelector('.rawlp-phrase-mark').style.left);
     assert(Math.abs(phrasePosition - (100 * (1 / 3) / 1.5)) < 1e-10);
+    const [downbeat, offbeat] = second.querySelectorAll('.rawlp-bass-bar');
+    assert.equal(downbeat.style.left, '0%');
+    assert.equal(downbeat.style.background, second.querySelector('[data-note="first"]').style.background);
+    assert(Math.abs(parseFloat(downbeat.style.width) - phrasePosition) < 1e-10);
+    assert(Math.abs(parseFloat(offbeat.style.left) - phrasePosition) < 1e-10);
+    assert.notEqual(offbeat.style.background, downbeat.style.background);
     click(second, 'Стоп');
     assert.equal(secondAudio.paused, true);
     assert.equal(secondAudio.currentTime, 0);

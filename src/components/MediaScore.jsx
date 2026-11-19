@@ -4,6 +4,7 @@ import {bindPlaybackKeys} from '../audio/playback-keys.js';
 import {createMediaBeatClock} from '../audio/media-beat-clock.mjs';
 import {RawlNotation} from '../notation/RawlNotation.jsx';
 import {PlaybackFooter} from './PlaybackFooter.jsx';
+import {mediaTimeline} from './media-timeline.js';
 import {observePlaybackPosition} from './playback-position.js';
 
 const activeByDocument = new WeakMap();
@@ -22,10 +23,13 @@ function MediaScorePlayer({score, src, secondsPerBeat, beatAnchors, label, label
   const [status, setStatus] = useState({
     duration: scoreDuration, position: 0, playing: false, failed: false, rejected: false,
   });
-  const timeline = useMemo(() => ({
-    sections: score.rows?.map(row => mediaClock.secondsAt(row.start)),
-    phrases: score.phraseStarts?.map(mediaClock.secondsAt),
-  }), [score.rows, score.phraseStarts, mediaClock]);
+  const [edit, setEdit] = useState(null);
+  const changes = edit?.score === score ? edit.changes : score.changes;
+  const timeline = useMemo(() => mediaTimeline(score, mediaClock, changes), [score, mediaClock, changes]);
+  const onChangesChange = useCallback(next => {
+    setEdit({score, changes: next});
+    score.onChangesChange?.(next);
+  }, [score]);
 
   useLayoutEffect(() => {
     const media = mediaRef.current;
@@ -155,7 +159,8 @@ function MediaScorePlayer({score, src, secondsPerBeat, beatAnchors, label, label
     <div className="rawlp-media-score" role={label ? 'group' : undefined} aria-label={label}>
       <audio hidden src={src} ref={mediaRef} preload="metadata" />
       {label && <div className="rawlp-media-score-label">{label}</div>}
-      <RawlNotation {...score} position={undefined} playbackClock={clock} onSeek={seekBeat} />
+      <RawlNotation {...score} position={undefined} playbackClock={clock}
+        onSeek={seekBeat} onChangesChange={onChangesChange} />
       <PlaybackFooter
         position={status.position} duration={status.duration} playing={status.playing}
         inline labels={labels} timeline={timeline} keyboardShortcuts={false}

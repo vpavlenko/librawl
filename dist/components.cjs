@@ -2800,6 +2800,45 @@ function createMediaBeatClock(secondsPerBeat, beatAnchors = []) {
   };
 }
 
+// src/components/media-timeline.js
+function mediaTimeline(score, clock, changes = []) {
+  var _a, _b, _c;
+  const { notes, beats, tonic = 0, barBeats = 4 } = score;
+  const { secondsAt } = clock;
+  const bars = (_a = score.measureMap) != null ? _a : barBeats > 0 && Number.isFinite(barBeats) ? Array.from({ length: Math.ceil(beats / barBeats) }, (_, index) => {
+    const start = index * barBeats;
+    return { start, duration: Math.min(barBeats, beats - start) };
+  }) : [];
+  const byOnset = notes.map((note) => {
+    var _a2;
+    const [start, end] = (_a2 = note.playbackSpan) != null ? _a2 : [note.start, note.start + note.duration];
+    return { note, start: secondsAt(start), end: secondsAt(end) };
+  }).sort((a, b) => a.start - b.start || a.note.pitch - b.note.pitch);
+  const byPitch = [...byOnset].sort((a, b) => a.note.pitch - b.note.pitch);
+  const bassBars = bars.flatMap((bar) => {
+    var _a2, _b2;
+    const start = secondsAt(bar.start);
+    const end = secondsAt(bar.start + bar.duration);
+    const picked = (_b2 = (_a2 = byPitch.find((note2) => note2.start >= start - 0.05 && note2.start <= start + 0.05)) != null ? _a2 : byPitch.find((note2) => note2.start <= start + 0.05 && note2.end > start - 0.05)) != null ? _b2 : byOnset.find((note2) => note2.start >= start && note2.start < end);
+    if (!picked) return [];
+    const { note } = picked;
+    const degree = mod(note.pitch - tonicAt(tonic, changes, note.start + note.duration / 2));
+    return [{ start, end, color: RAWL_COLORS[degree].background }];
+  });
+  let previous = tonic;
+  const coloredMarks = changes.flatMap(({ beat, tonic: next }) => {
+    const shift = mod(next - previous);
+    previous = next;
+    return beat > 0 && shift ? [{ time: secondsAt(beat), color: RAWL_COLORS[shift].background }] : [];
+  });
+  return {
+    sections: (_b = score.rows) == null ? void 0 : _b.map((row) => secondsAt(row.start)),
+    phrases: (_c = score.phraseStarts) == null ? void 0 : _c.map(secondsAt),
+    bassBars,
+    coloredMarks
+  };
+}
+
 // src/components/MediaScore.jsx
 var activeByDocument = /* @__PURE__ */ new WeakMap();
 function MediaScore(props) {
@@ -2819,13 +2858,14 @@ function MediaScorePlayer({ score, src, secondsPerBeat, beatAnchors, label, labe
     failed: false,
     rejected: false
   });
-  const timeline = (0, import_react14.useMemo)(() => {
-    var _a2, _b;
-    return {
-      sections: (_a2 = score.rows) == null ? void 0 : _a2.map((row) => mediaClock.secondsAt(row.start)),
-      phrases: (_b = score.phraseStarts) == null ? void 0 : _b.map(mediaClock.secondsAt)
-    };
-  }, [score.rows, score.phraseStarts, mediaClock]);
+  const [edit, setEdit] = (0, import_react14.useState)(null);
+  const changes = (edit == null ? void 0 : edit.score) === score ? edit.changes : score.changes;
+  const timeline = (0, import_react14.useMemo)(() => mediaTimeline(score, mediaClock, changes), [score, mediaClock, changes]);
+  const onChangesChange = (0, import_react14.useCallback)((next) => {
+    var _a2;
+    setEdit({ score, changes: next });
+    (_a2 = score.onChangesChange) == null ? void 0 : _a2.call(score, next);
+  }, [score]);
   (0, import_react14.useLayoutEffect)(() => {
     var _a2;
     const media = mediaRef.current;
@@ -2953,7 +2993,16 @@ function MediaScorePlayer({ score, src, secondsPerBeat, beatAnchors, label, labe
     var _a2, _b;
     return (_b = (_a2 = mediaRef.current) == null ? void 0 : _a2.currentTime) != null ? _b : 0;
   }, []);
-  return /* @__PURE__ */ import_react14.default.createElement("div", { className: "rawlp-media-score", role: label ? "group" : void 0, "aria-label": label }, /* @__PURE__ */ import_react14.default.createElement("audio", { hidden: true, src, ref: mediaRef, preload: "metadata" }), label && /* @__PURE__ */ import_react14.default.createElement("div", { className: "rawlp-media-score-label" }, label), /* @__PURE__ */ import_react14.default.createElement(RawlNotation, { ...score, position: void 0, playbackClock: clock, onSeek: seekBeat }), /* @__PURE__ */ import_react14.default.createElement(
+  return /* @__PURE__ */ import_react14.default.createElement("div", { className: "rawlp-media-score", role: label ? "group" : void 0, "aria-label": label }, /* @__PURE__ */ import_react14.default.createElement("audio", { hidden: true, src, ref: mediaRef, preload: "metadata" }), label && /* @__PURE__ */ import_react14.default.createElement("div", { className: "rawlp-media-score-label" }, label), /* @__PURE__ */ import_react14.default.createElement(
+    RawlNotation,
+    {
+      ...score,
+      position: void 0,
+      playbackClock: clock,
+      onSeek: seekBeat,
+      onChangesChange
+    }
+  ), /* @__PURE__ */ import_react14.default.createElement(
     PlaybackFooter,
     {
       position: status.position,

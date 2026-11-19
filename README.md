@@ -27,6 +27,8 @@ Package modules require React and React DOM 19. The standalone Caplin browser ad
 
 Load the stylesheets for the components you render. Import each sheet once at the application entry point. For a static reader, link the CSS files from the same pinned librawl package as the JavaScript, then load your host layout styles.
 
+Reserve hue for pitch information in Rawl snippets and the interface around them. Use grayscale for brackets, arrows, structural guides, hover fills, focus indicators and surrounding controls.
+
 | What you render | Stylesheets to import |
 | --- | --- |
 | `RawlNotation` from `librawl` | `librawl/style.css` and `librawl/native.css` |
@@ -127,7 +129,7 @@ This scheduler consumes prepared note/program/CC plans. It does not claim arbitr
 
 ## Inline media scores
 
-`MediaScore` combines `RawlNotation` and the inline `PlaybackFooter` using a supplied audio file and fixed seconds per quarter beat. The media clock highlights native notes and measures. Each document has one active clip.
+`MediaScore` combines `RawlNotation` and the inline `PlaybackFooter` using a supplied audio file and fixed seconds per quarter beat. The media clock highlights native notes and measures and positions the footer’s per-measure pitch strip. Each document has one active clip.
 Supply optional `beatAnchors` as increasing `[displayBeat, playedBeat]` pairs for timing such as swing.
 Offline renderers can use the same map with `createMediaBeatClock` from `librawl/media-beat-clock`.
 
