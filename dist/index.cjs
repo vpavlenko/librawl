@@ -388,7 +388,8 @@ function RawlMeasureHeader({
   showHeader = true,
   transpose = 0,
   renderMeasureExtras,
-  modulationMarkerPlacement
+  modulationMarkerPlacement,
+  sectionEditing
 }) {
   const element = (0, import_react.useRef)(null);
   const [width, setWidth] = (0, import_react.useState)(0);
@@ -424,6 +425,19 @@ function RawlMeasureHeader({
   const select = (event, measure) => {
     event.stopPropagation();
     onMeasureSelect(measure.beat, measure, event.currentTarget);
+  };
+  const editSection = (event, measure) => {
+    if (event.defaultPrevented || event.key !== "Enter" || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing || event.currentTarget.value.trim()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const { sectionStarts, onSplit, onGlue } = sectionEditing;
+    if (!sectionStarts.some((start) => start < measure.beat)) return;
+    const startsSection = sectionStarts.includes(measure.beat);
+    if (event.shiftKey) {
+      if (startsSection) onGlue(measure);
+    } else if (measure.isPhraseStart && !startsSection) {
+      onSplit(measure);
+    }
   };
   return /* @__PURE__ */ import_react.default.createElement("div", { ref: element, className: "rawln-measure-grid", style: { height } }, measures.map((measure) => {
     var _a;
@@ -506,7 +520,7 @@ function RawlMeasureHeader({
             cursor: onMeasureSelect ? "pointer" : void 0
           }
         },
-        renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure),
+        renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && selectedMeasure === measure.beat ? (event) => editSection(event, measure) : void 0),
         /* @__PURE__ */ import_react.default.createElement("span", null, measure.number)
       )
     );
@@ -716,7 +730,7 @@ function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, hovere
     return { role: "button", tabIndex: -1, "aria-label": noteName(original.pitch), "data-note": original.id, "data-pitch": original.pitch, "data-degree": degree, "data-voice": original.voice, className: `rawln-note rawln-voice-${original.voice}${muted ? " rawln-muted" : ""}`, style: { left: (start - row.start) / span * 100 + "%", width: (end - start) / span * 100 + "%", ...!((_a = note.pitchBend) == null ? void 0 : _a.length) && RAWL_COLORS[degree] ? { background: RAWL_COLORS[degree].background } : {}, zIndex: 100 + (84 - original.pitch) + (original.voice === 1 ? 128 : 0) } };
   } })));
 }
-function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, modulationMarkerPlacement, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = [], onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, renderHeader, renderUnderlay, renderFooter, className = "", style, ref }) {
+function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, modulationMarkerPlacement, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = [], onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, sectionEditing, renderMeasureExtras, renderHeader, renderUnderlay, renderFooter, className = "", style, ref }) {
   const root = (0, import_react5.useRef)(null), hoveredRef = (0, import_react5.useRef)(null), [hoveredKey, setHoveredKey] = (0, import_react5.useState)(null), ownClock = (0, import_react5.useMemo)(import_native.createSectionPlaybackClock, []), clock = playbackClock != null ? playbackClock : ownClock;
   const audition = onNoteAudition != null ? onNoteAudition : onNote;
   const seek = onSeek != null ? onSeek : ((beat) => (playbackClock == null ? void 0 : playbackClock.seek) ? playbackClock.seek(beat) : clock.advance(beat));
@@ -755,7 +769,7 @@ function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2,
         pitchToY: (pitch) => axis.pitchToY(pitch) + axis.pitchStep,
         regions: regions.map((region) => ({ ...region, left: x(region.start) + "%", width: (region.end - region.start) / span * 100 + "%" }))
       }
-    ), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ import_react5.default.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic, modulationMarkerPlacement }), /* @__PURE__ */ import_react5.default.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, hoveredKey, setHoveredKey, hoveredRef, onNote: (note) => {
+    ), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ import_react5.default.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic, modulationMarkerPlacement, sectionEditing, renderMeasureExtras }), /* @__PURE__ */ import_react5.default.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, hoveredKey, setHoveredKey, hoveredRef, onNote: (note) => {
       if (automatic && editor.chooseNote(note)) return;
       if (onNote) onNote(note);
       else if (selectedMeasure === null) seek(Math.max(row.start, note.start));
@@ -2662,10 +2676,10 @@ function ScoreSizeSliders({ noteHeight, timeSpacing, onNoteHeightChange, onTimeS
 // src/components/PianoLegend.jsx
 var import_react11 = __toESM(require("react"), 1);
 
-// node_modules/lucide-react/dist/esm/createLucideIcon.js
+// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/createLucideIcon.js
 var import_react10 = require("react");
 
-// node_modules/lucide-react/dist/esm/shared/src/utils.js
+// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/shared/src/utils.js
 var toKebabCase = (string) => string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
 var toCamelCase = (string) => string.replace(
   /^([A-Z])|[\s-_]+(\w)/g,
@@ -2686,10 +2700,10 @@ var hasA11yProp = (props) => {
   }
 };
 
-// node_modules/lucide-react/dist/esm/Icon.js
+// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/Icon.js
 var import_react9 = require("react");
 
-// node_modules/lucide-react/dist/esm/defaultAttributes.js
+// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/defaultAttributes.js
 var defaultAttributes = {
   xmlns: "http://www.w3.org/2000/svg",
   width: 24,
@@ -2702,7 +2716,7 @@ var defaultAttributes = {
   strokeLinejoin: "round"
 };
 
-// node_modules/lucide-react/dist/esm/Icon.js
+// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/Icon.js
 var Icon = (0, import_react9.forwardRef)(
   ({
     color: color2 = "currentColor",
@@ -2733,7 +2747,7 @@ var Icon = (0, import_react9.forwardRef)(
   )
 );
 
-// node_modules/lucide-react/dist/esm/createLucideIcon.js
+// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/createLucideIcon.js
 var createLucideIcon = (iconName, iconNode) => {
   const Component = (0, import_react10.forwardRef)(
     ({ className, ...props }, ref) => (0, import_react10.createElement)(Icon, {
@@ -2751,15 +2765,15 @@ var createLucideIcon = (iconName, iconNode) => {
   return Component;
 };
 
-// node_modules/lucide-react/dist/esm/icons/chevron-down.js
+// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/icons/chevron-down.js
 var __iconNode = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
 var ChevronDown = createLucideIcon("chevron-down", __iconNode);
 
-// node_modules/lucide-react/dist/esm/icons/chevron-up.js
+// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/icons/chevron-up.js
 var __iconNode2 = [["path", { d: "m18 15-6-6-6 6", key: "153udz" }]];
 var ChevronUp = createLucideIcon("chevron-up", __iconNode2);
 
-// node_modules/lucide-react/dist/esm/icons/graduation-cap.js
+// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/icons/graduation-cap.js
 var __iconNode3 = [
   [
     "path",
@@ -2773,7 +2787,7 @@ var __iconNode3 = [
 ];
 var GraduationCap = createLucideIcon("graduation-cap", __iconNode3);
 
-// node_modules/lucide-react/dist/esm/icons/guitar.js
+// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/icons/guitar.js
 var __iconNode4 = [
   ["path", { d: "m11.9 12.1 4.514-4.514", key: "109xqo" }],
   [

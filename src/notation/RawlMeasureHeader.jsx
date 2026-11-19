@@ -36,7 +36,7 @@ export function RawlMeasureHeader({
   row, layout: positioned, height = '100%', tonic = 0, changes = EMPTY_CHANGES,
   barBeats = 4, beatBeats = 1, phraseStarts, measureMap, selectedMeasure = null,
   onMeasureSelect, hideInitialTonic = false, showHeader = true, transpose = 0,
-  renderMeasureExtras, modulationMarkerPlacement,
+  renderMeasureExtras, modulationMarkerPlacement, sectionEditing,
 }) {
   const element = useRef(null);
   const [width, setWidth] = useState(0);
@@ -58,6 +58,20 @@ export function RawlMeasureHeader({
   const select = (event, measure) => {
     event.stopPropagation();
     onMeasureSelect(measure.beat, measure, event.currentTarget);
+  };
+  const editSection = (event, measure) => {
+    if (event.defaultPrevented || event.key !== 'Enter' || event.altKey || event.ctrlKey || event.metaKey ||
+      event.nativeEvent.isComposing || event.currentTarget.value.trim()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const {sectionStarts, onSplit, onGlue} = sectionEditing;
+    if (!sectionStarts.some(start => start < measure.beat)) return;
+    const startsSection = sectionStarts.includes(measure.beat);
+    if (event.shiftKey) {
+      if (startsSection) onGlue(measure);
+    } else if (measure.isPhraseStart && !startsSection) {
+      onSplit(measure);
+    }
   };
   return <div ref={element} className="rawln-measure-grid" style={{height}}>
     {measures.map(measure => <div
@@ -105,7 +119,8 @@ export function RawlMeasureHeader({
               data-score-measure={measure.number}
               style={{color: measure.color, pointerEvents: onMeasureSelect ? 'auto' : undefined,
                 cursor: onMeasureSelect ? 'pointer' : undefined}}>
-              {renderMeasureExtras?.(measure)}
+              {renderMeasureExtras?.(measure, sectionEditing && selectedMeasure === measure.beat
+                ? event => editSection(event, measure) : undefined)}
               <span>{measure.number}</span>
             </div>
           </div>;

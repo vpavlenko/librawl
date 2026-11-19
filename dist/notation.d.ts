@@ -34,6 +34,7 @@ export interface RawlNotationProps {
  onSeek?:(beat:number)=>void; onNote?:(note:MidiNote)=>void; onNoteAudition?:(note:MidiNote)=>void; onNoteHover?:(note:MidiNote|null)=>void;
  onMeasureSelect?:(beat:number)=>void; selectedMeasure?:number|null;
  onChangesChange?:(changes:TonicChange[])=>void; recolorable?:boolean;
+ sectionEditing?:MeasureSectionEditing; renderMeasureExtras?:RenderMeasureExtras;
  renderHeader?:(row:ScoreRow)=>React.ReactNode;
  renderUnderlay?:(row:ScoreRow,axis:ReturnType<typeof staveGeometry>)=>React.ReactNode;
  renderFooter?:(row:ScoreRow,context:{changes:TonicChange[];selectedMeasure:number|null})=>React.ReactNode;
@@ -63,13 +64,20 @@ export interface MeasureHeaderLayout {
  beats:readonly {beat:number;left:number|string}[];
  markers:readonly PositionedKeyMarker[];
 }
+export interface MeasureSectionEditing {
+ /** Section starts in score coordinates, including the first section. */
+ sectionStarts:readonly number[];
+ onSplit:(measure:PositionedMeasure)=>void;
+ onGlue:(measure:PositionedMeasure)=>void;
+}
+export type RenderMeasureExtras = (measure:PositionedMeasure, onSectionKeyDown?:React.KeyboardEventHandler<HTMLInputElement>)=>React.ReactNode;
 export type RawlMeasureHeaderProps = ({
  row:ScoreRow; layout?:never; tonic?:number; changes?:TonicChange[]; barBeats?:number; beatBeats?:number;
  /** Absolute quarter-beat phrase starts; optional closing boundary has no label. */
  phraseStarts?:number[]; measureMap?:SourceMeasure[]; hideInitialTonic?:boolean; modulationMarkerPlacement?:ModulationMarkerPlacement;
 } | {layout:MeasureHeaderLayout; row?:never}) & {
  height?:number|string; selectedMeasure?:number|null; onMeasureSelect?:(beat:number,measure:PositionedMeasure,element?:HTMLDivElement)=>void;
- showHeader?:boolean; transpose?:number; renderMeasureExtras?:(measure:PositionedMeasure)=>React.ReactNode;
+ showHeader?:boolean; transpose?:number; sectionEditing?:MeasureSectionEditing; renderMeasureExtras?:RenderMeasureExtras;
 };
 export const RawlMeasureHeader:React.FC<RawlMeasureHeaderProps>;
 export interface TonalGridProps {

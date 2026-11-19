@@ -35,9 +35,9 @@ var LibrawlCaplinNotes = (() => {
   ));
   var __toCommonJS = (mod2) => __copyProps(__defProp({}, "__esModule", { value: true }), mod2);
 
-  // node_modules/react/cjs/react.production.js
+  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/react/cjs/react.production.js
   var require_react_production = __commonJS({
-    "node_modules/react/cjs/react.production.js"(exports) {
+    "../../../Users/chipfocus/repos/lego/librawl/node_modules/react/cjs/react.production.js"(exports) {
       "use strict";
       var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.transitional.element");
       var REACT_PORTAL_TYPE = /* @__PURE__ */ Symbol.for("react.portal");
@@ -487,9 +487,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // node_modules/react/index.js
+  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/react/index.js
   var require_react = __commonJS({
-    "node_modules/react/index.js"(exports, module) {
+    "../../../Users/chipfocus/repos/lego/librawl/node_modules/react/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_production();
@@ -499,9 +499,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // node_modules/scheduler/cjs/scheduler.production.js
+  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/scheduler/cjs/scheduler.production.js
   var require_scheduler_production = __commonJS({
-    "node_modules/scheduler/cjs/scheduler.production.js"(exports) {
+    "../../../Users/chipfocus/repos/lego/librawl/node_modules/scheduler/cjs/scheduler.production.js"(exports) {
       "use strict";
       function push(heap, node) {
         var index = heap.length;
@@ -772,9 +772,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // node_modules/scheduler/index.js
+  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/scheduler/index.js
   var require_scheduler = __commonJS({
-    "node_modules/scheduler/index.js"(exports, module) {
+    "../../../Users/chipfocus/repos/lego/librawl/node_modules/scheduler/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_scheduler_production();
@@ -784,9 +784,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // node_modules/react-dom/cjs/react-dom.production.js
+  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/cjs/react-dom.production.js
   var require_react_dom_production = __commonJS({
-    "node_modules/react-dom/cjs/react-dom.production.js"(exports) {
+    "../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/cjs/react-dom.production.js"(exports) {
       "use strict";
       var React7 = require_react();
       function formatProdErrorMessage(code) {
@@ -941,9 +941,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // node_modules/react-dom/index.js
+  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/index.js
   var require_react_dom = __commonJS({
-    "node_modules/react-dom/index.js"(exports, module) {
+    "../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/index.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -967,9 +967,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // node_modules/react-dom/cjs/react-dom-client.production.js
+  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/cjs/react-dom-client.production.js
   var require_react_dom_client_production = __commonJS({
-    "node_modules/react-dom/cjs/react-dom-client.production.js"(exports) {
+    "../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/cjs/react-dom-client.production.js"(exports) {
       "use strict";
       var Scheduler = require_scheduler();
       var React7 = require_react();
@@ -14511,9 +14511,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // node_modules/react-dom/client.js
+  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/client.js
   var require_client = __commonJS({
-    "node_modules/react-dom/client.js"(exports, module) {
+    "../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/client.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -15654,7 +15654,8 @@ var LibrawlCaplinNotes = (() => {
     showHeader = true,
     transpose = 0,
     renderMeasureExtras,
-    modulationMarkerPlacement
+    modulationMarkerPlacement,
+    sectionEditing
   }) {
     const element = (0, import_react6.useRef)(null);
     const [width, setWidth] = (0, import_react6.useState)(0);
@@ -15690,6 +15691,19 @@ var LibrawlCaplinNotes = (() => {
     const select = (event, measure) => {
       event.stopPropagation();
       onMeasureSelect(measure.beat, measure, event.currentTarget);
+    };
+    const editSection = (event, measure) => {
+      if (event.defaultPrevented || event.key !== "Enter" || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing || event.currentTarget.value.trim()) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const { sectionStarts, onSplit, onGlue } = sectionEditing;
+      if (!sectionStarts.some((start) => start < measure.beat)) return;
+      const startsSection = sectionStarts.includes(measure.beat);
+      if (event.shiftKey) {
+        if (startsSection) onGlue(measure);
+      } else if (measure.isPhraseStart && !startsSection) {
+        onSplit(measure);
+      }
     };
     return /* @__PURE__ */ import_react6.default.createElement("div", { ref: element, className: "rawln-measure-grid", style: { height } }, measures.map((measure) => {
       var _a;
@@ -15772,7 +15786,7 @@ var LibrawlCaplinNotes = (() => {
               cursor: onMeasureSelect ? "pointer" : void 0
             }
           },
-          renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure),
+          renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && selectedMeasure === measure.beat ? (event) => editSection(event, measure) : void 0),
           /* @__PURE__ */ import_react6.default.createElement("span", null, measure.number)
         )
       );

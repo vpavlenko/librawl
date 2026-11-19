@@ -293,7 +293,8 @@ function RawlMeasureHeader({
   showHeader = true,
   transpose = 0,
   renderMeasureExtras,
-  modulationMarkerPlacement
+  modulationMarkerPlacement,
+  sectionEditing
 }) {
   const element = useRef(null);
   const [width, setWidth] = useState(0);
@@ -329,6 +330,19 @@ function RawlMeasureHeader({
   const select = (event, measure) => {
     event.stopPropagation();
     onMeasureSelect(measure.beat, measure, event.currentTarget);
+  };
+  const editSection = (event, measure) => {
+    if (event.defaultPrevented || event.key !== "Enter" || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing || event.currentTarget.value.trim()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const { sectionStarts, onSplit, onGlue } = sectionEditing;
+    if (!sectionStarts.some((start) => start < measure.beat)) return;
+    const startsSection = sectionStarts.includes(measure.beat);
+    if (event.shiftKey) {
+      if (startsSection) onGlue(measure);
+    } else if (measure.isPhraseStart && !startsSection) {
+      onSplit(measure);
+    }
   };
   return /* @__PURE__ */ React2.createElement("div", { ref: element, className: "rawln-measure-grid", style: { height } }, measures.map((measure) => {
     var _a;
@@ -411,7 +425,7 @@ function RawlMeasureHeader({
             cursor: onMeasureSelect ? "pointer" : void 0
           }
         },
-        renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure),
+        renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && selectedMeasure === measure.beat ? (event) => editSection(event, measure) : void 0),
         /* @__PURE__ */ React2.createElement("span", null, measure.number)
       )
     );
@@ -1490,10 +1504,10 @@ function ScoreSizeSliders({ noteHeight, timeSpacing, onNoteHeightChange, onTimeS
 // src/components/PianoLegend.jsx
 import React9, { useEffect as useEffect4, useRef as useRef6, useState as useState4 } from "react";
 
-// node_modules/lucide-react/dist/esm/createLucideIcon.js
+// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/createLucideIcon.js
 import { forwardRef as forwardRef2, createElement as createElement3 } from "react";
 
-// node_modules/lucide-react/dist/esm/shared/src/utils.js
+// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/shared/src/utils.js
 var toKebabCase = (string) => string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
 var toCamelCase = (string) => string.replace(
   /^([A-Z])|[\s-_]+(\w)/g,
@@ -1514,10 +1528,10 @@ var hasA11yProp = (props) => {
   }
 };
 
-// node_modules/lucide-react/dist/esm/Icon.js
+// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/Icon.js
 import { forwardRef, createElement as createElement2 } from "react";
 
-// node_modules/lucide-react/dist/esm/defaultAttributes.js
+// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/defaultAttributes.js
 var defaultAttributes = {
   xmlns: "http://www.w3.org/2000/svg",
   width: 24,
@@ -1530,7 +1544,7 @@ var defaultAttributes = {
   strokeLinejoin: "round"
 };
 
-// node_modules/lucide-react/dist/esm/Icon.js
+// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/Icon.js
 var Icon = forwardRef(
   ({
     color: color2 = "currentColor",
@@ -1561,7 +1575,7 @@ var Icon = forwardRef(
   )
 );
 
-// node_modules/lucide-react/dist/esm/createLucideIcon.js
+// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/createLucideIcon.js
 var createLucideIcon = (iconName, iconNode) => {
   const Component = forwardRef2(
     ({ className, ...props }, ref) => createElement3(Icon, {
@@ -1579,15 +1593,15 @@ var createLucideIcon = (iconName, iconNode) => {
   return Component;
 };
 
-// node_modules/lucide-react/dist/esm/icons/chevron-down.js
+// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/icons/chevron-down.js
 var __iconNode = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
 var ChevronDown = createLucideIcon("chevron-down", __iconNode);
 
-// node_modules/lucide-react/dist/esm/icons/chevron-up.js
+// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/icons/chevron-up.js
 var __iconNode2 = [["path", { d: "m18 15-6-6-6 6", key: "153udz" }]];
 var ChevronUp = createLucideIcon("chevron-up", __iconNode2);
 
-// node_modules/lucide-react/dist/esm/icons/graduation-cap.js
+// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/icons/graduation-cap.js
 var __iconNode3 = [
   [
     "path",
@@ -1601,7 +1615,7 @@ var __iconNode3 = [
 ];
 var GraduationCap = createLucideIcon("graduation-cap", __iconNode3);
 
-// node_modules/lucide-react/dist/esm/icons/guitar.js
+// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/icons/guitar.js
 var __iconNode4 = [
   ["path", { d: "m11.9 12.1 4.514-4.514", key: "109xqo" }],
   [

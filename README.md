@@ -175,6 +175,11 @@ React hosts rendering their own score shell use `RawlMeasureHeader` and `TonalGr
 `librawl/components` with `librawl/style.css`. Pass authored measures and key
 changes to the header, or position them against the host clock and pass a
 `layout`. Use `renderMeasureExtras` for editor controls in a measure label.
+`RawlMeasureHeader` and `RawlNotation` accept `sectionEditing` with `sectionStarts`,
+`onSplit`, and `onGlue`. Attach the second `renderMeasureExtras` argument to the
+selected measure’s rhythm input as its `onKeyDown` handler. With empty input,
+Enter starts a section at a phrase boundary and Shift+Enter glues an existing
+section to its predecessor. Hosts own section changes and persistence.
 `TonalGrid` takes positioned key regions and the host pitch axis.
 
 Plain DOM hosts load `librawl/browser/score-grid.js`. Its `TonalGrid` global
