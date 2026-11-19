@@ -45,6 +45,8 @@ export interface PositionedMeasure {
  labelOffset?:number; hasModulation?:boolean;
  /** Sounding beat of a displaced flag displayed on this measure. */
  modulationBeat?:number;
+ /** Selection beat after accounting for flags displayed on other measures. */
+ recolorBeat?:number;
 }
 export interface KeyMarker {
  beat:number; tonic:number; previousTonic:number|null; delta:number|null;

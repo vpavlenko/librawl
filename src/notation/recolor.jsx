@@ -1,4 +1,6 @@
 import {useEffect,useState} from 'react';
+import {recolorBoundary} from './geometry.mjs';
+export {recolorBoundary};
 const ROOTS=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
 /** Rawl tonic selection changes analysis only, never source pitches or timing. */
 export function recolorModulation(changes,beat,pitch){
@@ -7,10 +9,6 @@ export function recolorModulation(changes,beat,pitch){
  const events=[...changes.filter(change=>Math.abs(change.beat-beat)>=1e-7).map(change=>({...change})),choice].sort((a,b)=>a.beat-b.beat),result=[];
  for(const event of events)if(!result.length||result.at(-1).tonic!==event.tonic)result.push(event);
  return result;
-}
-export function recolorBoundary(changes,measureBeat,barBeats,measureMap){
- const measure=measureMap?.find(measure=>Math.abs(measure.start-measureBeat)<1e-7),end=measure?measure.start+measure.duration:measureBeat+barBeats;
- return changes.find(change=>change.beat>=measureBeat-1e-7&&change.beat<end-1e-7)?.beat??measureBeat;
 }
 const clearedSelection={selectedMeasure:null,selectedElement:null,boundary:null,preview:null};
 const initial=source=>({source,committed:source,...clearedSelection});
@@ -36,7 +34,7 @@ export function useTonicRecoloring({changes,barBeats=4,measureMap,onChange}){
    setStored(previous=>{
     const current=previous.source===changes?previous:initial(changes);
     if(current.selectedMeasure===beat)return {...current,...clearedSelection};
-    const boundary=measure?.modulationBeat??recolorBoundary(current.committed,beat,barBeats,measureMap);
+    const boundary=measure?.recolorBeat??measure?.modulationBeat??recolorBoundary(current.committed,beat,barBeats,measureMap);
     return {...current,selectedMeasure:beat,selectedElement:element??null,boundary,preview:null};
    });
   },

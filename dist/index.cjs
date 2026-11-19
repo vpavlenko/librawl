@@ -196,13 +196,18 @@ function modulationLabelOffset(beat, barBeats, { initial: initial2 = beat === 0,
 function keyMarkers(tonic, changes) {
   return tonicMarkers(tonicEvents(tonic, changes));
 }
+function recolorBoundary(changes, measureBeat, barBeats, measureMap) {
+  var _a, _b;
+  const measure = measureMap == null ? void 0 : measureMap.find((measure2) => Math.abs(measure2.start - measureBeat) < 1e-7), end = measure ? measure.start + measure.duration : measureBeat + barBeats;
+  return (_b = (_a = changes.find((change) => change.beat >= measureBeat - 1e-7 && change.beat < end - 1e-7)) == null ? void 0 : _a.beat) != null ? _b : measureBeat;
+}
 function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatBeats = 1, phraseStarts, measureMap, width = 0, selectedMeasure = null, hideInitialTonic = false, modulationMarkerPlacement }) {
-  var _a;
+  var _a, _b;
   const EPS = 1e-7, span = row.end - row.start, ppb = width / span, x = (beat) => (beat - row.start) / span * 100;
   const explicit = measureMap === void 0 ? null : validateMeasureMap(measureMap);
   const numberAt = (beat) => {
-    var _a2, _b;
-    return (_b = (_a2 = explicit == null ? void 0 : explicit.findLast((measure) => measure.start <= beat + EPS)) == null ? void 0 : _a2.sourceNumber) != null ? _b : Math.floor(beat / barBeats) + 1;
+    var _a2, _b2;
+    return (_b2 = (_a2 = explicit == null ? void 0 : explicit.findLast((measure) => measure.start <= beat + EPS)) == null ? void 0 : _a2.sourceNumber) != null ? _b2 : Math.floor(beat / barBeats) + 1;
   };
   const boundary = (beat) => phraseStarts === void 0 ? Math.abs(beat / (4 * barBeats) - Math.round(beat / (4 * barBeats))) < EPS : phraseStarts.some((start) => Math.abs(start - beat) < EPS);
   const selectedPhrase = selectedMeasure !== null && boundary(selectedMeasure), measures = [], barlines = [], beats = [];
@@ -231,21 +236,24 @@ function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatB
   }
   const actualEvents = keyMarkers(tonic, changes);
   const events = actualEvents.map((marker, index) => {
-    var _a2, _b, _c;
+    var _a2, _b2, _c;
     const onsetOverride = (_a2 = marker.onsetOverride) != null ? _a2 : explicit ? !explicit.some((measure) => Math.abs(measure.start - marker.beat) < EPS) : Math.abs(marker.beat / barBeats - Math.round(marker.beat / barBeats)) > EPS;
     if (modulationMarkerPlacement === "following-measure" && explicit && onsetOverride && marker.onsetOverride !== true && marker.delta !== null) {
       const next = explicit.find((measure) => measure.start > marker.beat + EPS);
-      if (next && ((_c = (_b = actualEvents[index + 1]) == null ? void 0 : _b.beat) != null ? _c : Infinity) > next.start + EPS) {
+      if (next && ((_c = (_b2 = actualEvents[index + 1]) == null ? void 0 : _b2.beat) != null ? _c : Infinity) > next.start + EPS) {
         return { ...marker, beat: next.start, originBeat: marker.beat, number: next.sourceNumber, onsetOverride: false };
       }
     }
     return { ...marker, onsetOverride };
   });
+  const displacedOnsets = new Set(events.map((marker) => marker.originBeat).filter(Number.isFinite));
+  const localChanges = displacedOnsets.size ? changes.filter((change) => !displacedOnsets.has(change.beat)) : changes;
   const markers = markersForRow(events, { ...row, numberAt, hideInitialTonic, toPixels: width > 0 ? (beat) => beat * ppb : null }).map((marker) => ({ ...marker, left: x(marker.beat) }));
   for (const measure of measures) {
     const modulation = markers.find((marker) => marker.beat === measure.beat && marker.delta !== null);
     measure.hasModulation = !!modulation;
     if ((modulation == null ? void 0 : modulation.originBeat) !== void 0) measure.modulationBeat = modulation.originBeat;
+    if (displacedOnsets.size) measure.recolorBeat = (_b = measure.modulationBeat) != null ? _b : recolorBoundary(localChanges, measure.beat, barBeats, explicit);
     if (measure.color === "#666" && modulation) measure.color = "black";
   }
   return { measures, beats: visibleBeatLines(barlines, beats, (beat) => beat * ppb), markers };
@@ -550,11 +558,6 @@ function recolorModulation(changes, beat, pitch) {
   for (const event of events) if (!result.length || result.at(-1).tonic !== event.tonic) result.push(event);
   return result;
 }
-function recolorBoundary(changes, measureBeat, barBeats, measureMap) {
-  var _a, _b;
-  const measure = measureMap == null ? void 0 : measureMap.find((measure2) => Math.abs(measure2.start - measureBeat) < 1e-7), end = measure ? measure.start + measure.duration : measureBeat + barBeats;
-  return (_b = (_a = changes.find((change) => change.beat >= measureBeat - 1e-7 && change.beat < end - 1e-7)) == null ? void 0 : _a.beat) != null ? _b : measureBeat;
-}
 var clearedSelection = { selectedMeasure: null, selectedElement: null, boundary: null, preview: null };
 var initial = (source) => ({ source, committed: source, ...clearedSelection });
 function useTonicRecoloring({ changes, barBeats = 4, measureMap, onChange }) {
@@ -578,10 +581,10 @@ function useTonicRecoloring({ changes, barBeats = 4, measureMap, onChange }) {
     selectedMeasure: state.selectedMeasure,
     selectMeasure(beat, measure, element) {
       setStored((previous) => {
-        var _a2;
+        var _a2, _b;
         const current = previous.source === changes ? previous : initial(changes);
         if (current.selectedMeasure === beat) return { ...current, ...clearedSelection };
-        const boundary = (_a2 = measure == null ? void 0 : measure.modulationBeat) != null ? _a2 : recolorBoundary(current.committed, beat, barBeats, measureMap);
+        const boundary = (_b = (_a2 = measure == null ? void 0 : measure.recolorBeat) != null ? _a2 : measure == null ? void 0 : measure.modulationBeat) != null ? _b : recolorBoundary(current.committed, beat, barBeats, measureMap);
         return { ...current, selectedMeasure: beat, selectedElement: element != null ? element : null, boundary, preview: null };
       });
     },

@@ -27,6 +27,10 @@ export function modulationLabelOffset(beat,barBeats,{initial=beat===0,onsetOverr
 export function keyMarkers(tonic,changes){
  return tonicMarkers(tonicEvents(tonic,changes));
 }
+export function recolorBoundary(changes,measureBeat,barBeats,measureMap){
+ const measure=measureMap?.find(measure=>Math.abs(measure.start-measureBeat)<1e-7),end=measure?measure.start+measure.duration:measureBeat+barBeats;
+ return changes.find(change=>change.beat>=measureBeat-1e-7&&change.beat<end-1e-7)?.beat??measureBeat;
+}
 /** Copy of AnalysisGrid's Measure/NewTonicSymbol layout in quarter beats.
  * Section starts use the phrase accent when they coincide with an existing bar.
  * Terminal phrase boundaries retain their bar without acquiring a number.
@@ -74,12 +78,16 @@ export function measureHeaderLayout({row,tonic=0,changes=[],barBeats=4,beatBeats
   }
   return {...marker,onsetOverride};
  });
+ // A displaced onset is editable from the header that displays the flag.
+ const displacedOnsets=new Set(events.map(marker=>marker.originBeat).filter(Number.isFinite));
+ const localChanges=displacedOnsets.size?changes.filter(change=>!displacedOnsets.has(change.beat)):changes;
  const markers=markersForRow(events,{...row,numberAt,hideInitialTonic,toPixels:width>0?beat=>beat*ppb:null})
   .map(marker=>({...marker,left:x(marker.beat)}));
  for(const measure of measures){
   const modulation=markers.find(marker=>marker.beat===measure.beat&&marker.delta!==null);
   measure.hasModulation=!!modulation;
   if(modulation?.originBeat!==undefined)measure.modulationBeat=modulation.originBeat;
+  if(displacedOnsets.size)measure.recolorBeat=measure.modulationBeat??recolorBoundary(localChanges,measure.beat,barBeats,explicit);
   if(measure.color==='#666'&&modulation)measure.color='black';
  }
  return {measures,beats:visibleBeatLines(barlines,beats,beat=>beat*ppb),markers};
