@@ -227,6 +227,11 @@
   color: var(--neutral4, #fff);
 }
 
+.rawlp-media-score > .rawln {
+  box-sizing: border-box;
+  padding: 8px 10px;
+}
+
 .rawlp-media-score .rawln-measure-number > span { color: #fff; }
 
 .rawlp-media-score-label,
