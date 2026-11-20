@@ -1575,10 +1575,10 @@ function ScoreSizeSliders({ noteHeight, timeSpacing, onNoteHeightChange, onTimeS
 // src/components/PianoLegend.jsx
 var import_react10 = __toESM(require("react"), 1);
 
-// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/createLucideIcon.js
+// node_modules/lucide-react/dist/esm/createLucideIcon.js
 var import_react9 = require("react");
 
-// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/shared/src/utils.js
+// node_modules/lucide-react/dist/esm/shared/src/utils.js
 var toKebabCase = (string) => string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
 var toCamelCase = (string) => string.replace(
   /^([A-Z])|[\s-_]+(\w)/g,
@@ -1599,10 +1599,10 @@ var hasA11yProp = (props) => {
   }
 };
 
-// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/Icon.js
+// node_modules/lucide-react/dist/esm/Icon.js
 var import_react8 = require("react");
 
-// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/defaultAttributes.js
+// node_modules/lucide-react/dist/esm/defaultAttributes.js
 var defaultAttributes = {
   xmlns: "http://www.w3.org/2000/svg",
   width: 24,
@@ -1615,7 +1615,7 @@ var defaultAttributes = {
   strokeLinejoin: "round"
 };
 
-// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/Icon.js
+// node_modules/lucide-react/dist/esm/Icon.js
 var Icon = (0, import_react8.forwardRef)(
   ({
     color: color2 = "currentColor",
@@ -1646,7 +1646,7 @@ var Icon = (0, import_react8.forwardRef)(
   )
 );
 
-// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/createLucideIcon.js
+// node_modules/lucide-react/dist/esm/createLucideIcon.js
 var createLucideIcon = (iconName, iconNode) => {
   const Component = (0, import_react9.forwardRef)(
     ({ className, ...props }, ref) => (0, import_react9.createElement)(Icon, {
@@ -1664,15 +1664,15 @@ var createLucideIcon = (iconName, iconNode) => {
   return Component;
 };
 
-// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/icons/chevron-down.js
+// node_modules/lucide-react/dist/esm/icons/chevron-down.js
 var __iconNode = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
 var ChevronDown = createLucideIcon("chevron-down", __iconNode);
 
-// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/icons/chevron-up.js
+// node_modules/lucide-react/dist/esm/icons/chevron-up.js
 var __iconNode2 = [["path", { d: "m18 15-6-6-6 6", key: "153udz" }]];
 var ChevronUp = createLucideIcon("chevron-up", __iconNode2);
 
-// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/icons/graduation-cap.js
+// node_modules/lucide-react/dist/esm/icons/graduation-cap.js
 var __iconNode3 = [
   [
     "path",
@@ -1686,7 +1686,7 @@ var __iconNode3 = [
 ];
 var GraduationCap = createLucideIcon("graduation-cap", __iconNode3);
 
-// ../../../Users/chipfocus/repos/lego/librawl/node_modules/lucide-react/dist/esm/icons/guitar.js
+// node_modules/lucide-react/dist/esm/icons/guitar.js
 var __iconNode4 = [
   ["path", { d: "m11.9 12.1 4.514-4.514", key: "109xqo" }],
   [

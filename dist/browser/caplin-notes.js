@@ -35,9 +35,9 @@ var LibrawlCaplinNotes = (() => {
   ));
   var __toCommonJS = (mod2) => __copyProps(__defProp({}, "__esModule", { value: true }), mod2);
 
-  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/react/cjs/react.production.js
+  // node_modules/react/cjs/react.production.js
   var require_react_production = __commonJS({
-    "../../../Users/chipfocus/repos/lego/librawl/node_modules/react/cjs/react.production.js"(exports) {
+    "node_modules/react/cjs/react.production.js"(exports) {
       "use strict";
       var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.transitional.element");
       var REACT_PORTAL_TYPE = /* @__PURE__ */ Symbol.for("react.portal");
@@ -487,9 +487,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/react/index.js
+  // node_modules/react/index.js
   var require_react = __commonJS({
-    "../../../Users/chipfocus/repos/lego/librawl/node_modules/react/index.js"(exports, module) {
+    "node_modules/react/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_production();
@@ -499,9 +499,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/scheduler/cjs/scheduler.production.js
+  // node_modules/scheduler/cjs/scheduler.production.js
   var require_scheduler_production = __commonJS({
-    "../../../Users/chipfocus/repos/lego/librawl/node_modules/scheduler/cjs/scheduler.production.js"(exports) {
+    "node_modules/scheduler/cjs/scheduler.production.js"(exports) {
       "use strict";
       function push(heap, node) {
         var index = heap.length;
@@ -772,9 +772,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/scheduler/index.js
+  // node_modules/scheduler/index.js
   var require_scheduler = __commonJS({
-    "../../../Users/chipfocus/repos/lego/librawl/node_modules/scheduler/index.js"(exports, module) {
+    "node_modules/scheduler/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_scheduler_production();
@@ -784,9 +784,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/cjs/react-dom.production.js
+  // node_modules/react-dom/cjs/react-dom.production.js
   var require_react_dom_production = __commonJS({
-    "../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/cjs/react-dom.production.js"(exports) {
+    "node_modules/react-dom/cjs/react-dom.production.js"(exports) {
       "use strict";
       var React7 = require_react();
       function formatProdErrorMessage(code) {
@@ -941,9 +941,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/index.js
+  // node_modules/react-dom/index.js
   var require_react_dom = __commonJS({
-    "../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/index.js"(exports, module) {
+    "node_modules/react-dom/index.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -967,9 +967,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/cjs/react-dom-client.production.js
+  // node_modules/react-dom/cjs/react-dom-client.production.js
   var require_react_dom_client_production = __commonJS({
-    "../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/cjs/react-dom-client.production.js"(exports) {
+    "node_modules/react-dom/cjs/react-dom-client.production.js"(exports) {
       "use strict";
       var Scheduler = require_scheduler();
       var React7 = require_react();
@@ -14511,9 +14511,9 @@ var LibrawlCaplinNotes = (() => {
     }
   });
 
-  // ../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/client.js
+  // node_modules/react-dom/client.js
   var require_client = __commonJS({
-    "../../../Users/chipfocus/repos/lego/librawl/node_modules/react-dom/client.js"(exports, module) {
+    "node_modules/react-dom/client.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
