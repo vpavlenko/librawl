@@ -7,7 +7,7 @@ import {build} from 'esbuild';
 import {JSDOM} from 'jsdom';
 import {nativeColorStyles} from '../src/rawlnative/native-style.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
-const bundle=await build({stdin:{contents:"export {RawlNotation} from './src/notation/RawlNotation.jsx';export {createElement,createRef} from 'react';export {createRoot} from 'react-dom/client';export {flushSync} from 'react-dom';",resolveDir:root,loader:'jsx'},bundle:true,write:false,format:'esm',platform:'browser',jsx:'automatic',minify:true,define:{'process.env.NODE_ENV':'"production"'},plugins:[{name:'native-public-subpath-source',setup(b){b.onResolve({filter:/^librawl\/native$/},()=>({path:path.join(root,'src/rawlnative/index.ts')}));}}]});
+const bundle=await build({stdin:{contents:"export {RawlNotation} from './src/notation/RawlNotation.jsx';export {createSectionPlaybackClock} from './src/rawlnative/index.ts';export {createElement,createRef} from 'react';export {createRoot} from 'react-dom/client';export {flushSync} from 'react-dom';",resolveDir:root,loader:'jsx'},bundle:true,write:false,format:'esm',platform:'browser',jsx:'automatic',minify:true,define:{'process.env.NODE_ENV':'"production"'},plugins:[{name:'native-public-subpath-source',setup(b){b.onResolve({filter:/^librawl\/native$/},()=>({path:path.join(root,'src/rawlnative/index.ts')}));}}]});
 const api=await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'));
 function setup(){
  const dom=new JSDOM('<!doctype html><body><div id="mount"></div></body>',{url:'http://localhost/',pretendToBeVisual:true}),w=dom.window,saved=Object.getOwnPropertyDescriptors(globalThis),keys=['window','document','navigator','HTMLElement','requestAnimationFrame','cancelAnimationFrame'];
@@ -49,6 +49,46 @@ test('Lego adapter carries the original native moving-bend implementation and sc
   env.render({notes:[note],beats:4,rows:[{start:0,end:4}]});const element=host.querySelector('[data-note="bend"]');await wait(()=>element.querySelector('svg')?.getAttribute('width')==='400');assert.equal(element.style.width,'50%');assert.ok(element.classList.contains('pitch-bend-note'));assert.equal(element.style.background,'');
   api.flushSync(()=>ref.current.setPosition(1));assert.equal(element.style.height,'10px');assert.equal(element.querySelector('svg').getAttribute('height'),'10');env.setWidth(1200);w.dispatchEvent(new w.Event('resize'));await wait(()=>element.querySelector('svg').getAttribute('width')==='600');assert.equal(element.style.width,'50%');
  }finally{await env.close();}
+});
+
+test('Hovering and seeking keep unrelated score rows and playback subscriptions stable', async () => {
+ const env = setup();
+ const {host, w} = env;
+ const clock = api.createSectionPlaybackClock();
+ let registers = 0;
+ let unregisters = 0;
+ let headers = 0;
+ const playbackClock = {
+  ...clock,
+  register(...args) {
+   registers++;
+   const unregister = clock.register(...args);
+   return () => { unregisters++; unregister(); };
+  },
+ };
+ const notes = [
+  {id: 'a', pitch: 60, start: 0, duration: 2, voice: 0, playbackSpan: [1, 2]},
+  {id: 'b', pitch: 64, start: 4, duration: 2, voice: 0, playbackSpan: [3, 4]},
+ ];
+ try {
+  env.render({notes, beats: 8, rows: [{start: 0, end: 4}, {start: 4, end: 8}], playbackClock,
+   renderHeader() { headers++; return null; },
+  });
+  const [first, second] = host.querySelectorAll('[data-note]');
+  const baseline = [registers, unregisters, headers];
+  first.dispatchEvent(new w.MouseEvent('mouseover', {bubbles: true}));
+  await wait(() => first.classList.contains('note-under-cursor'));
+  clock.advance(1.5);
+  clock.advance(3.5);
+  assert.equal(first.classList.contains('rawln-sounding'), false);
+  assert.equal(second.classList.contains('rawln-sounding'), true);
+  first.dispatchEvent(new w.MouseEvent('mouseout', {bubbles: true, relatedTarget: second}));
+  await wait(() => second.classList.contains('note-under-cursor'));
+  assert.equal(first.classList.contains('note-under-cursor'), false);
+  assert.deepEqual([registers, unregisters, headers], baseline);
+ } finally {
+  await env.close();
+ }
 });
 
 test('standalone score recolors from a measure number with hover, commit, escape and per-instance source reset',async()=>{
