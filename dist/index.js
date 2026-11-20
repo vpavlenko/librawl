@@ -257,6 +257,7 @@ import React2, { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 // src/components/TonicSymbol.jsx
 import * as React from "react";
+var MODULATION_BADGE_HEIGHT = 12;
 function TonicSymbol({ left, number, previousTonic, modulationDiff, tonicStart, alignToOnset = false, transpose = 0, renderArrow, flagClassName, labelClassName, flagAttributes, labelAttributes }) {
   const displayedTonic = tonicStart == null ? tonicStart : ((tonicStart + transpose) % 12 + 12) % 12;
   const { style: labelStyle, className: attributeLabelClass, ...labelRest } = labelAttributes != null ? labelAttributes : {};
@@ -292,7 +293,7 @@ function TonicSymbol({ left, number, previousTonic, modulationDiff, tonicStart, 
       className: flagClass,
       style: {
         width: MODULATION_BADGE_WIDTH,
-        height: 12,
+        height: MODULATION_BADGE_HEIGHT,
         position: "absolute",
         top: 0,
         left,
@@ -309,6 +310,7 @@ function TonicSymbol({ left, number, previousTonic, modulationDiff, tonicStart, 
 
 // src/notation/RawlMeasureHeader.jsx
 var EMPTY_CHANGES = [];
+var numberOnFlag = { display: "block", lineHeight: MODULATION_BADGE_HEIGHT + "px" };
 var cssLength = (value) => typeof value === "number" ? value + "px" : value;
 var offsetLeft = (left, offset) => typeof left === "number" ? left + offset : offset < 0 ? `calc(${left} - ${-offset}px)` : offset > 0 ? `calc(${left} + ${offset}px)` : left;
 function arrow({ direction }) {
@@ -495,12 +497,13 @@ function RawlMeasureHeader({
           "data-score-measure": measure.number,
           style: {
             color: measure.color,
+            top: measure.hasModulation ? 0 : void 0,
             pointerEvents: onMeasureSelect ? "auto" : void 0,
             cursor: onMeasureSelect ? "pointer" : void 0
           }
         },
         renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && isSelected ? (event) => editSection(event, measure, action) : void 0),
-        /* @__PURE__ */ React2.createElement("span", null, measure.number)
+        /* @__PURE__ */ React2.createElement("span", { style: measure.hasModulation ? numberOnFlag : void 0 }, measure.number)
       ),
       menu != null && /* @__PURE__ */ React2.createElement("div", { className: "rawln-measure-menu" }, menu)
     );

@@ -3,6 +3,7 @@
 import * as React from 'react';
 import {MODULATION_BADGE_WIDTH, TONIC_NAMES} from '../notation/score-grid.mjs';
 
+export const MODULATION_BADGE_HEIGHT = 12;
 
 export function TonicSymbol({left,number,previousTonic,modulationDiff,tonicStart,alignToOnset=false,transpose=0,renderArrow,flagClassName,labelClassName,flagAttributes,labelAttributes}){
  const displayedTonic=tonicStart==null?tonicStart:((tonicStart+transpose)%12+12)%12;
@@ -37,7 +38,7 @@ export function TonicSymbol({left,number,previousTonic,modulationDiff,tonicStart
    className={flagClass}
    style={{
     width:MODULATION_BADGE_WIDTH,
-    height:12,
+    height:MODULATION_BADGE_HEIGHT,
     position:'absolute',
     top:0,
     left:left,

@@ -1,9 +1,10 @@
 import React, {useLayoutEffect, useMemo, useRef, useState} from 'react';
-import {TonicSymbol} from '../components/TonicSymbol.jsx';
+import {MODULATION_BADGE_HEIGHT, TonicSymbol} from '../components/TonicSymbol.jsx';
 import {measureHeaderLayout, mod} from './geometry.mjs';
 import {RAWL_COLORS} from './palette.mjs';
 
 const EMPTY_CHANGES = [];
+const numberOnFlag = {display: 'block', lineHeight: MODULATION_BADGE_HEIGHT + 'px'};
 const cssLength = value => typeof value === 'number' ? value + 'px' : value;
 const offsetLeft = (left, offset) => typeof left === 'number'
   ? left + offset
@@ -134,11 +135,11 @@ export function RawlMeasureHeader({
               } : undefined}
               data-beat={measure.beat} data-modulation={measure.hasModulation || undefined}
               data-score-measure={measure.number}
-              style={{color: measure.color, pointerEvents: onMeasureSelect ? 'auto' : undefined,
+              style={{color: measure.color, top: measure.hasModulation ? 0 : undefined, pointerEvents: onMeasureSelect ? 'auto' : undefined,
                 cursor: onMeasureSelect ? 'pointer' : undefined}}>
               {renderMeasureExtras?.(measure, sectionEditing && isSelected
                 ? event => editSection(event, measure, action) : undefined)}
-              <span>{measure.number}</span>
+              <span style={measure.hasModulation ? numberOnFlag : undefined}>{measure.number}</span>
             </div>
             {menu != null && <div className="rawln-measure-menu">{menu}</div>}
           </div>;

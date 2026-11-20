@@ -15567,6 +15567,7 @@ var LibrawlCaplinNotes = (() => {
 
   // src/components/TonicSymbol.jsx
   var React3 = __toESM(require_react(), 1);
+  var MODULATION_BADGE_HEIGHT = 12;
   function TonicSymbol({ left, number, previousTonic, modulationDiff, tonicStart, alignToOnset = false, transpose = 0, renderArrow, flagClassName, labelClassName, flagAttributes, labelAttributes }) {
     const displayedTonic = tonicStart == null ? tonicStart : ((tonicStart + transpose) % 12 + 12) % 12;
     const { style: labelStyle, className: attributeLabelClass, ...labelRest } = labelAttributes != null ? labelAttributes : {};
@@ -15602,7 +15603,7 @@ var LibrawlCaplinNotes = (() => {
         className: flagClass,
         style: {
           width: MODULATION_BADGE_WIDTH,
-          height: 12,
+          height: MODULATION_BADGE_HEIGHT,
           position: "absolute",
           top: 0,
           left,
@@ -15619,6 +15620,7 @@ var LibrawlCaplinNotes = (() => {
 
   // src/notation/RawlMeasureHeader.jsx
   var EMPTY_CHANGES = [];
+  var numberOnFlag = { display: "block", lineHeight: MODULATION_BADGE_HEIGHT + "px" };
   var cssLength = (value) => typeof value === "number" ? value + "px" : value;
   var offsetLeft = (left, offset) => typeof left === "number" ? left + offset : offset < 0 ? `calc(${left} - ${-offset}px)` : offset > 0 ? `calc(${left} + ${offset}px)` : left;
   function arrow({ direction }) {
@@ -15805,12 +15807,13 @@ var LibrawlCaplinNotes = (() => {
             "data-score-measure": measure.number,
             style: {
               color: measure.color,
+              top: measure.hasModulation ? 0 : void 0,
               pointerEvents: onMeasureSelect ? "auto" : void 0,
               cursor: onMeasureSelect ? "pointer" : void 0
             }
           },
           renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && isSelected ? (event) => editSection(event, measure, action) : void 0),
-          /* @__PURE__ */ import_react6.default.createElement("span", null, measure.number)
+          /* @__PURE__ */ import_react6.default.createElement("span", { style: measure.hasModulation ? numberOnFlag : void 0 }, measure.number)
         ),
         menu != null && /* @__PURE__ */ import_react6.default.createElement("div", { className: "rawln-measure-menu" }, menu)
       );
