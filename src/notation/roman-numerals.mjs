@@ -4,20 +4,35 @@ import {RAWL_COLORS} from './palette.mjs';
 
 const escape=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const supers='⁰¹²³⁴⁵⁶⁷⁸⁹',subs='₀₁₂₃₄₅₆₇₈₉';
-const roots={I:0,II:2,III:4,IV:5,V:7,VI:9,VII:11};
+export const ROMAN_NUMERAL_DEGREES = Object.freeze(['I','♭II','II','♭III','III','IV','♯IV','V','♭VI','VI','♭VII','VII']);
+const degreePitches = new Map(ROMAN_NUMERAL_DEGREES.map((degree, pitch) => [degree, pitch]));
+const prettyAccidental = text => text.replaceAll('b','♭').replaceAll('#','♯');
+const romanRoot = ROMAN_NUMERAL_DEGREES.flatMap(name => [name, name.toLowerCase()])
+  .sort((a,b) => b.length-a.length)
+  .map(name => name.replace('♭','[b♭]').replace('♯','[#♯]')).join('|');
+const classicalRoot = romanRoot + '|It|Fr|Ger|Gr|N';
 // Keep the hex spellings used by the score and prose HTML serializers.
 export const romanNumeralColors = RAWL_COLORS.map(({background}) =>
   ({white: '#fff', red: '#ff0000'})[background] ?? background);
 const palette=romanNumeralColors;
-const atom='(?:[♭♯]?[IViv]+[°ø]?|It|Fr|Ger|Gr|N)[⁺⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉]*(?:\\([⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉–—\\s-]+\\))?';
-const chordPattern=new RegExp('(?<![\\p{L}\\p{N}])('+atom+'(?:/'+atom+')*)(?![\\p{L}\\p{N}])','gu');
+const figuresPattern = '[⁺⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉]*';
+const atom = '(?:' + classicalRoot + ')[°ø]?' + figuresPattern + '(?:\\([⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉–—\\s-]+\\))?';
+const chordBoundary = '[\\p{L}\\p{N}#♭♯/]';
+const chordPattern = new RegExp('(?<!' + chordBoundary + ')(' + atom + '(?:/' + atom + ')*)(?!' + chordBoundary + ')','gu');
+const classicalPart = new RegExp('^(' + classicalRoot + ')([°ø]?)([⁺⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉()–—\\s-]*)$','u');
 const mod=(value,n=12)=>(value%n+n)%n;
 const numeralIndex={I:0,II:1,III:2,IV:3,V:4,VI:5,VII:6};
 const special={It:{root:8,degree:5,tones:[[5,8],[0,0],[3,6]]},Fr:{root:8,degree:5,tones:[[5,8],[0,0],[1,2],[3,6]]},Ger:{root:8,degree:5,tones:[[5,8],[0,0],[2,3],[3,6]]},Gr:{root:8,degree:5,tones:[[5,8],[0,0],[2,3],[3,6]]},N:{root:1,degree:1,tones:[[1,1],[3,5],[5,8]]}};
 function partInfo(part){
- const m=part.match(/^([♭♯]?)(It|Fr|Ger|Gr|N|[IViv]+)([°ø]?)(.*)$/);if(!m||!/^[⁺⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉()–—\s-]*$/u.test(m[4]))return null;
- const named=special[m[2]],degree=named?.degree??numeralIndex[m[2].toUpperCase()];if(degree===undefined)return null;
- return{accidental:m[1],name:m[2],quality:m[3],tail:m[4],degree,root:named?.root??mod(roots[m[2].toUpperCase()]+(m[1]==='♭'?-1:m[1]==='♯'?1:0)),named};
+ const match = classicalPart.exec(part);
+ if (!match) return null;
+ const [, written, quality, tail] = match;
+ const spelling = prettyAccidental(written);
+ const accidental = /^[♭♯]/.test(spelling) ? spelling[0] : '';
+ const name = spelling.slice(accidental.length);
+ const named = special[name];
+ return {accidental,name,quality,tail,degree:named?.degree??numeralIndex[name.toUpperCase()],
+  root:named?.root??degreePitches.get(spelling.toUpperCase()),named};
 }
 function rootOf(chord){
  const parts=chord.split('/').map(partInfo);return parts.every(Boolean)?mod(parts.reduce((root,part)=>root+part.root,0)):null;
@@ -110,7 +125,7 @@ function typography(text,context=null,options={}){
 }
 function beforeChord(text,chord){
  const opening=text.match(/\($/);
- return opening&&/^[♭♯]/.test(chord)?typography(text.slice(0,opening.index))+'<span class="chord-opening-parenthesis">(</span>':typography(text);
+ return opening&&/^[b#♭♯]/.test(chord)?typography(text.slice(0,opening.index))+'<span class="chord-opening-parenthesis">(</span>':typography(text);
 }
 function markup(text,options={}){
  const {colorRoots=false}=options;options={...options,figuredBass:options.figuredBass??true,colorFigures:options.colorFigures??colorRoots,colorQuality:options.colorQuality??colorRoots};
@@ -140,13 +155,12 @@ function markup(text,options={}){
  return result+typography(text.slice(last),inherited,options);
 }
 
-const jazzNumeral = /^(?<accidentals>[b#♭♯]*)(?<written>VII|III|VI|IV|II|V|I|vii|iii|vi|iv|ii|v|i)(?<tail>.*)$/u;
+const jazzNumeral = /^(?<accidentals>[b#♭♯]?)(?<written>VII|III|VI|IV|II|V|I|vii|iii|vi|iv|ii|v|i)(?![IViv])(?<tail>.*)$/u;
 const guitarChord = /^(?<written>[A-G])(?<accidentals>[b#♭♯]*)(?<tail>.*)$/u;
 const noteRoots = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
 const majorSeventh = /^(?:maj|M(?=\d)|[△Δ])/;
 const jazzFigures = /([b#♭♯]*)(13|11|[1-9])|(?:maj|dim|sus|add|alt|no|omit|aug)|[^]/gu;
 const jazzIntervals = {1:0,2:2,4:5,6:9,8:12,9:14,11:17,13:21};
-const prettyAccidental = text => text.replaceAll('b','♭').replaceAll('#','♯');
 
 function jazzMarkup(notation, options, guitar = false) {
   const hasBass = options.bassPitch !== undefined && options.bassPitch !== null;
@@ -156,8 +170,13 @@ function jazzMarkup(notation, options, guitar = false) {
   if (!match) return escape(notation);
   const {accidentals, written, tail} = match.groups;
   const alteration = signs => [...signs].reduce((pitch, sign) => pitch + ('b♭'.includes(sign) ? -1 : 1), 0);
-  const spelledRoot = guitar ? noteRoots[written] - (options.tonic ?? 0) : roots[written.toUpperCase()];
-  const computedRoot = mod(spelledRoot + alteration(accidentals));
+  const computedRoot = guitar
+    ? mod(noteRoots[written] - (options.tonic ?? 0) + alteration(accidentals))
+    : degreePitches.get(prettyAccidental(accidentals) + written.toUpperCase());
+  const bassLabel = slash < 0 ? '' : prettyAccidental(notation.slice(slash + 1));
+  if (computedRoot === undefined || (!guitar && slash >= 0 && !degreePitches.has(bassLabel.toUpperCase()))) {
+    return escape(notation);
+  }
   const root = options.rootPitch ?? computedRoot;
   const halfDim = tail.startsWith('ø') || /^m7b5/.test(tail);
   const dim = /^(?:°|o|dim)/.test(tail);
@@ -170,7 +189,7 @@ function jazzMarkup(notation, options, guitar = false) {
   const suffix = guitar ? tail : tail.replace(/^m7b5/, '7').replace(/^(?:ø|°|o|dim|m(?!aj)|-)/,'').replace(majorSeventh,'Δ');
   const qualityContext = quality && !guitar ? chordContext(name + quality + '⁷', {seventhInterval:dim?9:10}) : null;
   const qualityMarkup = qualityContext ? typography(quality, qualityContext, {
-    colorQuality:options.colorQuality??options.colorRoots, colorOffset:mod(root-roots[name.toUpperCase()]),
+    colorQuality:options.colorQuality??options.colorRoots, colorOffset:mod(root-degreePitches.get(name.toUpperCase())),
   }) : '';
   const tonicGlyph = !guitar && !accidentals && /^[Ii]$/.test(name);
   const color = options.colorRoots ? ` colored" ${colorStyle(mod(root))}`
@@ -196,7 +215,7 @@ function jazzMarkup(notation, options, guitar = false) {
       ? `<span class="chord-figure colored" data-figure="${digits}" ${colorStyle(mod(pitch))}>${escape(label)}</span>`
       : escape(label);
   }).join('');
-  const bass = slash < 0 ? '' : `<span class="chord-slash">/</span><span class="chord-bass${options.colorRoots?' colored':''}" ${colorStyle(mod(options.bassPitch))}>${escape(prettyAccidental(notation.slice(slash+1)))}</span>`;
+  const bass = slash < 0 ? '' : `<span class="chord-slash">/</span><span class="chord-bass${options.colorRoots?' colored':''}" ${colorStyle(mod(options.bassPitch))}>${escape(bassLabel)}</span>`;
   const suffixMarkup = guitar || !figures ? figures : `<sup class="roman-jazz-figures">${figures}</sup>`;
   return `${rootMarkup}${qualityMarkup}${suffixMarkup}${bass}`;
 }

@@ -61,6 +61,7 @@ When a host injects the same palette rules through CSS-in-JS, use `nativeColorSt
 ## Roman numerals and score annotations
 
 Use `RomanNumeral` from `librawl/components` in React, or `romanNumeralHTML` from `librawl/roman-numerals` in static markup. Both use `librawl/roman-numerals.css`.
+Use `ROMAN_NUMERAL_DEGREES` from `librawl/roman-numerals` to spell roots by semitone offset from the tonic. Roman numeral roots use this table in uppercase or lowercase, with either ASCII or Unicode accidentals.
 
 On a light surface, set `theme: 'light'` to outline the tonic glyphs I and i. For prose assembled with `romanNumeralContent`, set `data-roman-theme="light"` on the paper container and `data-roman-notation` on each chord wrapper.
 

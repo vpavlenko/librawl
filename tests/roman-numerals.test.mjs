@@ -5,7 +5,7 @@ import {JSDOM} from 'jsdom';
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {RomanNumeral} from 'librawl/components';
-import {guitarChordHTML, romanNumeralContent, romanNumeralHTML} from 'librawl/roman-numerals';
+import {guitarChordHTML, ROMAN_NUMERAL_DEGREES, romanNumeralContent, romanNumeralHTML} from 'librawl/roman-numerals';
 import {staveGeometry} from 'librawl/geometry';
 
 const elements = (notation, options) => new JSDOM(romanNumeralHTML(notation, options)).window.document;
@@ -41,6 +41,27 @@ test('Caplin colors applied roots and stacked inversion figures by sounding pitc
   assert.deepEqual(degree(document,'.chord-root'),[2,7]);
   assert.deepEqual(degree(document,'.chord-figure'),[0,6]);
   assert.equal(document.querySelector('.figures').children.length,2);
+});
+
+test('Both Roman numeral renderers recognize the same twelve Rawl roots', () => {
+  assert.deepEqual(ROMAN_NUMERAL_DEGREES, ['I','♭II','II','♭III','III','IV','♯IV','V','♭VI','VI','♭VII','VII']);
+  for (const jazz of [false, true]) {
+    ROMAN_NUMERAL_DEGREES.forEach((name, pitch) => {
+      for (const spelling of [name, name.toLowerCase(), name.replace('♭','b').replace('♯','#')]) {
+        const document = elements(spelling, {jazz});
+        assert.deepEqual(degree(document, '.chord-root'), [pitch]);
+        assert.equal(document.body.textContent, spelling.replace('b','♭').replace('#','♯'));
+      }
+    });
+    for (const spelling of ['#I','♯I','#II','#III','♯iii','bV','♭V','♭IV','##V','bbVI','V/#I']) {
+      const document = elements(spelling, {jazz, ...(jazz && spelling.includes('/') ? {bassPitch:1} : {})});
+      assert.equal(document.body.textContent, spelling);
+      assert.equal(document.querySelector('.chord-root'), null, spelling);
+    }
+  }
+  assert.deepEqual(degree(elements('V⁷/bII'), '.chord-root'), [8, 1]);
+  assert.deepEqual(degree(elements('I7/#IV', {jazz:true,bassPitch:6}), '.chord-bass'), [6]);
+  assert.deepEqual(degree(elements('I7#9', {jazz:true}), '.chord-figure'), [10, 3]);
 });
 
 test('Jazz extensions retain atomic figures, minor case and independent slash-bass colors', () => {

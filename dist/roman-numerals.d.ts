@@ -1,3 +1,6 @@
+/** Rawl Roman numeral roots indexed by semitones above the tonic. */
+export const ROMAN_NUMERAL_DEGREES: readonly string[];
+
 export interface RomanNumeralOptions {
   theme?: 'light' | 'dark';
   /** Use the shared sans-serif face and its accidental spacing. */

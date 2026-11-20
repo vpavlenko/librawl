@@ -20,6 +20,7 @@ var __toCommonJS = (mod2) => __copyProps(__defProp({}, "__esModule", { value: tr
 // src/notation/roman-numerals.mjs
 var roman_numerals_exports = {};
 __export(roman_numerals_exports, {
+  ROMAN_NUMERAL_DEGREES: () => ROMAN_NUMERAL_DEGREES,
   beforeChord: () => beforeChord,
   chordContext: () => chordContext,
   figurePitch: () => figurePitch,
@@ -56,24 +57,42 @@ var RAWL_COLORS = [
 var escape = (value) => String(value).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 var supers = "\u2070\xB9\xB2\xB3\u2074\u2075\u2076\u2077\u2078\u2079";
 var subs = "\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089";
-var roots = { I: 0, II: 2, III: 4, IV: 5, V: 7, VI: 9, VII: 11 };
+var ROMAN_NUMERAL_DEGREES = Object.freeze(["I", "\u266DII", "II", "\u266DIII", "III", "IV", "\u266FIV", "V", "\u266DVI", "VI", "\u266DVII", "VII"]);
+var degreePitches = new Map(ROMAN_NUMERAL_DEGREES.map((degree, pitch) => [degree, pitch]));
+var prettyAccidental = (text) => text.replaceAll("b", "\u266D").replaceAll("#", "\u266F");
+var romanRoot = ROMAN_NUMERAL_DEGREES.flatMap((name) => [name, name.toLowerCase()]).sort((a, b) => b.length - a.length).map((name) => name.replace("\u266D", "[b\u266D]").replace("\u266F", "[#\u266F]")).join("|");
+var classicalRoot = romanRoot + "|It|Fr|Ger|Gr|N";
 var romanNumeralColors = RAWL_COLORS.map(({ background }) => {
   var _a;
   return (_a = { white: "#fff", red: "#ff0000" }[background]) != null ? _a : background;
 });
 var palette = romanNumeralColors;
-var atom = "(?:[\u266D\u266F]?[IViv]+[\xB0\xF8]?|It|Fr|Ger|Gr|N)[\u207A\u2070\xB9\xB2\xB3\u2074\u2075\u2076\u2077\u2078\u2079\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089]*(?:\\([\u2070\xB9\xB2\xB3\u2074\u2075\u2076\u2077\u2078\u2079\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089\u2013\u2014\\s-]+\\))?";
-var chordPattern = new RegExp("(?<![\\p{L}\\p{N}])(" + atom + "(?:/" + atom + ")*)(?![\\p{L}\\p{N}])", "gu");
+var figuresPattern = "[\u207A\u2070\xB9\xB2\xB3\u2074\u2075\u2076\u2077\u2078\u2079\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089]*";
+var atom = "(?:" + classicalRoot + ")[\xB0\xF8]?" + figuresPattern + "(?:\\([\u2070\xB9\xB2\xB3\u2074\u2075\u2076\u2077\u2078\u2079\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089\u2013\u2014\\s-]+\\))?";
+var chordBoundary = "[\\p{L}\\p{N}#\u266D\u266F/]";
+var chordPattern = new RegExp("(?<!" + chordBoundary + ")(" + atom + "(?:/" + atom + ")*)(?!" + chordBoundary + ")", "gu");
+var classicalPart = new RegExp("^(" + classicalRoot + ")([\xB0\xF8]?)([\u207A\u2070\xB9\xB2\xB3\u2074\u2075\u2076\u2077\u2078\u2079\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089()\u2013\u2014\\s-]*)$", "u");
 var mod = (value, n = 12) => (value % n + n) % n;
 var numeralIndex = { I: 0, II: 1, III: 2, IV: 3, V: 4, VI: 5, VII: 6 };
 var special = { It: { root: 8, degree: 5, tones: [[5, 8], [0, 0], [3, 6]] }, Fr: { root: 8, degree: 5, tones: [[5, 8], [0, 0], [1, 2], [3, 6]] }, Ger: { root: 8, degree: 5, tones: [[5, 8], [0, 0], [2, 3], [3, 6]] }, Gr: { root: 8, degree: 5, tones: [[5, 8], [0, 0], [2, 3], [3, 6]] }, N: { root: 1, degree: 1, tones: [[1, 1], [3, 5], [5, 8]] } };
 function partInfo(part) {
   var _a, _b;
-  const m = part.match(/^([♭♯]?)(It|Fr|Ger|Gr|N|[IViv]+)([°ø]?)(.*)$/);
-  if (!m || !/^[⁺⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉()–—\s-]*$/u.test(m[4])) return null;
-  const named = special[m[2]], degree = (_a = named == null ? void 0 : named.degree) != null ? _a : numeralIndex[m[2].toUpperCase()];
-  if (degree === void 0) return null;
-  return { accidental: m[1], name: m[2], quality: m[3], tail: m[4], degree, root: (_b = named == null ? void 0 : named.root) != null ? _b : mod(roots[m[2].toUpperCase()] + (m[1] === "\u266D" ? -1 : m[1] === "\u266F" ? 1 : 0)), named };
+  const match = classicalPart.exec(part);
+  if (!match) return null;
+  const [, written, quality, tail] = match;
+  const spelling = prettyAccidental(written);
+  const accidental = /^[♭♯]/.test(spelling) ? spelling[0] : "";
+  const name = spelling.slice(accidental.length);
+  const named = special[name];
+  return {
+    accidental,
+    name,
+    quality,
+    tail,
+    degree: (_a = named == null ? void 0 : named.degree) != null ? _a : numeralIndex[name.toUpperCase()],
+    root: (_b = named == null ? void 0 : named.root) != null ? _b : degreePitches.get(spelling.toUpperCase()),
+    named
+  };
 }
 function rootOf(chord) {
   const parts = chord.split("/").map(partInfo);
@@ -172,7 +191,7 @@ function typography(text, context = null, options = {}) {
 }
 function beforeChord(text, chord) {
   const opening = text.match(/\($/);
-  return opening && /^[♭♯]/.test(chord) ? typography(text.slice(0, opening.index)) + '<span class="chord-opening-parenthesis">(</span>' : typography(text);
+  return opening && /^[b#♭♯]/.test(chord) ? typography(text.slice(0, opening.index)) + '<span class="chord-opening-parenthesis">(</span>' : typography(text);
 }
 function markup(text, options = {}) {
   var _a, _b, _c, _d;
@@ -203,13 +222,12 @@ function markup(text, options = {}) {
   }
   return result + typography(text.slice(last), inherited, options);
 }
-var jazzNumeral = /^(?<accidentals>[b#♭♯]*)(?<written>VII|III|VI|IV|II|V|I|vii|iii|vi|iv|ii|v|i)(?<tail>.*)$/u;
+var jazzNumeral = /^(?<accidentals>[b#♭♯]?)(?<written>VII|III|VI|IV|II|V|I|vii|iii|vi|iv|ii|v|i)(?![IViv])(?<tail>.*)$/u;
 var guitarChord = /^(?<written>[A-G])(?<accidentals>[b#♭♯]*)(?<tail>.*)$/u;
 var noteRoots = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 var majorSeventh = /^(?:maj|M(?=\d)|[△Δ])/;
 var jazzFigures = /([b#♭♯]*)(13|11|[1-9])|(?:maj|dim|sus|add|alt|no|omit|aug)|[^]/gu;
 var jazzIntervals = { 1: 0, 2: 2, 4: 5, 6: 9, 8: 12, 9: 14, 11: 17, 13: 21 };
-var prettyAccidental = (text) => text.replaceAll("b", "\u266D").replaceAll("#", "\u266F");
 function jazzMarkup(notation, options, guitar = false) {
   var _a, _b, _c;
   const hasBass = options.bassPitch !== void 0 && options.bassPitch !== null;
@@ -219,8 +237,11 @@ function jazzMarkup(notation, options, guitar = false) {
   if (!match) return escape(notation);
   const { accidentals, written, tail } = match.groups;
   const alteration = (signs) => [...signs].reduce((pitch, sign) => pitch + ("b\u266D".includes(sign) ? -1 : 1), 0);
-  const spelledRoot = guitar ? noteRoots[written] - ((_a = options.tonic) != null ? _a : 0) : roots[written.toUpperCase()];
-  const computedRoot = mod(spelledRoot + alteration(accidentals));
+  const computedRoot = guitar ? mod(noteRoots[written] - ((_a = options.tonic) != null ? _a : 0) + alteration(accidentals)) : degreePitches.get(prettyAccidental(accidentals) + written.toUpperCase());
+  const bassLabel = slash < 0 ? "" : prettyAccidental(notation.slice(slash + 1));
+  if (computedRoot === void 0 || !guitar && slash >= 0 && !degreePitches.has(bassLabel.toUpperCase())) {
+    return escape(notation);
+  }
   const root = (_b = options.rootPitch) != null ? _b : computedRoot;
   const halfDim = tail.startsWith("\xF8") || /^m7b5/.test(tail);
   const dim = /^(?:°|o|dim)/.test(tail);
@@ -233,7 +254,7 @@ function jazzMarkup(notation, options, guitar = false) {
   const qualityContext = quality && !guitar ? chordContext(name + quality + "\u2077", { seventhInterval: dim ? 9 : 10 }) : null;
   const qualityMarkup = qualityContext ? typography(quality, qualityContext, {
     colorQuality: (_c = options.colorQuality) != null ? _c : options.colorRoots,
-    colorOffset: mod(root - roots[name.toUpperCase()])
+    colorOffset: mod(root - degreePitches.get(name.toUpperCase()))
   }) : "";
   const tonicGlyph = !guitar && !accidentals && /^[Ii]$/.test(name);
   const color = options.colorRoots ? ` colored" ${colorStyle(mod(root))}` : tonicGlyph ? `" data-root="${mod(root)}"` : '"';
@@ -254,7 +275,7 @@ function jazzMarkup(notation, options, guitar = false) {
     const pitch = (_c2 = (_b2 = options.figurePitches) == null ? void 0 : _b2[label]) != null ? _c2 : interval === void 0 ? null : mod(root + interval + alteration(signs));
     return ((_d = options.colorFigures) != null ? _d : options.colorRoots) && pitch !== null ? `<span class="chord-figure colored" data-figure="${digits}" ${colorStyle(mod(pitch))}>${escape(label)}</span>` : escape(label);
   }).join("");
-  const bass = slash < 0 ? "" : `<span class="chord-slash">/</span><span class="chord-bass${options.colorRoots ? " colored" : ""}" ${colorStyle(mod(options.bassPitch))}>${escape(prettyAccidental(notation.slice(slash + 1)))}</span>`;
+  const bass = slash < 0 ? "" : `<span class="chord-slash">/</span><span class="chord-bass${options.colorRoots ? " colored" : ""}" ${colorStyle(mod(options.bassPitch))}>${escape(bassLabel)}</span>`;
   const suffixMarkup = guitar || !figures ? figures : `<sup class="roman-jazz-figures">${figures}</sup>`;
   return `${rootMarkup}${qualityMarkup}${suffixMarkup}${bass}`;
 }
