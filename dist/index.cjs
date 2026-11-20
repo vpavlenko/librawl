@@ -278,6 +278,19 @@ function validateMeasureMap(measures) {
   }
   return measures;
 }
+function alignScoreRows(rows) {
+  const offsets = rows.map(({ start, end, anchor = start }) => Math.max(0, Math.min(end, anchor) - start));
+  const pickup = Math.max(0, ...offsets);
+  const width = pickup + Math.max(0, ...rows.map(({ start, end }, index) => end - start - offsets[index]));
+  return { width, rows: rows.map((row, index) => ({
+    ...row,
+    style: {
+      ...row.style,
+      width: width ? (row.end - row.start) / width * 100 + "%" : "0%",
+      marginLeft: width ? (pickup - offsets[index]) / width * 100 + "%" : "0%"
+    }
+  })) };
+}
 
 // src/notation/palette.mjs
 var RAWL_COLORS = [
@@ -372,6 +385,14 @@ function rowLayout(options) {
     markers: layout.markers.map((marker) => ({ ...marker, left: offsetLeft(x(marker.beat), marker.pixelOffset) }))
   };
 }
+function measureSectionAction(sectionEditing, measure) {
+  var _a, _b;
+  if (!(sectionEditing == null ? void 0 : sectionEditing.sectionStarts.some((start) => start < measure.beat))) return;
+  if (sectionEditing.sectionStarts.includes(measure.beat)) {
+    return { glue: true, apply: sectionEditing.onGlue };
+  }
+  if ((_b = (_a = sectionEditing.canSplit) == null ? void 0 : _a.call(sectionEditing, measure)) != null ? _b : measure.isPhraseStart) return { glue: false, apply: sectionEditing.onSplit };
+}
 function RawlMeasureHeader({
   row,
   layout: positioned,
@@ -426,18 +447,12 @@ function RawlMeasureHeader({
     event.stopPropagation();
     onMeasureSelect(measure.beat, measure, event.currentTarget);
   };
-  const editSection = (event, measure) => {
-    if (event.defaultPrevented || event.key !== "Enter" || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing || event.currentTarget.value.trim()) return;
+  const editSection = (event, measure, action) => {
+    var _a;
+    if (event.defaultPrevented || event.key !== "Enter" || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing || ((_a = event.currentTarget.value) == null ? void 0 : _a.trim())) return;
     event.preventDefault();
     event.stopPropagation();
-    const { sectionStarts, onSplit, onGlue } = sectionEditing;
-    if (!sectionStarts.some((start) => start < measure.beat)) return;
-    const startsSection = sectionStarts.includes(measure.beat);
-    if (event.shiftKey) {
-      if (startsSection) onGlue(measure);
-    } else if (measure.isPhraseStart && !startsSection) {
-      onSplit(measure);
-    }
+    if (action && action.glue === event.shiftKey) action.apply(measure);
   };
   return /* @__PURE__ */ import_react.default.createElement("div", { ref: element, className: "rawln-measure-grid", style: { height } }, measures.map((measure) => {
     var _a;
@@ -487,9 +502,27 @@ function RawlMeasureHeader({
         }
       )
     );
-  })), /* @__PURE__ */ import_react.default.createElement("div", { className: "rawln-measure-labels", "aria-hidden": !onMeasureSelect || void 0 }, measures.filter((measure) => !measure.terminal && measure.showLabel !== false).map((measure) => {
+  })), /* @__PURE__ */ import_react.default.createElement("div", { className: "rawln-measure-labels", "aria-hidden": !(onMeasureSelect || sectionEditing) || void 0 }, measures.filter((measure) => !measure.terminal && measure.showLabel !== false).map((measure) => {
     var _a;
     const labelLeft = offsetLeft(measure.left, (_a = measure.labelOffset) != null ? _a : 6);
+    const isSelected = selectedMeasure === measure.beat;
+    const action = isSelected ? measureSectionAction(sectionEditing, measure) : void 0;
+    const menu = action && /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        type: "button",
+        className: "rawln-section-command",
+        onMouseDown: (event) => event.preventDefault(),
+        onClick: (event) => {
+          event.stopPropagation();
+          action.apply(measure);
+        },
+        onKeyDown: (event) => {
+          if (event.key === "Enter" || event.key === " ") event.stopPropagation();
+        }
+      },
+      action.glue ? "Glue" : "Split"
+    );
     return /* @__PURE__ */ import_react.default.createElement(
       "div",
       {
@@ -503,10 +536,13 @@ function RawlMeasureHeader({
           className: "rawln-measure-number",
           role: onMeasureSelect ? "button" : void 0,
           tabIndex: onMeasureSelect ? 0 : void 0,
-          "aria-pressed": onMeasureSelect ? selectedMeasure === measure.beat : void 0,
+          "aria-pressed": onMeasureSelect ? isSelected : void 0,
           onClick: onMeasureSelect ? (event) => select(event, measure) : void 0,
           onKeyDown: onMeasureSelect ? (event) => {
-            if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
+            if (event.target !== event.currentTarget) return;
+            if (isSelected && sectionEditing && event.key === "Enter") {
+              editSection(event, measure, action);
+            } else if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
               select(event, measure);
             }
@@ -520,9 +556,10 @@ function RawlMeasureHeader({
             cursor: onMeasureSelect ? "pointer" : void 0
           }
         },
-        renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && selectedMeasure === measure.beat ? (event) => editSection(event, measure) : void 0),
+        renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && isSelected ? (event) => editSection(event, measure, action) : void 0),
         /* @__PURE__ */ import_react.default.createElement("span", null, measure.number)
-      )
+      ),
+      menu != null && /* @__PURE__ */ import_react.default.createElement("div", { className: "rawln-measure-menu" }, menu)
     );
   }))));
 }
@@ -730,33 +767,85 @@ function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, hovere
     return { role: "button", tabIndex: -1, "aria-label": noteName(original.pitch), "data-note": original.id, "data-pitch": original.pitch, "data-degree": degree, "data-voice": original.voice, className: `rawln-note rawln-voice-${original.voice}${muted ? " rawln-muted" : ""}`, style: { left: (start - row.start) / span * 100 + "%", width: (end - start) / span * 100 + "%", ...!((_a = note.pitchBend) == null ? void 0 : _a.length) && RAWL_COLORS[degree] ? { background: RAWL_COLORS[degree].background } : {}, zIndex: 100 + (84 - original.pitch) + (original.voice === 1 ? 128 : 0) } };
   } })));
 }
-function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, modulationMarkerPlacement, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = [], onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, sectionEditing, renderMeasureExtras, renderHeader, renderUnderlay, renderFooter, className = "", style, ref }) {
+function useSectionRows({ notes, rows, beats, sectionEditing, root, onSectionRowsChange }) {
+  const baseRows = (0, import_react5.useMemo)(() => (rows == null ? void 0 : rows.length) ? rows : [{ start: 0, end: beats, label: 1 }], [rows, beats]);
+  const layoutKey = baseRows.map(({ start, end }) => start + ":" + end).join("|");
+  const [edit, setEdit] = (0, import_react5.useState)(null);
+  const focusBeat = (0, import_react5.useRef)(null);
+  const intervals = sectionEditing === void 0 && (edit == null ? void 0 : edit.notes) === notes && edit.layoutKey === layoutKey ? edit.intervals : null;
+  const editedRows = (0, import_react5.useMemo)(() => {
+    if (!intervals) return null;
+    const authored = new Map(baseRows.map((row) => [row.start, row]));
+    return alignScoreRows(intervals.map(({ start, end }) => ({ ...authored.get(start), start, end }))).rows;
+  }, [baseRows, intervals]);
+  const spans = editedRows != null ? editedRows : baseRows;
+  (0, import_react5.useLayoutEffect)(() => {
+    var _a;
+    if (focusBeat.current === null) return;
+    const label = (_a = root.current) == null ? void 0 : _a.querySelector(`.rawln-measure-number[data-beat="${focusBeat.current}"]`);
+    focusBeat.current = null;
+    label == null ? void 0 : label.focus();
+  }, [spans, root]);
+  (0, import_react5.useLayoutEffect)(() => {
+    onSectionRowsChange == null ? void 0 : onSectionRowsChange(editedRows);
+  }, [editedRows, onSectionRowsChange]);
+  function editingForRow(index) {
+    var _a;
+    if (sectionEditing !== void 0) return sectionEditing || void 0;
+    const row = spans[index], previous = spans[index - 1];
+    const canGlue = previous && atRowStart(previous.end, row.start);
+    const opening = index === 0 ? Math.max(row.start, (_a = row.anchor) != null ? _a : row.start) : row.start;
+    function update(beat, split) {
+      const next = spans.map(({ start, end }) => ({ start, end }));
+      if (split) {
+        if (!(beat > opening && beat < row.end)) return;
+        next.splice(index, 1, { start: row.start, end: beat }, { start: beat, end: row.end });
+      } else {
+        if (!canGlue || !atRowStart(beat, row.start)) return;
+        next.splice(index - 1, 2, { start: previous.start, end: row.end });
+      }
+      const restored = next.length === baseRows.length && next.every(({ start, end }, i) => start === baseRows[i].start && end === baseRows[i].end);
+      focusBeat.current = beat;
+      setEdit(restored ? null : { notes, layoutKey, intervals: next });
+    }
+    return {
+      sectionStarts: canGlue ? [previous.start, row.start] : [row.start],
+      canSplit: ({ beat, isPhraseStart }) => beat > opening && beat < row.end && (isPhraseStart || baseRows.some((base) => atRowStart(beat, base.start))),
+      onSplit: ({ beat }) => update(beat, true),
+      onGlue: ({ beat }) => update(beat, false)
+    };
+  }
+  return { spans, editingForRow };
+}
+function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, modulationMarkerPlacement, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = [], onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, sectionEditing, onSectionRowsChange, renderMeasureExtras, renderHeader, renderUnderlay, renderFooter, className = "", style, ref }) {
   const root = (0, import_react5.useRef)(null), hoveredRef = (0, import_react5.useRef)(null), [hoveredKey, setHoveredKey] = (0, import_react5.useState)(null), ownClock = (0, import_react5.useMemo)(import_native.createSectionPlaybackClock, []), clock = playbackClock != null ? playbackClock : ownClock;
   const audition = onNoteAudition != null ? onNoteAudition : onNote;
   const seek = onSeek != null ? onSeek : ((beat) => (playbackClock == null ? void 0 : playbackClock.seek) ? playbackClock.seek(beat) : clock.advance(beat));
   const editor = useTonicRecoloring({ changes, barBeats, measureMap, onChange: onChangesChange }), automatic = recolorable && !onMeasureSelect;
-  if (automatic) {
-    changes = editor.changes;
+  if (!onMeasureSelect && (recolorable || sectionEditing !== false)) {
     selectedMeasure = editor.selectedMeasure;
     onMeasureSelect = editor.selectMeasure;
+  }
+  if (automatic) {
+    changes = editor.changes;
     const originalHover = onNoteHover;
     onNoteHover = (note) => {
       editor.hoverNote(note);
       originalHover == null ? void 0 : originalHover(note);
     };
   }
-  const spans = (rows == null ? void 0 : rows.length) ? rows : [{ start: 0, end: beats, label: 1 }];
+  const { spans, editingForRow } = useSectionRows({ notes, rows, beats, sectionEditing, root, onSectionRowsChange });
   const prepared = (0, import_react5.useMemo)(() => spans.map((row) => {
     const visible = notes.filter((n) => n.start < row.end - 1e-6 && n.start + n.duration > row.start + 1e-6), range = pitchRange(visible), axis = staveGeometry(range, { noteScale });
     return { row, visible, range, axis, regions: showTonalGuides ? tonalSegments(tonic, changes, row.start, row.end) : [] };
-  }), [notes, rows, beats, tonic, changes, noteScale, showTonalGuides]);
+  }), [notes, spans, tonic, changes, noteScale, showTonalGuides]);
   const setPosition = (beat) => Number.isFinite(beat) ? clock.advance(beat) : clock.reset();
   (0, import_react5.useImperativeHandle)(ref, () => ({ setPosition, element: root.current }), [clock]);
   (0, import_react5.useLayoutEffect)(() => {
     if (position !== void 0 || !playbackClock) setPosition(position);
   }, [position, clock, playbackClock]);
   (0, import_react5.useLayoutEffect)(() => () => ownClock.reset(), [ownClock]);
-  return /* @__PURE__ */ import_react5.default.createElement(import_native.NotePlaybackContext.Provider, { value: clock.register }, /* @__PURE__ */ import_react5.default.createElement("div", { className: "rawln" + (className ? " " + className : ""), style, ref: root }, prepared.map(({ row, visible, range, axis, regions }) => {
+  return /* @__PURE__ */ import_react5.default.createElement(import_native.NotePlaybackContext.Provider, { value: clock.register }, /* @__PURE__ */ import_react5.default.createElement("div", { className: "rawln" + (className ? " " + className : ""), style, ref: root }, prepared.map(({ row, visible, range, axis, regions }, index) => {
     const span = row.end - row.start, x = (beat) => (beat - row.start) / span * 100;
     return /* @__PURE__ */ import_react5.default.createElement("div", { className: "rawln-row", "data-section": row.section, key: `${row.start}-${row.end}`, "data-start": row.start, "data-end": row.end, style: row.style }, renderHeader && /* @__PURE__ */ import_react5.default.createElement("div", { className: "rawln-header" }, renderHeader(row)), /* @__PURE__ */ import_react5.default.createElement("div", { className: "rawln-score", "data-seekable": selectedMeasure === null || void 0, role: "group", "aria-label": "Rawl notation", style: { height: axis.notesBottom }, onClick: (e) => {
       if (selectedMeasure !== null) return;
@@ -769,7 +858,7 @@ function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2,
         pitchToY: (pitch) => axis.pitchToY(pitch) + axis.pitchStep,
         regions: regions.map((region) => ({ ...region, left: x(region.start) + "%", width: (region.end - region.start) / span * 100 + "%" }))
       }
-    ), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ import_react5.default.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic, modulationMarkerPlacement, sectionEditing, renderMeasureExtras }), /* @__PURE__ */ import_react5.default.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, hoveredKey, setHoveredKey, hoveredRef, onNote: (note) => {
+    ), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ import_react5.default.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic, modulationMarkerPlacement, sectionEditing: editingForRow(index), renderMeasureExtras }), /* @__PURE__ */ import_react5.default.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, hoveredKey, setHoveredKey, hoveredRef, onNote: (note) => {
       if (automatic && editor.chooseNote(note)) return;
       if (onNote) onNote(note);
       else if (selectedMeasure === null) seek(Math.max(row.start, note.start));

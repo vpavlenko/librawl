@@ -30,6 +30,14 @@ function rowLayout(options) {
   };
 }
 
+function measureSectionAction(sectionEditing, measure) {
+  if (!sectionEditing?.sectionStarts.some(start => start < measure.beat)) return;
+  if (sectionEditing.sectionStarts.includes(measure.beat)) {
+    return {glue: true, apply: sectionEditing.onGlue};
+  }
+  if (sectionEditing.canSplit?.(measure) ?? measure.isPhraseStart) return {glue: false, apply: sectionEditing.onSplit};
+}
+
 /** A shared score header, with an optional prepositioned ruler for hosts
  * that lay out their score against an arbitrary clock or editor viewport. */
 export function RawlMeasureHeader({
@@ -59,19 +67,12 @@ export function RawlMeasureHeader({
     event.stopPropagation();
     onMeasureSelect(measure.beat, measure, event.currentTarget);
   };
-  const editSection = (event, measure) => {
+  const editSection = (event, measure, action) => {
     if (event.defaultPrevented || event.key !== 'Enter' || event.altKey || event.ctrlKey || event.metaKey ||
-      event.nativeEvent.isComposing || event.currentTarget.value.trim()) return;
+      event.nativeEvent.isComposing || event.currentTarget.value?.trim()) return;
     event.preventDefault();
     event.stopPropagation();
-    const {sectionStarts, onSplit, onGlue} = sectionEditing;
-    if (!sectionStarts.some(start => start < measure.beat)) return;
-    const startsSection = sectionStarts.includes(measure.beat);
-    if (event.shiftKey) {
-      if (startsSection) onGlue(measure);
-    } else if (measure.isPhraseStart && !startsSection) {
-      onSplit(measure);
-    }
+    if (action && action.glue === event.shiftKey) action.apply(measure);
   };
   return <div ref={element} className="rawln-measure-grid" style={{height}}>
     {measures.map(measure => <div
@@ -100,17 +101,33 @@ export function RawlMeasureHeader({
           </div>;
         })}
       </div>
-      <div className="rawln-measure-labels" aria-hidden={!onMeasureSelect || undefined}>
+      <div className="rawln-measure-labels" aria-hidden={!(onMeasureSelect || sectionEditing) || undefined}>
         {measures.filter(measure => !measure.terminal && measure.showLabel !== false).map(measure => {
           const labelLeft = offsetLeft(measure.left, measure.labelOffset ?? 6);
+          const isSelected = selectedMeasure === measure.beat;
+          const action = isSelected ? measureSectionAction(sectionEditing, measure) : undefined;
+          const menu = action && <button type="button" className="rawln-section-command"
+            onMouseDown={event => event.preventDefault()}
+            onClick={event => {
+              event.stopPropagation();
+              action.apply(measure);
+            }}
+            onKeyDown={event => {
+              if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
+            }}>
+            {action.glue ? 'Glue' : 'Split'}
+          </button>;
           return <div className="rawln-measure-position" key={measure.beat}
             style={{gridTemplateColumns: `minmax(0, ${cssLength(labelLeft)}) max-content`}}>
             <div className="rawln-measure-number" role={onMeasureSelect ? 'button' : undefined}
               tabIndex={onMeasureSelect ? 0 : undefined}
-              aria-pressed={onMeasureSelect ? selectedMeasure === measure.beat : undefined}
+              aria-pressed={onMeasureSelect ? isSelected : undefined}
               onClick={onMeasureSelect ? event => select(event, measure) : undefined}
               onKeyDown={onMeasureSelect ? event => {
-                if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                if (event.target !== event.currentTarget) return;
+                if (isSelected && sectionEditing && event.key === 'Enter') {
+                  editSection(event, measure, action);
+                } else if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
                   select(event, measure);
                 }
@@ -119,10 +136,11 @@ export function RawlMeasureHeader({
               data-score-measure={measure.number}
               style={{color: measure.color, pointerEvents: onMeasureSelect ? 'auto' : undefined,
                 cursor: onMeasureSelect ? 'pointer' : undefined}}>
-              {renderMeasureExtras?.(measure, sectionEditing && selectedMeasure === measure.beat
-                ? event => editSection(event, measure) : undefined)}
+              {renderMeasureExtras?.(measure, sectionEditing && isSelected
+                ? event => editSection(event, measure, action) : undefined)}
               <span>{measure.number}</span>
             </div>
+            {menu != null && <div className="rawln-measure-menu">{menu}</div>}
           </div>;
         })}
       </div>

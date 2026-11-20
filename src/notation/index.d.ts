@@ -5,7 +5,7 @@ export interface MidiNote {
  /** If set, highlight in playback-clock units while laying out start/duration in beats. */
  playbackSpan?:readonly [start:number,end:number];
 }
-export interface ScoreRow { start:number; end:number; label?:number; style?:React.CSSProperties; }
+export interface ScoreRow { start:number; end:number; anchor?:number; label?:number; style?:React.CSSProperties; }
 export interface TonicChange { beat:number; tonic:number; join?:boolean; name?:string; onsetOverride?:boolean; }
 /** Place mid-measure flags at the following printed measure when a measure map is provided. */
 export type ModulationMarkerPlacement = 'onset' | 'following-measure';
@@ -32,9 +32,13 @@ export interface RawlNotationProps {
  playbackClock?:NotePlaybackClock & {seek?:(beat:number)=>void};
  showTonalGuides?:boolean; noteScale?:number;
  onSeek?:(beat:number)=>void; onNote?:(note:MidiNote)=>void; onNoteAudition?:(note:MidiNote)=>void; onNoteHover?:(note:MidiNote|null)=>void;
- onMeasureSelect?:(beat:number)=>void; selectedMeasure?:number|null;
+ onMeasureSelect?:(beat:number,measure:PositionedMeasure,element?:HTMLDivElement)=>void; selectedMeasure?:number|null;
  onChangesChange?:(changes:TonicChange[])=>void; recolorable?:boolean;
- sectionEditing?:MeasureSectionEditing; renderMeasureExtras?:RenderMeasureExtras;
+ /** Transient section editing is built in. Pass false to disable it or supply a custom editor. */
+ sectionEditing?:MeasureSectionEditing|false;
+ /** Observe the edited layout, or null when the original rows are shown. */
+ onSectionRowsChange?:(rows:ScoreRow[]|null)=>void;
+ renderMeasureExtras?:RenderMeasureExtras;
  renderHeader?:(row:ScoreRow)=>React.ReactNode;
  renderUnderlay?:(row:ScoreRow,axis:ReturnType<typeof staveGeometry>)=>React.ReactNode;
  renderFooter?:(row:ScoreRow,context:{changes:TonicChange[];selectedMeasure:number|null})=>React.ReactNode;
@@ -67,6 +71,8 @@ export interface MeasureHeaderLayout {
 export interface MeasureSectionEditing {
  /** Section starts in score coordinates, including the first section. */
  sectionStarts:readonly number[];
+ /** Override the default requirement that a split fall on a phrase start. */
+ canSplit?:(measure:PositionedMeasure)=>boolean;
  onSplit:(measure:PositionedMeasure)=>void;
  onGlue:(measure:PositionedMeasure)=>void;
 }

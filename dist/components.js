@@ -277,6 +277,14 @@ function rowLayout(options) {
     markers: layout.markers.map((marker) => ({ ...marker, left: offsetLeft(x(marker.beat), marker.pixelOffset) }))
   };
 }
+function measureSectionAction(sectionEditing, measure) {
+  var _a, _b;
+  if (!(sectionEditing == null ? void 0 : sectionEditing.sectionStarts.some((start) => start < measure.beat))) return;
+  if (sectionEditing.sectionStarts.includes(measure.beat)) {
+    return { glue: true, apply: sectionEditing.onGlue };
+  }
+  if ((_b = (_a = sectionEditing.canSplit) == null ? void 0 : _a.call(sectionEditing, measure)) != null ? _b : measure.isPhraseStart) return { glue: false, apply: sectionEditing.onSplit };
+}
 function RawlMeasureHeader({
   row,
   layout: positioned,
@@ -331,18 +339,12 @@ function RawlMeasureHeader({
     event.stopPropagation();
     onMeasureSelect(measure.beat, measure, event.currentTarget);
   };
-  const editSection = (event, measure) => {
-    if (event.defaultPrevented || event.key !== "Enter" || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing || event.currentTarget.value.trim()) return;
+  const editSection = (event, measure, action) => {
+    var _a;
+    if (event.defaultPrevented || event.key !== "Enter" || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing || ((_a = event.currentTarget.value) == null ? void 0 : _a.trim())) return;
     event.preventDefault();
     event.stopPropagation();
-    const { sectionStarts, onSplit, onGlue } = sectionEditing;
-    if (!sectionStarts.some((start) => start < measure.beat)) return;
-    const startsSection = sectionStarts.includes(measure.beat);
-    if (event.shiftKey) {
-      if (startsSection) onGlue(measure);
-    } else if (measure.isPhraseStart && !startsSection) {
-      onSplit(measure);
-    }
+    if (action && action.glue === event.shiftKey) action.apply(measure);
   };
   return /* @__PURE__ */ React2.createElement("div", { ref: element, className: "rawln-measure-grid", style: { height } }, measures.map((measure) => {
     var _a;
@@ -392,9 +394,27 @@ function RawlMeasureHeader({
         }
       )
     );
-  })), /* @__PURE__ */ React2.createElement("div", { className: "rawln-measure-labels", "aria-hidden": !onMeasureSelect || void 0 }, measures.filter((measure) => !measure.terminal && measure.showLabel !== false).map((measure) => {
+  })), /* @__PURE__ */ React2.createElement("div", { className: "rawln-measure-labels", "aria-hidden": !(onMeasureSelect || sectionEditing) || void 0 }, measures.filter((measure) => !measure.terminal && measure.showLabel !== false).map((measure) => {
     var _a;
     const labelLeft = offsetLeft(measure.left, (_a = measure.labelOffset) != null ? _a : 6);
+    const isSelected = selectedMeasure === measure.beat;
+    const action = isSelected ? measureSectionAction(sectionEditing, measure) : void 0;
+    const menu = action && /* @__PURE__ */ React2.createElement(
+      "button",
+      {
+        type: "button",
+        className: "rawln-section-command",
+        onMouseDown: (event) => event.preventDefault(),
+        onClick: (event) => {
+          event.stopPropagation();
+          action.apply(measure);
+        },
+        onKeyDown: (event) => {
+          if (event.key === "Enter" || event.key === " ") event.stopPropagation();
+        }
+      },
+      action.glue ? "Glue" : "Split"
+    );
     return /* @__PURE__ */ React2.createElement(
       "div",
       {
@@ -408,10 +428,13 @@ function RawlMeasureHeader({
           className: "rawln-measure-number",
           role: onMeasureSelect ? "button" : void 0,
           tabIndex: onMeasureSelect ? 0 : void 0,
-          "aria-pressed": onMeasureSelect ? selectedMeasure === measure.beat : void 0,
+          "aria-pressed": onMeasureSelect ? isSelected : void 0,
           onClick: onMeasureSelect ? (event) => select(event, measure) : void 0,
           onKeyDown: onMeasureSelect ? (event) => {
-            if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
+            if (event.target !== event.currentTarget) return;
+            if (isSelected && sectionEditing && event.key === "Enter") {
+              editSection(event, measure, action);
+            } else if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
               select(event, measure);
             }
@@ -425,9 +448,10 @@ function RawlMeasureHeader({
             cursor: onMeasureSelect ? "pointer" : void 0
           }
         },
-        renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && selectedMeasure === measure.beat ? (event) => editSection(event, measure) : void 0),
+        renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && isSelected ? (event) => editSection(event, measure, action) : void 0),
         /* @__PURE__ */ React2.createElement("span", null, measure.number)
-      )
+      ),
+      menu != null && /* @__PURE__ */ React2.createElement("div", { className: "rawln-measure-menu" }, menu)
     );
   }))));
 }
