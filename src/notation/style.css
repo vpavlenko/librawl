@@ -8,6 +8,7 @@
 
 .rawln-score[data-seekable]{cursor:pointer}
 .rawln-measure-menu{position:relative;grid-column:2;grid-row:1;justify-self:end;width:0;z-index:16;pointer-events:none}
-.rawln-section-command{position:absolute;top:0;left:4px;border:1px solid #666;border-radius:2px;background:#222;color:#fff;padding:1px 4px;font:11px sans-serif;white-space:nowrap;cursor:pointer;pointer-events:auto}
+.rawln-section-command{position:absolute;top:0;left:4px;border:1px solid #666;border-radius:2px;background:#222;color:#fff;padding:2px;cursor:pointer;pointer-events:auto}
+.rawln-section-command svg{display:block}
 .rawln-section-command:focus-visible{outline:1px solid #ddd;outline-offset:2px}
 .rawln-measure-number:focus-visible{outline:1px solid #ddd;outline-offset:2px}

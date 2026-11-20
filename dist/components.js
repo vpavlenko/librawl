@@ -258,6 +258,154 @@ var colorIndex = (semitones) => (semitones % 12 + 12) % 12;
 
 // src/notation/RawlMeasureHeader.jsx
 import React2, { useLayoutEffect, useMemo, useRef, useState } from "react";
+
+// node_modules/lucide-react/dist/esm/createLucideIcon.js
+import { forwardRef as forwardRef2, createElement as createElement3 } from "react";
+
+// node_modules/lucide-react/dist/esm/shared/src/utils.js
+var toKebabCase = (string) => string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+var toCamelCase = (string) => string.replace(
+  /^([A-Z])|[\s-_]+(\w)/g,
+  (match, p1, p2) => p2 ? p2.toUpperCase() : p1.toLowerCase()
+);
+var toPascalCase = (string) => {
+  const camelCase = toCamelCase(string);
+  return camelCase.charAt(0).toUpperCase() + camelCase.slice(1);
+};
+var mergeClasses = (...classes) => classes.filter((className, index, array) => {
+  return Boolean(className) && className.trim() !== "" && array.indexOf(className) === index;
+}).join(" ").trim();
+var hasA11yProp = (props) => {
+  for (const prop in props) {
+    if (prop.startsWith("aria-") || prop === "role" || prop === "title") {
+      return true;
+    }
+  }
+};
+
+// node_modules/lucide-react/dist/esm/Icon.js
+import { forwardRef, createElement as createElement2 } from "react";
+
+// node_modules/lucide-react/dist/esm/defaultAttributes.js
+var defaultAttributes = {
+  xmlns: "http://www.w3.org/2000/svg",
+  width: 24,
+  height: 24,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round",
+  strokeLinejoin: "round"
+};
+
+// node_modules/lucide-react/dist/esm/Icon.js
+var Icon = forwardRef(
+  ({
+    color: color2 = "currentColor",
+    size = 24,
+    strokeWidth = 2,
+    absoluteStrokeWidth,
+    className = "",
+    children,
+    iconNode,
+    ...rest
+  }, ref) => createElement2(
+    "svg",
+    {
+      ref,
+      ...defaultAttributes,
+      width: size,
+      height: size,
+      stroke: color2,
+      strokeWidth: absoluteStrokeWidth ? Number(strokeWidth) * 24 / Number(size) : strokeWidth,
+      className: mergeClasses("lucide", className),
+      ...!children && !hasA11yProp(rest) && { "aria-hidden": "true" },
+      ...rest
+    },
+    [
+      ...iconNode.map(([tag, attrs]) => createElement2(tag, attrs)),
+      ...Array.isArray(children) ? children : [children]
+    ]
+  )
+);
+
+// node_modules/lucide-react/dist/esm/createLucideIcon.js
+var createLucideIcon = (iconName, iconNode) => {
+  const Component = forwardRef2(
+    ({ className, ...props }, ref) => createElement3(Icon, {
+      ref,
+      iconNode,
+      className: mergeClasses(
+        `lucide-${toKebabCase(toPascalCase(iconName))}`,
+        `lucide-${iconName}`,
+        className
+      ),
+      ...props
+    })
+  );
+  Component.displayName = toPascalCase(iconName);
+  return Component;
+};
+
+// node_modules/lucide-react/dist/esm/icons/chevron-down.js
+var __iconNode = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
+var ChevronDown = createLucideIcon("chevron-down", __iconNode);
+
+// node_modules/lucide-react/dist/esm/icons/chevron-up.js
+var __iconNode2 = [["path", { d: "m18 15-6-6-6 6", key: "153udz" }]];
+var ChevronUp = createLucideIcon("chevron-up", __iconNode2);
+
+// node_modules/lucide-react/dist/esm/icons/corner-down-left.js
+var __iconNode3 = [
+  ["path", { d: "M20 4v7a4 4 0 0 1-4 4H4", key: "6o5b7l" }],
+  ["path", { d: "m9 10-5 5 5 5", key: "1kshq7" }]
+];
+var CornerDownLeft = createLucideIcon("corner-down-left", __iconNode3);
+
+// node_modules/lucide-react/dist/esm/icons/corner-right-up.js
+var __iconNode4 = [
+  ["path", { d: "m10 9 5-5 5 5", key: "9ctzwi" }],
+  ["path", { d: "M4 20h7a4 4 0 0 0 4-4V4", key: "1plgdj" }]
+];
+var CornerRightUp = createLucideIcon("corner-right-up", __iconNode4);
+
+// node_modules/lucide-react/dist/esm/icons/graduation-cap.js
+var __iconNode5 = [
+  [
+    "path",
+    {
+      d: "M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z",
+      key: "j76jl0"
+    }
+  ],
+  ["path", { d: "M22 10v6", key: "1lu8f3" }],
+  ["path", { d: "M6 12.5V16a6 3 0 0 0 12 0v-3.5", key: "1r8lef" }]
+];
+var GraduationCap = createLucideIcon("graduation-cap", __iconNode5);
+
+// node_modules/lucide-react/dist/esm/icons/guitar.js
+var __iconNode6 = [
+  ["path", { d: "m11.9 12.1 4.514-4.514", key: "109xqo" }],
+  [
+    "path",
+    {
+      d: "M20.1 2.3a1 1 0 0 0-1.4 0l-1.114 1.114A2 2 0 0 0 17 4.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 17.828 7h1.344a2 2 0 0 0 1.414-.586L21.7 5.3a1 1 0 0 0 0-1.4z",
+      key: "txyc8t"
+    }
+  ],
+  ["path", { d: "m6 16 2 2", key: "16qmzd" }],
+  [
+    "path",
+    {
+      d: "M8.23 9.85A3 3 0 0 1 11 8a5 5 0 0 1 5 5 3 3 0 0 1-1.85 2.77l-.92.38A2 2 0 0 0 12 18a4 4 0 0 1-4 4 6 6 0 0 1-6-6 4 4 0 0 1 4-4 2 2 0 0 0 1.85-1.23z",
+      key: "1de1vg"
+    }
+  ]
+];
+var Guitar = createLucideIcon("guitar", __iconNode6);
+
+// src/notation/RawlMeasureHeader.jsx
 var EMPTY_CHANGES = [];
 var numberOnFlag = { display: "block", lineHeight: MODULATION_BADGE_HEIGHT + "px" };
 var cssLength = (value) => typeof value === "number" ? value + "px" : value;
@@ -401,11 +549,15 @@ function RawlMeasureHeader({
     const labelLeft = offsetLeft(measure.left, (_a = measure.labelOffset) != null ? _a : 6);
     const isSelected = selectedMeasure === measure.beat;
     const action = isSelected ? measureSectionAction(sectionEditing, measure) : void 0;
+    const CommandIcon = (action == null ? void 0 : action.glue) ? CornerRightUp : CornerDownLeft;
+    const commandName = (action == null ? void 0 : action.glue) ? "Glue" : "Split";
     const menu = action && /* @__PURE__ */ React2.createElement(
       "button",
       {
         type: "button",
         className: "rawln-section-command",
+        "aria-label": commandName,
+        title: commandName,
         onMouseDown: (event) => event.preventDefault(),
         onClick: (event) => {
           event.stopPropagation();
@@ -415,7 +567,7 @@ function RawlMeasureHeader({
           if (event.key === "Enter" || event.key === " ") event.stopPropagation();
         }
       },
-      action.glue ? "Glue" : "Split"
+      /* @__PURE__ */ React2.createElement(CommandIcon, { size: 14, "aria-hidden": "true", focusable: false })
     );
     return /* @__PURE__ */ React2.createElement(
       "div",
@@ -1550,140 +1702,6 @@ function ScoreSizeSliders({ noteHeight, timeSpacing, onNoteHeightChange, onTimeS
 
 // src/components/PianoLegend.jsx
 import React9, { useEffect as useEffect4, useRef as useRef6, useState as useState4 } from "react";
-
-// node_modules/lucide-react/dist/esm/createLucideIcon.js
-import { forwardRef as forwardRef2, createElement as createElement3 } from "react";
-
-// node_modules/lucide-react/dist/esm/shared/src/utils.js
-var toKebabCase = (string) => string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
-var toCamelCase = (string) => string.replace(
-  /^([A-Z])|[\s-_]+(\w)/g,
-  (match, p1, p2) => p2 ? p2.toUpperCase() : p1.toLowerCase()
-);
-var toPascalCase = (string) => {
-  const camelCase = toCamelCase(string);
-  return camelCase.charAt(0).toUpperCase() + camelCase.slice(1);
-};
-var mergeClasses = (...classes) => classes.filter((className, index, array) => {
-  return Boolean(className) && className.trim() !== "" && array.indexOf(className) === index;
-}).join(" ").trim();
-var hasA11yProp = (props) => {
-  for (const prop in props) {
-    if (prop.startsWith("aria-") || prop === "role" || prop === "title") {
-      return true;
-    }
-  }
-};
-
-// node_modules/lucide-react/dist/esm/Icon.js
-import { forwardRef, createElement as createElement2 } from "react";
-
-// node_modules/lucide-react/dist/esm/defaultAttributes.js
-var defaultAttributes = {
-  xmlns: "http://www.w3.org/2000/svg",
-  width: 24,
-  height: 24,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 2,
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-};
-
-// node_modules/lucide-react/dist/esm/Icon.js
-var Icon = forwardRef(
-  ({
-    color: color2 = "currentColor",
-    size = 24,
-    strokeWidth = 2,
-    absoluteStrokeWidth,
-    className = "",
-    children,
-    iconNode,
-    ...rest
-  }, ref) => createElement2(
-    "svg",
-    {
-      ref,
-      ...defaultAttributes,
-      width: size,
-      height: size,
-      stroke: color2,
-      strokeWidth: absoluteStrokeWidth ? Number(strokeWidth) * 24 / Number(size) : strokeWidth,
-      className: mergeClasses("lucide", className),
-      ...!children && !hasA11yProp(rest) && { "aria-hidden": "true" },
-      ...rest
-    },
-    [
-      ...iconNode.map(([tag, attrs]) => createElement2(tag, attrs)),
-      ...Array.isArray(children) ? children : [children]
-    ]
-  )
-);
-
-// node_modules/lucide-react/dist/esm/createLucideIcon.js
-var createLucideIcon = (iconName, iconNode) => {
-  const Component = forwardRef2(
-    ({ className, ...props }, ref) => createElement3(Icon, {
-      ref,
-      iconNode,
-      className: mergeClasses(
-        `lucide-${toKebabCase(toPascalCase(iconName))}`,
-        `lucide-${iconName}`,
-        className
-      ),
-      ...props
-    })
-  );
-  Component.displayName = toPascalCase(iconName);
-  return Component;
-};
-
-// node_modules/lucide-react/dist/esm/icons/chevron-down.js
-var __iconNode = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
-var ChevronDown = createLucideIcon("chevron-down", __iconNode);
-
-// node_modules/lucide-react/dist/esm/icons/chevron-up.js
-var __iconNode2 = [["path", { d: "m18 15-6-6-6 6", key: "153udz" }]];
-var ChevronUp = createLucideIcon("chevron-up", __iconNode2);
-
-// node_modules/lucide-react/dist/esm/icons/graduation-cap.js
-var __iconNode3 = [
-  [
-    "path",
-    {
-      d: "M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z",
-      key: "j76jl0"
-    }
-  ],
-  ["path", { d: "M22 10v6", key: "1lu8f3" }],
-  ["path", { d: "M6 12.5V16a6 3 0 0 0 12 0v-3.5", key: "1r8lef" }]
-];
-var GraduationCap = createLucideIcon("graduation-cap", __iconNode3);
-
-// node_modules/lucide-react/dist/esm/icons/guitar.js
-var __iconNode4 = [
-  ["path", { d: "m11.9 12.1 4.514-4.514", key: "109xqo" }],
-  [
-    "path",
-    {
-      d: "M20.1 2.3a1 1 0 0 0-1.4 0l-1.114 1.114A2 2 0 0 0 17 4.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 17.828 7h1.344a2 2 0 0 0 1.414-.586L21.7 5.3a1 1 0 0 0 0-1.4z",
-      key: "txyc8t"
-    }
-  ],
-  ["path", { d: "m6 16 2 2", key: "16qmzd" }],
-  [
-    "path",
-    {
-      d: "M8.23 9.85A3 3 0 0 1 11 8a5 5 0 0 1 5 5 3 3 0 0 1-1.85 2.77l-.92.38A2 2 0 0 0 12 18a4 4 0 0 1-4 4 6 6 0 0 1-6-6 4 4 0 0 1 4-4 2 2 0 0 0 1.85-1.23z",
-      key: "1de1vg"
-    }
-  ]
-];
-var Guitar = createLucideIcon("guitar", __iconNode4);
-
-// src/components/PianoLegend.jsx
 var WHITE_KEYS = [0, 2, 4, 5, 7, 9, 11];
 var BLACK_KEYS = [1, 3, null, 6, 8, 10, null];
 var BLACK_LABELS = ["\u266D2", "\u266D3", null, "\u266F4", "\u266D6", "\u266D7"];
@@ -2243,6 +2261,8 @@ lucide-react/dist/esm/Icon.js:
 lucide-react/dist/esm/createLucideIcon.js:
 lucide-react/dist/esm/icons/chevron-down.js:
 lucide-react/dist/esm/icons/chevron-up.js:
+lucide-react/dist/esm/icons/corner-down-left.js:
+lucide-react/dist/esm/icons/corner-right-up.js:
 lucide-react/dist/esm/icons/graduation-cap.js:
 lucide-react/dist/esm/icons/guitar.js:
 lucide-react/dist/esm/lucide-react.js:

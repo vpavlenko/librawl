@@ -1,4 +1,5 @@
 import React, {useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {CornerDownLeft, CornerRightUp} from 'lucide-react';
 import {MODULATION_BADGE_HEIGHT, TonicSymbol} from '../components/TonicSymbol.jsx';
 import {measureHeaderLayout, mod} from './geometry.mjs';
 import {RAWL_COLORS} from './palette.mjs';
@@ -107,7 +108,10 @@ export function RawlMeasureHeader({
           const labelLeft = offsetLeft(measure.left, measure.labelOffset ?? 6);
           const isSelected = selectedMeasure === measure.beat;
           const action = isSelected ? measureSectionAction(sectionEditing, measure) : undefined;
+          const CommandIcon = action?.glue ? CornerRightUp : CornerDownLeft;
+          const commandName = action?.glue ? 'Glue' : 'Split';
           const menu = action && <button type="button" className="rawln-section-command"
+            aria-label={commandName} title={commandName}
             onMouseDown={event => event.preventDefault()}
             onClick={event => {
               event.stopPropagation();
@@ -116,7 +120,7 @@ export function RawlMeasureHeader({
             onKeyDown={event => {
               if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
             }}>
-            {action.glue ? 'Glue' : 'Split'}
+            <CommandIcon size={14} aria-hidden="true" focusable={false} />
           </button>;
           return <div className="rawln-measure-position" key={measure.beat}
             style={{gridTemplateColumns: `minmax(0, ${cssLength(labelLeft)}) max-content`}}>

@@ -15558,12 +15558,115 @@ var LibrawlCaplinNotes = (() => {
   }
 
   // integrations/caplin/measure-headers.jsx
-  var import_react8 = __toESM(require_react(), 1);
+  var import_react10 = __toESM(require_react(), 1);
   var import_react_dom = __toESM(require_react_dom(), 1);
   var import_client = __toESM(require_client(), 1);
 
   // src/notation/RawlMeasureHeader.jsx
-  var import_react6 = __toESM(require_react(), 1);
+  var import_react8 = __toESM(require_react(), 1);
+
+  // node_modules/lucide-react/dist/esm/createLucideIcon.js
+  var import_react7 = __toESM(require_react());
+
+  // node_modules/lucide-react/dist/esm/shared/src/utils.js
+  var toKebabCase = (string) => string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+  var toCamelCase = (string) => string.replace(
+    /^([A-Z])|[\s-_]+(\w)/g,
+    (match, p1, p2) => p2 ? p2.toUpperCase() : p1.toLowerCase()
+  );
+  var toPascalCase = (string) => {
+    const camelCase = toCamelCase(string);
+    return camelCase.charAt(0).toUpperCase() + camelCase.slice(1);
+  };
+  var mergeClasses = (...classes) => classes.filter((className, index, array) => {
+    return Boolean(className) && className.trim() !== "" && array.indexOf(className) === index;
+  }).join(" ").trim();
+  var hasA11yProp = (props) => {
+    for (const prop in props) {
+      if (prop.startsWith("aria-") || prop === "role" || prop === "title") {
+        return true;
+      }
+    }
+  };
+
+  // node_modules/lucide-react/dist/esm/Icon.js
+  var import_react6 = __toESM(require_react());
+
+  // node_modules/lucide-react/dist/esm/defaultAttributes.js
+  var defaultAttributes = {
+    xmlns: "http://www.w3.org/2000/svg",
+    width: 24,
+    height: 24,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  };
+
+  // node_modules/lucide-react/dist/esm/Icon.js
+  var Icon = (0, import_react6.forwardRef)(
+    ({
+      color = "currentColor",
+      size = 24,
+      strokeWidth = 2,
+      absoluteStrokeWidth,
+      className = "",
+      children,
+      iconNode,
+      ...rest
+    }, ref) => (0, import_react6.createElement)(
+      "svg",
+      {
+        ref,
+        ...defaultAttributes,
+        width: size,
+        height: size,
+        stroke: color,
+        strokeWidth: absoluteStrokeWidth ? Number(strokeWidth) * 24 / Number(size) : strokeWidth,
+        className: mergeClasses("lucide", className),
+        ...!children && !hasA11yProp(rest) && { "aria-hidden": "true" },
+        ...rest
+      },
+      [
+        ...iconNode.map(([tag, attrs]) => (0, import_react6.createElement)(tag, attrs)),
+        ...Array.isArray(children) ? children : [children]
+      ]
+    )
+  );
+
+  // node_modules/lucide-react/dist/esm/createLucideIcon.js
+  var createLucideIcon = (iconName, iconNode) => {
+    const Component = (0, import_react7.forwardRef)(
+      ({ className, ...props }, ref) => (0, import_react7.createElement)(Icon, {
+        ref,
+        iconNode,
+        className: mergeClasses(
+          `lucide-${toKebabCase(toPascalCase(iconName))}`,
+          `lucide-${iconName}`,
+          className
+        ),
+        ...props
+      })
+    );
+    Component.displayName = toPascalCase(iconName);
+    return Component;
+  };
+
+  // node_modules/lucide-react/dist/esm/icons/corner-down-left.js
+  var __iconNode = [
+    ["path", { d: "M20 4v7a4 4 0 0 1-4 4H4", key: "6o5b7l" }],
+    ["path", { d: "m9 10-5 5 5 5", key: "1kshq7" }]
+  ];
+  var CornerDownLeft = createLucideIcon("corner-down-left", __iconNode);
+
+  // node_modules/lucide-react/dist/esm/icons/corner-right-up.js
+  var __iconNode2 = [
+    ["path", { d: "m10 9 5-5 5 5", key: "9ctzwi" }],
+    ["path", { d: "M4 20h7a4 4 0 0 0 4-4V4", key: "1plgdj" }]
+  ];
+  var CornerRightUp = createLucideIcon("corner-right-up", __iconNode2);
 
   // src/components/TonicSymbol.jsx
   var React3 = __toESM(require_react(), 1);
@@ -15624,7 +15727,7 @@ var LibrawlCaplinNotes = (() => {
   var cssLength = (value) => typeof value === "number" ? value + "px" : value;
   var offsetLeft = (left, offset) => typeof left === "number" ? left + offset : offset < 0 ? `calc(${left} - ${-offset}px)` : offset > 0 ? `calc(${left} + ${offset}px)` : left;
   function arrow({ direction }) {
-    return /* @__PURE__ */ import_react6.default.createElement("svg", { viewBox: "0 0 24 24", "aria-hidden": "true" }, direction === "down" ? /* @__PURE__ */ import_react6.default.createElement(import_react6.default.Fragment, null, /* @__PURE__ */ import_react6.default.createElement("path", { d: "M12 5v14" }), /* @__PURE__ */ import_react6.default.createElement("path", { d: "m19 12-7 7-7-7" })) : /* @__PURE__ */ import_react6.default.createElement(import_react6.default.Fragment, null, /* @__PURE__ */ import_react6.default.createElement("path", { d: "m5 12 7-7 7 7" }), /* @__PURE__ */ import_react6.default.createElement("path", { d: "M12 19V5" })));
+    return /* @__PURE__ */ import_react8.default.createElement("svg", { viewBox: "0 0 24 24", "aria-hidden": "true" }, direction === "down" ? /* @__PURE__ */ import_react8.default.createElement(import_react8.default.Fragment, null, /* @__PURE__ */ import_react8.default.createElement("path", { d: "M12 5v14" }), /* @__PURE__ */ import_react8.default.createElement("path", { d: "m19 12-7 7-7-7" })) : /* @__PURE__ */ import_react8.default.createElement(import_react8.default.Fragment, null, /* @__PURE__ */ import_react8.default.createElement("path", { d: "m5 12 7-7 7 7" }), /* @__PURE__ */ import_react8.default.createElement("path", { d: "M12 19V5" })));
   }
   function rowLayout(options) {
     const { row } = options;
@@ -15667,10 +15770,10 @@ var LibrawlCaplinNotes = (() => {
     modulationMarkerPlacement,
     sectionEditing
   }) {
-    const element = (0, import_react6.useRef)(null);
-    const [width, setWidth] = (0, import_react6.useState)(0);
+    const element = (0, import_react8.useRef)(null);
+    const [width, setWidth] = (0, import_react8.useState)(0);
     const hasPositionedLayout = !!positioned;
-    (0, import_react6.useLayoutEffect)(() => {
+    (0, import_react8.useLayoutEffect)(() => {
       var _a;
       if (hasPositionedLayout) return;
       const el = element.current, view = el.ownerDocument.defaultView;
@@ -15685,7 +15788,7 @@ var LibrawlCaplinNotes = (() => {
         view == null ? void 0 : view.removeEventListener("resize", fit);
       };
     }, [hasPositionedLayout]);
-    const { measures, beats, markers } = (0, import_react6.useMemo)(() => positioned != null ? positioned : rowLayout({
+    const { measures, beats, markers } = (0, import_react8.useMemo)(() => positioned != null ? positioned : rowLayout({
       row,
       tonic,
       changes,
@@ -15709,9 +15812,9 @@ var LibrawlCaplinNotes = (() => {
       event.stopPropagation();
       if (action && action.glue === event.shiftKey) action.apply(measure);
     };
-    return /* @__PURE__ */ import_react6.default.createElement("div", { ref: element, className: "rawln-measure-grid", style: { height } }, measures.map((measure) => {
+    return /* @__PURE__ */ import_react8.default.createElement("div", { ref: element, className: "rawln-measure-grid", style: { height } }, measures.map((measure) => {
       var _a;
-      return /* @__PURE__ */ import_react6.default.createElement(
+      return /* @__PURE__ */ import_react8.default.createElement(
         "div",
         {
           className: "rawln-bar" + (measure.isPhraseStart ? " rawln-phrase-bar" : ""),
@@ -15722,10 +15825,10 @@ var LibrawlCaplinNotes = (() => {
           style: { left: (_a = measure.barLeft) != null ? _a : measure.left }
         }
       );
-    }), beats.map(({ beat, left }) => /* @__PURE__ */ import_react6.default.createElement("div", { className: "rawln-beat-bar", key: beat, "data-beat": beat, style: { left } })), showHeader && /* @__PURE__ */ import_react6.default.createElement(import_react6.default.Fragment, null, /* @__PURE__ */ import_react6.default.createElement("div", { className: "rawln-modulations" }, markers.map((marker) => {
+    }), beats.map(({ beat, left }) => /* @__PURE__ */ import_react8.default.createElement("div", { className: "rawln-beat-bar", key: beat, "data-beat": beat, style: { left } })), showHeader && /* @__PURE__ */ import_react8.default.createElement(import_react8.default.Fragment, null, /* @__PURE__ */ import_react8.default.createElement("div", { className: "rawln-modulations" }, markers.map((marker) => {
       var _a;
       const interval = marker.delta == null ? null : mod(marker.delta);
-      return /* @__PURE__ */ import_react6.default.createElement(
+      return /* @__PURE__ */ import_react8.default.createElement(
         "div",
         {
           key: marker.beat,
@@ -15739,7 +15842,7 @@ var LibrawlCaplinNotes = (() => {
           style: { left: marker.left },
           title: marker.name
         },
-        /* @__PURE__ */ import_react6.default.createElement(
+        /* @__PURE__ */ import_react8.default.createElement(
           TonicSymbol,
           {
             left: 0,
@@ -15757,16 +15860,20 @@ var LibrawlCaplinNotes = (() => {
           }
         )
       );
-    })), /* @__PURE__ */ import_react6.default.createElement("div", { className: "rawln-measure-labels", "aria-hidden": !(onMeasureSelect || sectionEditing) || void 0 }, measures.filter((measure) => !measure.terminal && measure.showLabel !== false).map((measure) => {
+    })), /* @__PURE__ */ import_react8.default.createElement("div", { className: "rawln-measure-labels", "aria-hidden": !(onMeasureSelect || sectionEditing) || void 0 }, measures.filter((measure) => !measure.terminal && measure.showLabel !== false).map((measure) => {
       var _a;
       const labelLeft = offsetLeft(measure.left, (_a = measure.labelOffset) != null ? _a : 6);
       const isSelected = selectedMeasure === measure.beat;
       const action = isSelected ? measureSectionAction(sectionEditing, measure) : void 0;
-      const menu = action && /* @__PURE__ */ import_react6.default.createElement(
+      const CommandIcon = (action == null ? void 0 : action.glue) ? CornerRightUp : CornerDownLeft;
+      const commandName = (action == null ? void 0 : action.glue) ? "Glue" : "Split";
+      const menu = action && /* @__PURE__ */ import_react8.default.createElement(
         "button",
         {
           type: "button",
           className: "rawln-section-command",
+          "aria-label": commandName,
+          title: commandName,
           onMouseDown: (event) => event.preventDefault(),
           onClick: (event) => {
             event.stopPropagation();
@@ -15776,16 +15883,16 @@ var LibrawlCaplinNotes = (() => {
             if (event.key === "Enter" || event.key === " ") event.stopPropagation();
           }
         },
-        action.glue ? "Glue" : "Split"
+        /* @__PURE__ */ import_react8.default.createElement(CommandIcon, { size: 14, "aria-hidden": "true", focusable: false })
       );
-      return /* @__PURE__ */ import_react6.default.createElement(
+      return /* @__PURE__ */ import_react8.default.createElement(
         "div",
         {
           className: "rawln-measure-position",
           key: measure.beat,
           style: { gridTemplateColumns: `minmax(0, ${cssLength(labelLeft)}) max-content` }
         },
-        /* @__PURE__ */ import_react6.default.createElement(
+        /* @__PURE__ */ import_react8.default.createElement(
           "div",
           {
             className: "rawln-measure-number",
@@ -15813,15 +15920,15 @@ var LibrawlCaplinNotes = (() => {
             }
           },
           renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && isSelected ? (event) => editSection(event, measure, action) : void 0),
-          /* @__PURE__ */ import_react6.default.createElement("span", { style: measure.hasModulation ? numberOnFlag : void 0 }, measure.number)
+          /* @__PURE__ */ import_react8.default.createElement("span", { style: measure.hasModulation ? numberOnFlag : void 0 }, measure.number)
         ),
-        menu != null && /* @__PURE__ */ import_react6.default.createElement("div", { className: "rawln-measure-menu" }, menu)
+        menu != null && /* @__PURE__ */ import_react8.default.createElement("div", { className: "rawln-measure-menu" }, menu)
       );
     }))));
   }
 
   // src/notation/recolor.jsx
-  var import_react7 = __toESM(require_react(), 1);
+  var import_react9 = __toESM(require_react(), 1);
   var ROOTS = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
   function recolorModulation(changes, beat, pitch) {
     if (!Number.isFinite(beat) || beat < 0 || !Number.isFinite(pitch)) return changes;
@@ -15834,9 +15941,9 @@ var LibrawlCaplinNotes = (() => {
   var initial = (source) => ({ source, committed: source, ...clearedSelection });
   function useTonicRecoloring({ changes, barBeats = 4, measureMap, onChange }) {
     var _a;
-    const [stored, setStored] = (0, import_react7.useState)(() => initial(changes)), state = stored.source === changes ? stored : initial(changes);
+    const [stored, setStored] = (0, import_react9.useState)(() => initial(changes)), state = stored.source === changes ? stored : initial(changes);
     const cancel = () => setStored((previous) => ({ ...previous, ...clearedSelection }));
-    (0, import_react7.useEffect)(() => {
+    (0, import_react9.useEffect)(() => {
       var _a2;
       if (state.selectedMeasure === null) return;
       const { selectedElement } = state, ownerDocument = (_a2 = selectedElement == null ? void 0 : selectedElement.ownerDocument) != null ? _a2 : document;
@@ -15879,9 +15986,9 @@ var LibrawlCaplinNotes = (() => {
   var emptyChanges = [];
   function MeasureHeaders({ rows, tonic, changes, measureMap, beatBeats, barBeats, phraseStarts, modulationMarkerPlacement, publish }) {
     const editor = useTonicRecoloring({ changes, barBeats, measureMap });
-    (0, import_react8.useLayoutEffect)(() => publish(editor));
+    (0, import_react10.useLayoutEffect)(() => publish(editor));
     return rows.map(({ score, row, axis }) => (0, import_react_dom.createPortal)(
-      /* @__PURE__ */ import_react8.default.createElement("div", { className: "rawln", style: { position: "absolute", inset: `${axis.guideTop}px 0 0`, pointerEvents: "none" } }, /* @__PURE__ */ import_react8.default.createElement(
+      /* @__PURE__ */ import_react10.default.createElement("div", { className: "rawln", style: { position: "absolute", inset: `${axis.guideTop}px 0 0`, pointerEvents: "none" } }, /* @__PURE__ */ import_react10.default.createElement(
         RawlMeasureHeader,
         {
           row,
@@ -15918,7 +16025,7 @@ var LibrawlCaplinNotes = (() => {
         onTonicChange == null ? void 0 : onTonicChange(painted);
       });
     }
-    (0, import_react_dom.flushSync)(() => root.render(/* @__PURE__ */ import_react8.default.createElement(MeasureHeaders, { ...options, changes, publish })));
+    (0, import_react_dom.flushSync)(() => root.render(/* @__PURE__ */ import_react10.default.createElement(MeasureHeaders, { ...options, changes, publish })));
     return {
       get selectedMeasure() {
         return state.selectedMeasure;
@@ -16056,5 +16163,19 @@ react-dom/cjs/react-dom-client.production.js:
    *
    * This source code is licensed under the MIT license found in the
    * LICENSE file in the root directory of this source tree.
+   *)
+
+lucide-react/dist/esm/shared/src/utils.js:
+lucide-react/dist/esm/defaultAttributes.js:
+lucide-react/dist/esm/Icon.js:
+lucide-react/dist/esm/createLucideIcon.js:
+lucide-react/dist/esm/icons/corner-down-left.js:
+lucide-react/dist/esm/icons/corner-right-up.js:
+lucide-react/dist/esm/lucide-react.js:
+  (**
+   * @license lucide-react v0.562.0 - ISC
+   *
+   * This source code is licensed under the ISC license.
+   * See the LICENSE file in the root directory of this source tree.
    *)
 */
