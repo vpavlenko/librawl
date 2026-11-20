@@ -20,6 +20,7 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/audio.js
 var audio_exports = {};
 __export(audio_exports, {
+  bindMediaPlaybackPosition: () => bindMediaPlaybackPosition,
   bindPlaybackKeys: () => bindPlaybackKeys,
   bindTempoKeys: () => bindTempoKeys,
   createSoundFontPlayback: () => createSoundFontPlayback,
@@ -883,8 +884,10 @@ function createTransport({ makePlan, audio: providedAudio, onState = () => {
     frame = null;
     if (state !== "playing" || !clock) return;
     const beat = clock.beat();
-    if (beat !== null) position = beat;
-    onPosition(beat);
+    if (beat !== null) {
+      position = beat;
+      onPosition(beat);
+    }
     if (state !== "playing" || !clock) return;
     if (beat !== null && beat >= data.beats - 1e-3) {
       stop();
@@ -920,15 +923,18 @@ function createTransport({ makePlan, audio: providedAudio, onState = () => {
     if (run !== token || error.name === "AbortError") return;
     cancel();
     emit("error");
+    onPosition(null);
     onError(error);
   }
   async function play() {
     var _a;
     if (!data || state === "loading" || state === "playing") return;
-    if (position >= data.beats) position = 0;
+    if (position >= data.beats) {
+      position = 0;
+      onPosition(null);
+    }
     const run = ++token;
     emit("loading");
-    onPosition(null);
     try {
       const audio = audioEngine();
       if (!audio) throw Error("Playback engine missing");
@@ -947,7 +953,7 @@ function createTransport({ makePlan, audio: providedAudio, onState = () => {
     if (clock) position = clock.position();
     cancel();
     emit("paused");
-    onPosition(null);
+    onPosition(data ? position : null);
   }
   function stop() {
     cancel();
@@ -1003,7 +1009,7 @@ function createTransport({ makePlan, audio: providedAudio, onState = () => {
     } else if (state === "idle" || state === "error") {
       emit("paused");
     }
-    onPosition(null);
+    onPosition(state === "paused" ? position : null);
   }
   return {
     load(next) {
@@ -1100,4 +1106,50 @@ function bindTempoKeys({ target = globalThis.document, adjustTempo, enabled = ()
   };
   target.addEventListener("keydown", keydown);
   return () => target.removeEventListener("keydown", keydown);
+}
+
+// src/audio/media-playback-position.js
+function bindMediaPlaybackPosition(media, onPosition) {
+  var _a;
+  const view = (_a = media.ownerDocument.defaultView) != null ? _a : globalThis;
+  let frame = null;
+  const sync = () => onPosition(media.readyState && !media.error ? media.currentTime : null);
+  const cancel = () => {
+    if (frame !== null) view.cancelAnimationFrame(frame);
+    frame = null;
+  };
+  const tick = () => {
+    frame = null;
+    sync();
+    if (!media.paused && !media.ended && !media.error) frame = view.requestAnimationFrame(tick);
+  };
+  const start = () => {
+    cancel();
+    tick();
+  };
+  const freeze = () => {
+    cancel();
+    sync();
+  };
+  const clear = () => {
+    cancel();
+    onPosition(null);
+  };
+  const listeners = {
+    play: start,
+    pause: freeze,
+    ended: freeze,
+    seeking: sync,
+    seeked: sync,
+    loadedmetadata: sync,
+    error: clear,
+    emptied: clear
+  };
+  for (const [event, listener] of Object.entries(listeners)) media.addEventListener(event, listener);
+  if (media.paused) sync();
+  else start();
+  return () => {
+    for (const [event, listener] of Object.entries(listeners)) media.removeEventListener(event, listener);
+    clear();
+  };
 }

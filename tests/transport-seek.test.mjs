@@ -133,3 +133,33 @@ test('A score seek supersedes an audition still waiting for the synth',async t=>
   assert.equal(transport.position,5);
   transport.destroy();
 });
+
+test('the score position stays visible on pause and paused seek',async t=>{
+  const h=harness(t),{transport}=h;
+  const playing=transport.play();
+  h.resolvePreparation();
+  await playing;
+  h.nextFrame(10.2);
+  transport.pause();
+  const paused=transport.position;
+  assert.equal(transport.state,'paused');
+  assert.deepEqual(h.positions.at(-1),{beat:paused,position:paused});
+  h.nextFrame(11);
+  assert.deepEqual(h.positions.at(-1),{beat:paused,position:paused});
+  assert.equal(h.frames.size,0);
+
+  transport.seek(8);
+  assert.deepEqual(h.positions.at(-1),{beat:8,position:8});
+  await transport.play();
+  assert.deepEqual(h.positions.at(-1),{beat:8,position:8},'Keep the paused position until output resumes');
+  h.nextFrame(11.1);
+  assert.ok(h.positions.at(-1).beat>8);
+
+  transport.stop();
+  assert.equal(h.positions.at(-1).beat,null);
+  transport.seek(3);
+  assert.equal(transport.state,'paused');
+  assert.deepEqual(h.positions.at(-1),{beat:3,position:3});
+  transport.destroy();
+  assert.equal(h.positions.at(-1).beat,null);
+});

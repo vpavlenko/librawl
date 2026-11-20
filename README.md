@@ -153,7 +153,9 @@ Trackpad pinch changes time spacing, and Shift+pinch changes note height.
 to its host. Enable Caplin's pitch-diagram popup with `RomanNumeral`'s `tooltip`
 prop. Jazz hosts can provide an ordered voicing directly.
 
-The current measure has top and bottom edges by default. When playback uses
+The current measure keeps its top and bottom edges on pause, and notes at the
+paused position keep their doubled height. For an HTML media element, use
+`bindMediaPlaybackPosition` from `librawl/audio` to follow the playhead. When playback uses
 recording seconds, supply each visible measure's `playbackSpans`, including
 repetitions where they share an overlay. Custom layouts can use
 `PlaybackMeasureLayer` with their existing playback clock.

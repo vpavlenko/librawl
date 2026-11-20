@@ -17,5 +17,8 @@ export interface SoundFontPlayback {prepare(context:AudioContext):Promise<SoundF
 export function createSoundFontPlayback(options?:SoundFontOptions):SoundFontPlayback;
 export function createTransport(options:{makePlan:(data:any,tempo:number)=>any;audio?:SoundFontPlayback;onState?:(state:string)=>void;onPosition?:(beat:number|null)=>void;onError?:(error:Error)=>void;keyboardTarget?:Document|false}):any;
 
+/** Follow recording time during playback, pause, and seek. Unbind to clear the position. */
+export function bindMediaPlaybackPosition(media:HTMLMediaElement,onPosition:(seconds:number|null)=>void):()=>void;
+
 export function bindTempoKeys(options:{target?:Document;adjustTempo:(delta:number,event:KeyboardEvent)=>unknown;enabled?:()=>boolean}):()=>void;
 export function bindPlaybackKeys(options:{target?:Document;pause?:()=>void;toggle?:()=>void;enabled?:()=>boolean;allowInInputs?:boolean;preventScrollWhenIdle?:boolean}):{setActive(active:boolean):void;destroy():void};

@@ -28,8 +28,10 @@ export function createTransport({makePlan,audio:providedAudio,onState=()=>{},onP
   frame=null;
   if(state!=='playing'||!clock)return;
   const beat=clock.beat();
-  if(beat!==null)position=beat;
-  onPosition(beat);
+  if(beat!==null){
+   position=beat;
+   onPosition(beat);
+  }
   if(state!=='playing'||!clock)return;
   if(beat!==null&&beat>=data.beats-.001){stop();return;}
   frame=requestAnimationFrame(tick);
@@ -59,14 +61,14 @@ export function createTransport({makePlan,audio:providedAudio,onState=()=>{},onP
   if(run!==token||error.name==='AbortError')return;
   cancel();
   emit('error');
+  onPosition(null);
   onError(error);
  }
  async function play(){
   if(!data||state==='loading'||state==='playing')return;
-  if(position>=data.beats)position=0;
+  if(position>=data.beats){position=0;onPosition(null);}
   const run=++token;
   emit('loading');
-  onPosition(null);
   try{
    const audio=audioEngine();if(!audio)throw Error('Playback engine missing');
    context??=audio.getContext()??new (globalThis.AudioContext||globalThis.webkitAudioContext)();
@@ -78,7 +80,7 @@ export function createTransport({makePlan,audio:providedAudio,onState=()=>{},onP
    startPrepared();
   }catch(error){fail(error,run);}
  }
- function pause(){if(clock)position=clock.position();cancel();emit('paused');onPosition(null);}
+ function pause(){if(clock)position=clock.position();cancel();emit('paused');onPosition(data?position:null);}
  function stop(){cancel();position=0;emit('idle');onPosition(null);}
  function seek(beat){
   if(!data||!Number.isFinite(beat))return;
@@ -118,7 +120,7 @@ export function createTransport({makePlan,audio:providedAudio,onState=()=>{},onP
   }else if(state==='idle'||state==='error'){
    emit('paused');
   }
-  onPosition(null);
+  onPosition(state==='paused'?position:null);
  }
  return {
   load(next){stop();data=next;plan=null;tempo=next.tempo;muted.clear();},
