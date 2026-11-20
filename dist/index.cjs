@@ -513,7 +513,13 @@ function TonicSymbol({ left, number, previousTonic, modulationDiff, tonicStart, 
 
 // src/notation/RawlMeasureHeader.jsx
 var EMPTY_CHANGES = [];
-var numberOnFlag = { display: "block", lineHeight: MODULATION_BADGE_HEIGHT + "px" };
+var measureNumberTop = -4;
+var numberOnFlag = {
+  display: "block",
+  lineHeight: MODULATION_BADGE_HEIGHT + "px",
+  position: "relative",
+  top: -measureNumberTop
+};
 var cssLength = (value) => typeof value === "number" ? value + "px" : value;
 var offsetLeft = (left, offset) => typeof left === "number" ? left + offset : offset < 0 ? `calc(${left} - ${-offset}px)` : offset > 0 ? `calc(${left} + ${offset}px)` : left;
 function arrow({ direction }) {
@@ -704,7 +710,7 @@ function RawlMeasureHeader({
           "data-score-measure": measure.number,
           style: {
             color: measure.color,
-            top: measure.hasModulation ? 0 : void 0,
+            top: measureNumberTop,
             pointerEvents: onMeasureSelect ? "auto" : void 0,
             cursor: onMeasureSelect ? "pointer" : void 0
           }

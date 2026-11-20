@@ -5,7 +5,10 @@ import {measureHeaderLayout, mod} from './geometry.mjs';
 import {RAWL_COLORS} from './palette.mjs';
 
 const EMPTY_CHANGES = [];
-const numberOnFlag = {display: 'block', lineHeight: MODULATION_BADGE_HEIGHT + 'px'};
+const measureNumberTop = -4;
+const numberOnFlag = {
+  display: 'block', lineHeight: MODULATION_BADGE_HEIGHT + 'px', position: 'relative', top: -measureNumberTop,
+};
 const cssLength = value => typeof value === 'number' ? value + 'px' : value;
 const offsetLeft = (left, offset) => typeof left === 'number'
   ? left + offset
@@ -139,7 +142,7 @@ export function RawlMeasureHeader({
               } : undefined}
               data-beat={measure.beat} data-modulation={measure.hasModulation || undefined}
               data-score-measure={measure.number}
-              style={{color: measure.color, top: measure.hasModulation ? 0 : undefined, pointerEvents: onMeasureSelect ? 'auto' : undefined,
+              style={{color: measure.color, top: measureNumberTop, pointerEvents: onMeasureSelect ? 'auto' : undefined,
                 cursor: onMeasureSelect ? 'pointer' : undefined}}>
               {renderMeasureExtras?.(measure, sectionEditing && isSelected
                 ? event => editSection(event, measure, action) : undefined)}

@@ -56,3 +56,25 @@ test('an editor layout supplies positioned bars and controls while carrying toni
   assert.equal(dom.beatLines[0].style.left,'105px');
   assert.equal(dom.beatLines[0].style.bottom,'auto');
 });
+
+test('a temporary modulation moves the digits into the flag and leaves measure controls anchored', () => {
+  const header = hasModulation => React.createElement(RawlMeasureHeader, {
+    layout: {
+      measures: [{beat: 4, number: 5, left: 100, hasModulation}],
+      beats: [],
+      markers: hasModulation ? [{beat: 4, left: 100, number: 5, tonic: 2, previousTonic: 0, delta: 2}] : [],
+    },
+    selectedMeasure: 4,
+    onMeasureSelect() {},
+    renderMeasureExtras: () => React.createElement('input', {'aria-label': 'Rhythm'}),
+  });
+  const {document} = new JSDOM(renderToStaticMarkup(React.createElement(React.Fragment, null, header(false), header(true)))).window;
+  const [plain, modulated] = document.querySelectorAll('.rawln-measure-number');
+  assert.ok(plain.querySelector('input'));
+  assert.ok(modulated.querySelector('input'));
+  assert.equal(modulated.style.top, plain.style.top);
+  assert.equal(modulated.parentElement.style.gridTemplateColumns, plain.parentElement.style.gridTemplateColumns);
+  const digits = modulated.querySelector('span');
+  assert.equal(parseFloat(modulated.style.top) + parseFloat(digits.style.top), 0);
+  assert.equal(digits.style.lineHeight, document.querySelector('.rawln-modulation-flag').style.height);
+});
