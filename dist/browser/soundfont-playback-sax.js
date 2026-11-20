@@ -1,4 +1,4 @@
-/*! librawl version: 0.4.1-local; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
+/*! librawl version: 0.4.1-local; audio source sha256: 76f73238ecd37f8747ca6b9c5ea8b19675b7cc1977a886b66f6012c991fda089; GPL-3.0-only */
 var LibrawlAudio = (() => {
   var __defProp = Object.defineProperty;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -25,7 +25,7 @@ var LibrawlAudio = (() => {
   });
 
   // src/audio/continuous-playback.js
-  function attachContinuousPlayback(engine, { setInterval, clearInterval, presentationTime, horizon = 0.14, interval = 25 }) {
+  function attachContinuousPlayback(engine, { setInterval, clearInterval, presentationTime, discardQueuedMidi, horizon = 0.14, interval = 25 }) {
     const play = engine.play.bind(engine), stop = engine.stop.bind(engine), createClock = engine.createClock.bind(engine);
     let session = null;
     const priority = (e) => e.type === "cc" && [0, 32].includes(e.controller) ? -1 : { program: 0, cc: 1, off: 2, on: 3 }[e.type];
@@ -42,10 +42,19 @@ var LibrawlAudio = (() => {
     engine.stop = () => {
       session = null;
       stop();
+      if (discardQueuedMidi) {
+        discardQueuedMidi();
+        engine.fence = engine.context.currentTime;
+      }
     };
     engine.play = (plan, mixers, offset = 0, output = engine.context.destination) => {
       var _a;
-      const start = play({ ...plan, events: [], notes: [] }, mixers, offset, output), offsetTime = plan.timeAt(offset);
+      let start = play({ ...plan, events: [], notes: [] }, mixers, offset, output);
+      if (discardQueuedMidi) {
+        discardQueuedMidi();
+        start = engine.context.currentTime + 0.015;
+      }
+      const offsetTime = plan.timeAt(offset);
       const snapshotAt = (beat2) => {
         var _a2;
         const snapshot = /* @__PURE__ */ new Map();
@@ -166,7 +175,8 @@ var LibrawlAudio = (() => {
     const fetch = (_d = (_c = (_b = options.fetch) != null ? _b : global.fetch) != null ? _c : globalThis.fetch) == null ? void 0 : _d.bind(global), AbortController = (_e = global.AbortController) != null ? _e : globalThis.AbortController;
     const reference = (_i = (_h = (_f = global.document) == null ? void 0 : _f.baseURI) != null ? _h : (_g = global.location) == null ? void 0 : _g.href) != null ? _i : import_meta.url;
     const resolveAsset = (value) => options.assetBase ? new URL(String(value), new URL(String(options.assetBase), reference)).href : String(value);
-    const libraryUrl = resolveAsset((_j = options.libraryUrl) != null ? _j : "./vendor/spessasynth/index.js"), workletUrl = resolveAsset((_k = options.workletUrl) != null ? _k : "vendor/spessasynth/spessasynth_processor.min.js");
+    const libraryUrl = resolveAsset((_j = options.libraryUrl) != null ? _j : "./vendor/spessasynth/index.js");
+    const workletUrl = resolveAsset((_k = options.workletUrl) != null ? _k : options.clearQueuedMidi ? "spessasynth-seek-processor.js" : "vendor/spessasynth/spessasynth_processor.min.js");
     const importLibrary = (_l = options.importLibrary) != null ? _l : ((url) => import(url));
     const additionalBanks = ((_m = options.additionalBanks) != null ? _m : []).map((bank) => {
       if (!bank || typeof bank.url !== "string" || !bank.name || !Number.isInteger(bank.bytes) || bank.bytes <= 0 || !/^[a-f0-9]{64}$/.test(bank.sha256)) throw new Error("Invalid SoundFont bank descriptor");
@@ -651,14 +661,16 @@ var LibrawlAudio = (() => {
           const [library, ...bankBytes] = await bounded(Promise.all([importLibrary(libraryUrl), ...banks.map((bank) => loadBank(bank.url, bank))]), 3e4, "assets", signal);
           phase = "module";
           await bounded(context.audioWorklet.addModule(workletUrl), 1e4, "module", signal);
-          let fail;
+          let fail, discardQueuedMidi;
           const failure = new Promise((_, reject) => {
             fail = (error) => reject(error instanceof Error ? error : new Error(String(error)));
           });
           failure.catch(() => {
           });
-          const synth = new library.WorkletSynthesizer(context, { oneOutput: false, eventsEnabled: false, audioNodeCreators: { worklet(ctx, name, options2) {
-            const node = new global.AudioWorkletNode(ctx, name, options2), processorError = () => fail(new Error("SoundFont worklet processor error")), messageError = () => fail(new Error("SoundFont worklet message error"));
+          const synth = new library.WorkletSynthesizer(context, { oneOutput: false, eventsEnabled: false, audioNodeCreators: { worklet(ctx, name, nodeOptions) {
+            const processor = options.clearQueuedMidi ? "librawl-" + name : name;
+            const node = new global.AudioWorkletNode(ctx, processor, nodeOptions), processorError = () => fail(new Error("SoundFont worklet processor error")), messageError = () => fail(new Error("SoundFont worklet message error"));
+            if (options.clearQueuedMidi) discardQueuedMidi = (channels) => node.port.postMessage({ type: "librawlClearMidi", channels });
             node.addEventListener("processorerror", processorError);
             node.port.addEventListener("messageerror", messageError);
             attempt.cleanup.push(() => {
@@ -689,7 +701,7 @@ var LibrawlAudio = (() => {
           warmup.disconnect();
           attempt.warmup = null;
           for (const cleanup of attempt.cleanup.splice(0)) cleanup();
-          engine = new ContinuousPlaybackEngine(context, synth);
+          engine = new ContinuousPlaybackEngine(context, synth, discardQueuedMidi);
           attempt.synth = null;
           phase = "ready";
           return engine;
@@ -710,9 +722,20 @@ var LibrawlAudio = (() => {
       }
     }
     class ContinuousPlaybackEngine extends PlaybackEngine {
-      constructor(context, synth) {
+      constructor(context, synth, discardQueuedMidi) {
         super(context, synth);
-        attachContinuousPlayback(this, { setInterval, clearInterval, presentationTime, horizon: HORIZON, interval: INTERVAL });
+        this.discardQueuedMidi = discardQueuedMidi;
+        this.canDiscardQueuedEvents = !!discardQueuedMidi;
+        attachContinuousPlayback(this, { setInterval, clearInterval, presentationTime, discardQueuedMidi, horizon: HORIZON, interval: INTERVAL });
+      }
+      stopAudition() {
+        var _a2, _b2;
+        if (!this.discardQueuedMidi) return super.stopAudition();
+        const channels = this.auditionState ? [AUDITION_CHANNEL] : [];
+        for (const entry of (_b2 = (_a2 = this.overlapAudition) == null ? void 0 : _a2.entries) != null ? _b2 : []) channels.push(entry.channel);
+        super.stopAudition();
+        if (channels.length) this.discardQueuedMidi(channels);
+        this.auditionFence = this.context.currentTime;
       }
     }
     function stop() {
@@ -728,4 +751,4 @@ var LibrawlAudio = (() => {
   }
   return __toCommonJS(soundfont_playback_exports);
 })();
-(function(global){global.SoundFontPlayback=LibrawlAudio.createSoundFontPlayback({environment:global,importLibrary:()=>import('./vendor/spessasynth/index.js'),allowAuditionPrograms:true,additionalBanks:[{url:'assets/soundfonts/GeneralUser-GS-alto-sax.sf2',name:'alto-sax',bytes:505140,sha256:'d7079d82a5fb6c985770578a89db8db153c20cefff38ed94270bb790bf3378e6'}]});})(typeof window==='undefined'?globalThis:window);
+(function(global){global.SoundFontPlayback=LibrawlAudio.createSoundFontPlayback({environment:global,importLibrary:()=>import('./vendor/spessasynth/index.js'),allowAuditionPrograms:true,clearQueuedMidi:true,additionalBanks:[{url:'assets/soundfonts/GeneralUser-GS-alto-sax.sf2',name:'alto-sax',bytes:505140,sha256:'d7079d82a5fb6c985770578a89db8db153c20cefff38ed94270bb790bf3378e6'}]});})(typeof window==='undefined'?globalThis:window);

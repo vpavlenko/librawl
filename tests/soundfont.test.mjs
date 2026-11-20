@@ -57,17 +57,76 @@ test('output-latency fallback, deterministic room and reserved audition channel 
  assert.throws(()=>h.engine.play({...p,channels:[{channel:9,group:0}]},[h.ctx.createGain()]),/Reserved audition channel/);h.engine.stop();
 });
 
+test('Queue-aware worklet starts and replaces previews without accumulating a fence',()=>{
+ const h=harness(),p=plan(),mixer=h.ctx.createGain(),clears=[];
+ const engine=new h.api.PlaybackEngine(h.ctx,h.synth,channels=>clears.push(channels));
+ assert.ok(engine.canDiscardQueuedEvents);
+ const first=engine.play(p,[mixer]);
+ const next=engine.play(p,[mixer],4);
+ assert.equal(next,first,'The pending first run does not delay the next run');
+ assert.equal(next,h.ctx.currentTime+.015);
+ assert.deepEqual(clears,[undefined,undefined,undefined,undefined]);
+ const preview=engine.audition({pitch:60,duration:1});
+ const latest=engine.audition({pitch:64,duration:1});
+ assert.equal(latest.start,preview.start);
+ assert.deepEqual(clears[4],[9],'Replacing a preview does not cancel the score queue');
+ engine.stop();
+});
+
+test('SpessaSynth worklet registration wraps only its new processor name and clears queued MIDI by channel',()=>{
+ const processors=new Map(),stopped=[],forwarded=[];
+ const scope={
+  registerProcessor(name,processor){processors.set(name,processor);},
+  BaseProcessor:class{
+   constructor(){
+    const midiChannels=Array.from({length:32},(_,channel)=>({stopAllNotes:force=>stopped.push([channel,force])}));
+    const eventQueue=[{message:[0x90],channelOffset:0},{message:[0x99],channelOffset:0},
+     {message:[0x99],channelOffset:16},{message:[0xf9],channelOffset:0}];
+    this.core={synthesizer:{synthCore:{midiChannels,eventQueue}},handleMessage:message=>forwarded.push(message)};
+   }
+  },
+ };
+ const source=fs.readFileSync(new URL('../src/audio/spessasynth-seek-registration.js',import.meta.url),'utf8');
+ vm.runInNewContext(source+"\nregisterProcessor('spessasynth-worklet-processor',BaseProcessor);",scope);
+ assert.equal(processors.get('spessasynth-worklet-processor'),scope.BaseProcessor);
+ const Wrapped=processors.get('librawl-spessasynth-worklet-processor'),processor=new Wrapped();
+ const core=processor.core,synth=core.synthesizer.synthCore;
+ const normalMessage={type:'midiMessage'};
+ core.handleMessage(normalMessage);
+ assert.deepEqual(forwarded,[normalMessage]);
+ core.handleMessage({type:'librawlClearMidi',channels:[9,25]});
+ assert.deepEqual(synth.eventQueue.map(event=>event.message[0]),[0x90,0xf9]);
+ assert.deepEqual(stopped,[[9,true],[25,true]]);
+ core.handleMessage({type:'librawlClearMidi'});
+ assert.equal(synth.eventQueue.length,0);
+});
+
 function preparation(options={}){
- const env=environment(),ctx=context(),requests=[],imports=[],modules=[],banks=[],instances=[];ctx.audioWorklet.addModule=async url=>{modules.push(url);};
+ const env=environment(),ctx=context(),requests=[],imports=[],modules=[],banks=[],instances=[],worklets=[],messages=[];ctx.audioWorklet.addModule=async url=>{modules.push(url);};
+ env.AudioWorkletNode=class{
+  constructor(context,name,options){worklets.push({context,name,options});this.port={addEventListener(){},removeEventListener(){},postMessage:message=>messages.push(message)};}
+  addEventListener(){}
+  removeEventListener(){}
+ };
  class FakeSynth{
-  constructor(){this.isReady=Promise.resolve();this.eventHandler={addEvent(){},removeEvent(){}};this.soundBankManager={addSoundBank:async(bytes,name)=>{banks.push({name,bytes:bytes.byteLength});}};instances.push(this);}
+  constructor(context,options){options.audioNodeCreators.worklet(context,'spessasynth-worklet-processor',{numberOfOutputs:17});this.isReady=Promise.resolve();this.eventHandler={addEvent(){},removeEvent(){}};this.soundBankManager={addSoundBank:async(bytes,name)=>{banks.push({name,bytes:bytes.byteLength});}};instances.push(this);}
   connect(){}disconnect(){}setLogLevel(){}setSystemParameter(){}destroy(){this.destroyed=true;}stopAll(){}
  }
  const api=createSoundFontPlayback({...options,environment:env,fetch:async url=>{requests.push(url);const sax=url.includes('alto-sax');return{ok:true,arrayBuffer:async()=>new ArrayBuffer(sax?SAX.bytes:BASE.bytes)};},importLibrary:async url=>{imports.push(url);return{WorkletSynthesizer:FakeSynth};}});
- return {api,env,ctx,requests,imports,modules,banks,instances};
+ return {api,env,ctx,requests,imports,modules,banks,instances,worklets,messages};
 }
 for(const [name,options]of profiles)test(name+' preparation loads only configured pinned banks and keeps independent factories/context ownership',async()=>{
  const p=preparation(options),first=p.api.prepare(p.ctx),same=p.api.prepare(p.ctx),[a,b]=await Promise.all([first,same]);assert.equal(a,b);assert.equal(p.instances.length,1);assert.equal(p.api.getContext(),p.ctx);assert.deepEqual(p.imports,['./vendor/spessasynth/index.js']);assert.deepEqual(p.modules,['vendor/spessasynth/spessasynth_processor.min.js']);assert.equal(p.requests[0],'assets/soundfonts/GeneralUser-GS-v4.sf2.1?sha256='+BASE.sha256);assert.deepEqual(p.banks,name==='Caplin'?[{name:'caplin',bytes:BASE.bytes}]:[{name:'caplin',bytes:BASE.bytes},{name:'alto-sax',bytes:SAX.bytes}]);assert.equal(p.api.getPreparationState().phase,'ready');await assert.rejects(p.api.prepare(context()),/Shared AudioContext/);assert.equal(createSoundFontPlayback().getContext(),undefined);p.api.stop();
+});
+
+test('The queue-aware profile initializes its own audio worklet and sends cancellation there',async()=>{
+ const p=preparation({clearQueuedMidi:true}),engine=await p.api.prepare(p.ctx);
+ assert.deepEqual(p.modules,['spessasynth-seek-processor.js']);
+ assert.deepEqual(p.worklets.map(node=>node.name),['librawl-spessasynth-worklet-processor']);
+ assert.equal(p.worklets[0].options.numberOfOutputs,17);
+ assert.ok(engine.canDiscardQueuedEvents);
+ engine.stop();
+ assert.deepEqual(p.messages,[{type:'librawlClearMidi',channels:undefined}]);
 });
 
 test('asset base and explicit URLs relocate every fetch/worklet without changing bank identity',async()=>{

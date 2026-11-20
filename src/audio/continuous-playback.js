@@ -3,17 +3,31 @@
  * events stay committed; a new rate starts at that queue fence, at most one
  * scheduler horizon ahead. No sounding note or room graph is reconstructed.
  */
-export function attachContinuousPlayback(engine,{setInterval,clearInterval,presentationTime,horizon=.14,interval=25}){
+export function attachContinuousPlayback(engine,{setInterval,clearInterval,presentationTime,discardQueuedMidi,horizon=.14,interval=25}){
  const play=engine.play.bind(engine),stop=engine.stop.bind(engine),createClock=engine.createClock.bind(engine);
  let session=null;
  const priority=e=>e.type==='cc'&&[0,32].includes(e.controller)?-1:{program:0,cc:1,off:2,on:3}[e.type];
  function scoreAt(s,time){const segment=[...s.segments].reverse().find(a=>a.time<=time)??s.segments[0];return segment.score+(time-segment.time)*segment.rate;}
  function timeAt(s,score){const segment=[...s.segments].reverse().find(a=>a.score<=score+1e-10)??s.segments[0];return segment.time+(score-segment.score)/segment.rate;}
- engine.stop=()=>{session=null;stop();};
+ engine.stop=()=>{
+  session=null;
+  stop();
+  if(discardQueuedMidi){
+   discardQueuedMidi();
+   engine.fence=engine.context.currentTime;
+  }
+ };
  engine.play=(plan,mixers,offset=0,output=engine.context.destination)=>{
   // Reuse the original connection, room, cancellation and seek fence setup.
   // Its empty pump cannot put any score note into the worklet queue.
-  const start=play({...plan,events:[],notes:[]},mixers,offset,output),offsetTime=plan.timeAt(offset);
+  let start=play({...plan,events:[],notes:[]},mixers,offset,output);
+  if(discardQueuedMidi){
+   // Remove the legacy before-start guards. The preceding stop already cut
+   // the old voices and queue, so a long scheduling lead is unnecessary.
+   discardQueuedMidi();
+   start=engine.context.currentTime+.015;
+  }
+  const offsetTime=plan.timeAt(offset);
   const snapshotAt=beat=>{const snapshot=new Map();for(const event of plan.events)if(event.beat<=beat&&['program','cc'].includes(event.type))snapshot.set([event.channel,event.type,event.controller??''].join(':'),{...event,beat});return [...snapshot.values()];};
   const heldAt=beat=>plan.notes.filter(n=>n.start<beat&&n.end>beat).map(n=>({beat,type:'on',channel:n.channel,pitch:n.pitch,velocity:n.velocity}));
   const events=[...snapshotAt(offset),...heldAt(offset),...plan.events.filter(e=>e.beat>=offset&&(e.type==='on'||e.type==='off')||e.beat>offset&&e.type==='cc')].sort((a,b)=>a.beat-b.beat||priority(a)-priority(b));
