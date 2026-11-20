@@ -490,6 +490,11 @@ function measureSectionAction(sectionEditing, measure) {
   }
   if ((_b = (_a = sectionEditing.canSplit) == null ? void 0 : _a.call(sectionEditing, measure)) != null ? _b : measure.isPhraseStart) return { glue: false, apply: sectionEditing.onSplit };
 }
+function releaseMeasureFocus(element) {
+  const position = element == null ? void 0 : element.closest(".rawln-measure-position");
+  const active2 = position == null ? void 0 : position.ownerDocument.activeElement;
+  if (position == null ? void 0 : position.contains(active2)) active2.blur();
+}
 function RawlMeasureHeader({
   row,
   layout: positioned,
@@ -510,6 +515,7 @@ function RawlMeasureHeader({
   sectionEditing
 }) {
   const element = useRef(null);
+  const previousSelection = useRef(selectedMeasure);
   const [width, setWidth] = useState(0);
   const hasPositionedLayout = !!positioned;
   useLayoutEffect(() => {
@@ -527,6 +533,12 @@ function RawlMeasureHeader({
       view == null ? void 0 : view.removeEventListener("resize", fit);
     };
   }, [hasPositionedLayout]);
+  useLayoutEffect(() => {
+    const previous = previousSelection.current;
+    previousSelection.current = selectedMeasure;
+    if (previous === null || previous === selectedMeasure) return;
+    releaseMeasureFocus(element.current.querySelector(`.rawln-measure-number[data-beat="${previous}"]`));
+  }, [selectedMeasure]);
   const { measures, beats, markers } = useMemo(() => positioned != null ? positioned : rowLayout({
     row,
     tonic,
@@ -544,12 +556,16 @@ function RawlMeasureHeader({
     event.stopPropagation();
     onMeasureSelect(measure.beat, measure, event.currentTarget);
   };
+  const applySection = (event, measure, action) => {
+    releaseMeasureFocus(event.currentTarget);
+    action.apply(measure);
+  };
   const editSection = (event, measure, action) => {
     var _a;
     if (event.defaultPrevented || event.key !== "Enter" || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing || ((_a = event.currentTarget.value) == null ? void 0 : _a.trim())) return;
     event.preventDefault();
     event.stopPropagation();
-    if (action && action.glue === event.shiftKey) action.apply(measure);
+    if (action && action.glue === event.shiftKey) applySection(event, measure, action);
   };
   return /* @__PURE__ */ React2.createElement("div", { ref: element, className: "rawln-measure-grid", style: { height } }, measures.map((measure) => {
     var _a;
@@ -616,7 +632,7 @@ function RawlMeasureHeader({
         onMouseDown: (event) => event.preventDefault(),
         onClick: (event) => {
           event.stopPropagation();
-          action.apply(measure);
+          applySection(event, measure, action);
         },
         onKeyDown: (event) => {
           if (event.key === "Enter" || event.key === " ") event.stopPropagation();
@@ -871,11 +887,10 @@ function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, onNote
     return { role: "button", tabIndex: -1, "aria-label": noteName(original.pitch), "data-note": original.id, "data-pitch": original.pitch, "data-degree": degree, "data-voice": original.voice, className: `rawln-note rawln-voice-${original.voice}${muted ? " rawln-muted" : ""}`, style: { left: (start - row.start) / span * 100 + "%", width: (end - start) / span * 100 + "%", ...!((_a = note.pitchBend) == null ? void 0 : _a.length) && RAWL_COLORS[degree] ? { background: RAWL_COLORS[degree].background } : {}, zIndex: 100 + (84 - original.pitch) + (original.voice === 1 ? 128 : 0) } };
   } })));
 }
-function useSectionRows({ notes, rows, beats, sectionEditing, root, onSectionRowsChange }) {
+function useSectionRows({ notes, rows, beats, sectionEditing, onSectionRowsChange }) {
   const baseRows = useMemo2(() => (rows == null ? void 0 : rows.length) ? rows : [{ start: 0, end: beats, label: 1 }], [rows, beats]);
   const layoutKey = baseRows.map(({ start, end }) => start + ":" + end).join("|");
   const [edit, setEdit] = useState3(null);
-  const focusBeat = useRef2(null);
   const intervals = sectionEditing === void 0 && (edit == null ? void 0 : edit.notes) === notes && edit.layoutKey === layoutKey ? edit.intervals : null;
   const editedRows = useMemo2(() => {
     if (!intervals) return null;
@@ -883,13 +898,6 @@ function useSectionRows({ notes, rows, beats, sectionEditing, root, onSectionRow
     return alignScoreRows(intervals.map(({ start, end }) => ({ ...authored.get(start), start, end }))).rows;
   }, [baseRows, intervals]);
   const spans = editedRows != null ? editedRows : baseRows;
-  useLayoutEffect2(() => {
-    var _a;
-    if (focusBeat.current === null) return;
-    const label = (_a = root.current) == null ? void 0 : _a.querySelector(`.rawln-measure-number[data-beat="${focusBeat.current}"]`);
-    focusBeat.current = null;
-    label == null ? void 0 : label.focus();
-  }, [spans, root]);
   useLayoutEffect2(() => {
     onSectionRowsChange == null ? void 0 : onSectionRowsChange(editedRows);
   }, [editedRows, onSectionRowsChange]);
@@ -909,7 +917,6 @@ function useSectionRows({ notes, rows, beats, sectionEditing, root, onSectionRow
         next.splice(index - 1, 2, { start: previous.start, end: row.end });
       }
       const restored = next.length === baseRows.length && next.every(({ start, end }, i) => start === baseRows[i].start && end === baseRows[i].end);
-      focusBeat.current = beat;
       setEdit(restored ? null : { notes, layoutKey, intervals: next });
     }
     return {
@@ -938,7 +945,7 @@ function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2,
       originalHover == null ? void 0 : originalHover(note);
     };
   }
-  const { spans, editingForRow } = useSectionRows({ notes, rows, beats, sectionEditing, root, onSectionRowsChange });
+  const { spans, editingForRow } = useSectionRows({ notes, rows, beats, sectionEditing, onSectionRowsChange });
   const prepared = useMemo2(() => spans.map((row) => {
     const visible = notes.filter((n) => n.start < row.end - 1e-6 && n.start + n.duration > row.start + 1e-6), range = pitchRange(visible), axis = staveGeometry(range, { noteScale });
     return { row, visible, range, axis, regions: showTonalGuides ? tonalSegments(tonic, changes, row.start, row.end) : [] };

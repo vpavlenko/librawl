@@ -43,6 +43,12 @@ function measureSectionAction(sectionEditing, measure) {
   if (sectionEditing.canSplit?.(measure) ?? measure.isPhraseStart) return {glue: false, apply: sectionEditing.onSplit};
 }
 
+function releaseMeasureFocus(element) {
+  const position = element?.closest('.rawln-measure-position');
+  const active = position?.ownerDocument.activeElement;
+  if (position?.contains(active)) active.blur();
+}
+
 /** A shared score header, with an optional prepositioned ruler for hosts
  * that lay out their score against an arbitrary clock or editor viewport. */
 export function RawlMeasureHeader({
@@ -52,6 +58,7 @@ export function RawlMeasureHeader({
   renderMeasureExtras, modulationMarkerPlacement, sectionEditing,
 }) {
   const element = useRef(null);
+  const previousSelection = useRef(selectedMeasure);
   const [width, setWidth] = useState(0);
   const hasPositionedLayout = !!positioned;
   useLayoutEffect(() => {
@@ -65,6 +72,12 @@ export function RawlMeasureHeader({
     view?.addEventListener('resize', fit);
     return () => { observer?.disconnect(); view?.removeEventListener('resize', fit); };
   }, [hasPositionedLayout]);
+  useLayoutEffect(() => {
+    const previous = previousSelection.current;
+    previousSelection.current = selectedMeasure;
+    if (previous === null || previous === selectedMeasure) return;
+    releaseMeasureFocus(element.current.querySelector(`.rawln-measure-number[data-beat="${previous}"]`));
+  }, [selectedMeasure]);
   const {measures, beats, markers} = useMemo(() => positioned ?? rowLayout({
     row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic, modulationMarkerPlacement,
   }), [positioned, row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic, modulationMarkerPlacement]);
@@ -72,12 +85,16 @@ export function RawlMeasureHeader({
     event.stopPropagation();
     onMeasureSelect(measure.beat, measure, event.currentTarget);
   };
+  const applySection = (event, measure, action) => {
+    releaseMeasureFocus(event.currentTarget);
+    action.apply(measure);
+  };
   const editSection = (event, measure, action) => {
     if (event.defaultPrevented || event.key !== 'Enter' || event.altKey || event.ctrlKey || event.metaKey ||
       event.nativeEvent.isComposing || event.currentTarget.value?.trim()) return;
     event.preventDefault();
     event.stopPropagation();
-    if (action && action.glue === event.shiftKey) action.apply(measure);
+    if (action && action.glue === event.shiftKey) applySection(event, measure, action);
   };
   return <div ref={element} className="rawln-measure-grid" style={{height}}>
     {measures.map(measure => <div
@@ -118,7 +135,7 @@ export function RawlMeasureHeader({
             onMouseDown={event => event.preventDefault()}
             onClick={event => {
               event.stopPropagation();
-              action.apply(measure);
+              applySection(event, measure, action);
             }}
             onKeyDown={event => {
               if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();

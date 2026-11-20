@@ -99,7 +99,9 @@ test('standalone score recolors from a measure number with hover, commit, escape
   note('G').dispatchEvent(new w.MouseEvent('mouseover',{bubbles:true}));await wait(()=>note('F').dataset.degree==='10');assert.equal(note('C').dataset.degree,'0');assert.equal(note('G').dataset.degree,'0');
   note('G').dispatchEvent(new w.MouseEvent('mouseout',{bubbles:true,relatedTarget:w.document.body}));await wait(()=>note('F').dataset.degree==='0');
   note('G').click();await wait(()=>measure(4).getAttribute('aria-pressed')==='false');assert.equal(note('F').dataset.degree,'10');assert.deepEqual(commits[0].map(c=>[c.beat,c.tonic]),[[0,0],[4,7]]);assert.deepEqual(auditions,[]);
-  measure(0).dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));await wait(()=>measure(0).getAttribute('aria-pressed')==='true');w.document.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));await wait(()=>measure(0).getAttribute('aria-pressed')==='false');note('C').click();assert.equal(auditions[0],notes[0]);
+  measure(0).focus();measure(0).dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));await wait(()=>measure(0).getAttribute('aria-pressed')==='true');
+  measure(0).dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));await wait(()=>measure(0).getAttribute('aria-pressed')==='false');
+  assert.equal(w.document.activeElement,w.document.body);assert.equal(measure(0).tabIndex,0);note('C').click();assert.equal(auditions[0],notes[0]);
   env.render({...props,changes:[{beat:0,tonic:0,root:'C'}]});assert.equal(note('F').dataset.degree,'5');assert.equal(JSON.stringify({notes,changes}),source);
  }finally{await env.close();}
 });

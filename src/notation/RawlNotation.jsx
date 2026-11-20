@@ -111,11 +111,10 @@ function BeatNoteLayer({visible,row,axis,tonic,changes,mutedVoices,onNote,onNote
  }}/></PlaybackSectionContext.Provider></div>;
 }
 
-function useSectionRows({notes,rows,beats,sectionEditing,root,onSectionRowsChange}){
+function useSectionRows({notes,rows,beats,sectionEditing,onSectionRowsChange}){
  const baseRows=useMemo(()=>rows?.length?rows:[{start:0,end:beats,label:1}],[rows,beats]);
  const layoutKey=baseRows.map(({start,end})=>start+':'+end).join('|');
  const [edit,setEdit]=useState(null);
- const focusBeat=useRef(null);
  const intervals=sectionEditing===undefined&&edit?.notes===notes&&edit.layoutKey===layoutKey?edit.intervals:null;
  const editedRows=useMemo(()=>{
   if(!intervals)return null;
@@ -123,12 +122,6 @@ function useSectionRows({notes,rows,beats,sectionEditing,root,onSectionRowsChang
   return alignScoreRows(intervals.map(({start,end})=>({...authored.get(start),start,end}))).rows;
  },[baseRows,intervals]);
  const spans=editedRows??baseRows;
- useLayoutEffect(()=>{
-  if(focusBeat.current===null)return;
-  const label=root.current?.querySelector(`.rawln-measure-number[data-beat="${focusBeat.current}"]`);
-  focusBeat.current=null;
-  label?.focus();
- },[spans,root]);
  useLayoutEffect(()=>{onSectionRowsChange?.(editedRows);},[editedRows,onSectionRowsChange]);
 
  function editingForRow(index){
@@ -146,7 +139,6 @@ function useSectionRows({notes,rows,beats,sectionEditing,root,onSectionRowsChang
     next.splice(index-1,2,{start:previous.start,end:row.end});
    }
    const restored=next.length===baseRows.length&&next.every(({start,end},i)=>start===baseRows[i].start&&end===baseRows[i].end);
-   focusBeat.current=beat;
    setEdit(restored?null:{notes,layoutKey,intervals:next});
   }
   return {
@@ -171,7 +163,7 @@ export function RawlNotation({notes,beats,rows,tonic=0,changes=EMPTY_CHANGES,bar
   onMeasureSelect=editor.selectMeasure;
  }
  if(automatic){changes=editor.changes;const originalHover=onNoteHover;onNoteHover=note=>{editor.hoverNote(note);originalHover?.(note);};}
- const {spans,editingForRow}=useSectionRows({notes,rows,beats,sectionEditing,root,onSectionRowsChange});
+ const {spans,editingForRow}=useSectionRows({notes,rows,beats,sectionEditing,onSectionRowsChange});
  const prepared=useMemo(()=>spans.map(row=>{
   const visible=notes.filter(n=>n.start<row.end-1e-6&&n.start+n.duration>row.start+1e-6),range=pitchRange(visible),axis=staveGeometry(range,{noteScale});
   return {row,visible,range,axis,regions:showTonalGuides?tonalSegments(tonic,changes,row.start,row.end):[]};

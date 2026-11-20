@@ -82,8 +82,10 @@ for (const Host of [RawlMeasureHeader, RawlNotation]) {
       assert.ok(press(open(4)));
       assert.deepEqual(changes, [['split', 4]]);
       assert.equal(element.querySelector('input'), null);
+      assert.equal(window.document.activeElement, window.document.body);
       assert.ok(press(open(4, {key: ' '}), {shiftKey: true}));
       assert.deepEqual(changes, [['split', 4], ['glue', 4]]);
+      assert.equal(window.document.activeElement, window.document.body);
 
       assert.ok(press(open(0), {shiftKey: true}), 'The first section stays intact');
       assert.ok(press(open(4), {shiftKey: true}), 'A phrase that is not a section cannot be glued');
@@ -115,11 +117,14 @@ for (const Host of [RawlMeasureHeader, RawlNotation]) {
       }
       assert.ok(press(label, {key: ' '}), 'Space still closes the selected menu');
       assert.equal(command(), null);
-      assert.equal(window.document.activeElement, label);
+      assert.equal(window.document.activeElement, window.document.body);
+      label.focus();
       assert.ok(press(label));
       assert.ok(press(label));
       assert.deepEqual(changes.at(-1), ['split', 4]);
       assert.equal(command(), null);
+      assert.equal(window.document.activeElement, window.document.body);
+      label.focus();
       assert.ok(press(label));
       assert.equal(command().getAttribute('aria-label'), 'Glue');
       assert.equal(command().textContent, '');
@@ -127,6 +132,7 @@ for (const Host of [RawlMeasureHeader, RawlNotation]) {
       assert.ok(press(label, {shiftKey: true}));
       assert.deepEqual(changes.at(-1), ['glue', 4]);
       assert.equal(command(), null);
+      assert.equal(window.document.activeElement, window.document.body);
 
       const first = numberAt(0);
       assert.ok(press(first));
@@ -134,6 +140,7 @@ for (const Host of [RawlMeasureHeader, RawlNotation]) {
       assert.ok(press(first, {shiftKey: true}));
       assert.equal(changes.length, 4, 'The initial section stays intact');
 
+      numberAt(8).focus();
       assert.ok(press(numberAt(8)));
       assert.equal(command().getAttribute('aria-label'), 'Glue');
       let outerClicks = 0;
@@ -142,6 +149,7 @@ for (const Host of [RawlMeasureHeader, RawlNotation]) {
       assert.equal(outerClicks, 0, 'Clicking a command cannot trigger the surrounding score');
       assert.deepEqual(changes.at(-1), ['glue', 8]);
       assert.equal(command(), null);
+      assert.equal(window.document.activeElement, window.document.body);
     } finally {
       flushSync(() => root.unmount());
       await new Promise(setImmediate);
@@ -187,13 +195,14 @@ test('RawlNotation edits its own rows without a section editor or persistence', 
     assert.equal(action().getAttribute('aria-label'), 'Split');
     press(4);
     assert.deepEqual(ranges(), [[0, 4], [4, 8], [8, 16]]);
-    assert.equal(window.document.activeElement, label(4));
+    assert.equal(window.document.activeElement, window.document.body);
     assert.equal(action().getAttribute('aria-label'), 'Glue');
     assert.equal(rowsSeen.at(-1).length, 3);
     assert.equal(element.querySelectorAll('[data-note="note"]').length, 1);
 
     press(4, true);
     assert.deepEqual(ranges(), [[0, 8], [8, 16]]);
+    assert.equal(window.document.activeElement, window.document.body);
     assert.equal(rowsSeen.at(-1), null);
     click(label(8));
     click(action());
