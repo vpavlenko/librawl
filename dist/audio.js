@@ -1,7 +1,7 @@
-/*! librawl version: 0.3.5-local; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
+/*! librawl version: 0.3.5-local; audio source sha256: 76f73238ecd37f8747ca6b9c5ea8b19675b7cc1977a886b66f6012c991fda089; GPL-3.0-only */
 
 // src/audio/continuous-playback.js
-function attachContinuousPlayback(engine, { setInterval, clearInterval, presentationTime, horizon = 0.14, interval = 25 }) {
+function attachContinuousPlayback(engine, { setInterval, clearInterval, presentationTime, discardQueuedMidi, horizon = 0.14, interval = 25 }) {
   const play = engine.play.bind(engine), stop = engine.stop.bind(engine), createClock = engine.createClock.bind(engine);
   let session = null;
   const priority = (e) => e.type === "cc" && [0, 32].includes(e.controller) ? -1 : { program: 0, cc: 1, off: 2, on: 3 }[e.type];
@@ -18,10 +18,19 @@ function attachContinuousPlayback(engine, { setInterval, clearInterval, presenta
   engine.stop = () => {
     session = null;
     stop();
+    if (discardQueuedMidi) {
+      discardQueuedMidi();
+      engine.fence = engine.context.currentTime;
+    }
   };
   engine.play = (plan, mixers, offset = 0, output = engine.context.destination) => {
     var _a;
-    const start = play({ ...plan, events: [], notes: [] }, mixers, offset, output), offsetTime = plan.timeAt(offset);
+    let start = play({ ...plan, events: [], notes: [] }, mixers, offset, output);
+    if (discardQueuedMidi) {
+      discardQueuedMidi();
+      start = engine.context.currentTime + 0.015;
+    }
+    const offsetTime = plan.timeAt(offset);
     const snapshotAt = (beat2) => {
       var _a2;
       const snapshot = /* @__PURE__ */ new Map();
@@ -142,7 +151,8 @@ function createSoundFontPlayback(options = {}) {
   const fetch = (_d = (_c = (_b = options.fetch) != null ? _b : global.fetch) != null ? _c : globalThis.fetch) == null ? void 0 : _d.bind(global), AbortController = (_e = global.AbortController) != null ? _e : globalThis.AbortController;
   const reference = (_i = (_h = (_f = global.document) == null ? void 0 : _f.baseURI) != null ? _h : (_g = global.location) == null ? void 0 : _g.href) != null ? _i : import_meta.url;
   const resolveAsset = (value) => options.assetBase ? new URL(String(value), new URL(String(options.assetBase), reference)).href : String(value);
-  const libraryUrl = resolveAsset((_j = options.libraryUrl) != null ? _j : "./vendor/spessasynth/index.js"), workletUrl = resolveAsset((_k = options.workletUrl) != null ? _k : "vendor/spessasynth/spessasynth_processor.min.js");
+  const libraryUrl = resolveAsset((_j = options.libraryUrl) != null ? _j : "./vendor/spessasynth/index.js");
+  const workletUrl = resolveAsset((_k = options.workletUrl) != null ? _k : options.clearQueuedMidi ? "spessasynth-seek-processor.js" : "vendor/spessasynth/spessasynth_processor.min.js");
   const importLibrary = (_l = options.importLibrary) != null ? _l : ((url) => import(url));
   const additionalBanks = ((_m = options.additionalBanks) != null ? _m : []).map((bank) => {
     if (!bank || typeof bank.url !== "string" || !bank.name || !Number.isInteger(bank.bytes) || bank.bytes <= 0 || !/^[a-f0-9]{64}$/.test(bank.sha256)) throw new Error("Invalid SoundFont bank descriptor");
@@ -627,14 +637,16 @@ function createSoundFontPlayback(options = {}) {
         const [library, ...bankBytes] = await bounded(Promise.all([importLibrary(libraryUrl), ...banks.map((bank) => loadBank(bank.url, bank))]), 3e4, "assets", signal);
         phase = "module";
         await bounded(context.audioWorklet.addModule(workletUrl), 1e4, "module", signal);
-        let fail;
+        let fail, discardQueuedMidi;
         const failure = new Promise((_, reject) => {
           fail = (error) => reject(error instanceof Error ? error : new Error(String(error)));
         });
         failure.catch(() => {
         });
-        const synth = new library.WorkletSynthesizer(context, { oneOutput: false, eventsEnabled: false, audioNodeCreators: { worklet(ctx, name, options2) {
-          const node = new global.AudioWorkletNode(ctx, name, options2), processorError = () => fail(new Error("SoundFont worklet processor error")), messageError = () => fail(new Error("SoundFont worklet message error"));
+        const synth = new library.WorkletSynthesizer(context, { oneOutput: false, eventsEnabled: false, audioNodeCreators: { worklet(ctx, name, nodeOptions) {
+          const processor = options.clearQueuedMidi ? "librawl-" + name : name;
+          const node = new global.AudioWorkletNode(ctx, processor, nodeOptions), processorError = () => fail(new Error("SoundFont worklet processor error")), messageError = () => fail(new Error("SoundFont worklet message error"));
+          if (options.clearQueuedMidi) discardQueuedMidi = (channels) => node.port.postMessage({ type: "librawlClearMidi", channels });
           node.addEventListener("processorerror", processorError);
           node.port.addEventListener("messageerror", messageError);
           attempt.cleanup.push(() => {
@@ -665,7 +677,7 @@ function createSoundFontPlayback(options = {}) {
         warmup.disconnect();
         attempt.warmup = null;
         for (const cleanup of attempt.cleanup.splice(0)) cleanup();
-        engine = new ContinuousPlaybackEngine(context, synth);
+        engine = new ContinuousPlaybackEngine(context, synth, discardQueuedMidi);
         attempt.synth = null;
         phase = "ready";
         return engine;
@@ -686,9 +698,20 @@ function createSoundFontPlayback(options = {}) {
     }
   }
   class ContinuousPlaybackEngine extends PlaybackEngine {
-    constructor(context, synth) {
+    constructor(context, synth, discardQueuedMidi) {
       super(context, synth);
-      attachContinuousPlayback(this, { setInterval, clearInterval, presentationTime, horizon: HORIZON, interval: INTERVAL });
+      this.discardQueuedMidi = discardQueuedMidi;
+      this.canDiscardQueuedEvents = !!discardQueuedMidi;
+      attachContinuousPlayback(this, { setInterval, clearInterval, presentationTime, discardQueuedMidi, horizon: HORIZON, interval: INTERVAL });
+    }
+    stopAudition() {
+      var _a2, _b2;
+      if (!this.discardQueuedMidi) return super.stopAudition();
+      const channels = this.auditionState ? [AUDITION_CHANNEL] : [];
+      for (const entry of (_b2 = (_a2 = this.overlapAudition) == null ? void 0 : _a2.entries) != null ? _b2 : []) channels.push(entry.channel);
+      super.stopAudition();
+      if (channels.length) this.discardQueuedMidi(channels);
+      this.auditionFence = this.context.currentTime;
     }
   }
   function stop() {
@@ -796,8 +819,8 @@ function createTransport({ makePlan, audio: providedAudio, onState = () => {
 }, keyboardTarget = globalThis.document } = {}) {
   if (typeof makePlan !== "function") throw new TypeError("makePlan is required");
   const audioEngine = () => providedAudio != null ? providedAudio : globalThis.SoundFontPlayback;
-  let data = null, engine = null, context = null, clock = null, position = 0, tempo = 120, planTempo = 120, state = "idle", token = 0, frame = null, nodes = [], mixers = [], output = null, muted = /* @__PURE__ */ new Set(), auditionVoice = null, auditionGeneration = 0;
-  const keys = keyboardTarget && bindPlaybackKeys({ target: keyboardTarget, pause });
+  let data = null, engine = null, context = null, clock = null, plan = null, position = 0, tempo = 120, planTempo = 120, state = "idle", token = 0, frame = null, seekFrame = null, seekPending = false, nodes = [], mixers = [], output = null, muted = /* @__PURE__ */ new Set(), auditionVoice = null, auditionGeneration = 0;
+  const keys = keyboardTarget ? bindPlaybackKeys({ target: keyboardTarget, pause }) : null;
   const emit = (s) => {
     state = s;
     keys == null ? void 0 : keys.setActive(s === "playing" || s === "loading");
@@ -812,34 +835,69 @@ function createTransport({ makePlan, audio: providedAudio, onState = () => {
     mixers = [];
     output = null;
   }
+  function cancelFrame() {
+    if (frame !== null) cancelAnimationFrame(frame);
+    frame = null;
+  }
   function cancel() {
     var _a;
     token++;
-    cancelAnimationFrame(frame);
-    frame = null;
+    cancelFrame();
+    if (seekFrame !== null) cancelAnimationFrame(seekFrame);
+    seekFrame = null;
     clock = null;
+    seekPending = false;
     auditionGeneration++;
     auditionVoice = null;
     (_a = audioEngine()) == null ? void 0 : _a.stop();
     disconnect();
   }
   function tick() {
+    frame = null;
     if (state !== "playing" || !clock) return;
     const beat = clock.beat();
     if (beat !== null) position = beat;
     onPosition(beat);
+    if (state !== "playing" || !clock) return;
     if (beat !== null && beat >= data.beats - 1e-3) {
-      cancel();
-      position = 0;
-      emit("idle");
-      onPosition(null);
+      stop();
       return;
     }
     frame = requestAnimationFrame(tick);
   }
+  function startPrepared(restoreGain = false) {
+    if (!output) {
+      output = context.createGain();
+      output.gain.value = 0.28;
+      output.connect(context.destination);
+      nodes = [output];
+      mixers = [0, 1].map((i) => {
+        const mixer = context.createGain();
+        mixer.gain.value = muted.has(i) ? 0 : 1;
+        mixer.connect(output);
+        nodes.push(mixer);
+        return mixer;
+      });
+    }
+    if (!plan || planTempo !== tempo) {
+      plan = makePlan(data, tempo);
+      planTempo = tempo;
+    }
+    const start = engine.play(plan, mixers, position, output);
+    if (restoreGain) output.gain.setValueAtTime(0.28, start);
+    clock = engine.createClock(plan, start, position);
+    if (state !== "playing") emit("playing");
+    tick();
+  }
+  function fail(error, run) {
+    if (run !== token || error.name === "AbortError") return;
+    cancel();
+    emit("error");
+    onError(error);
+  }
   async function play() {
     var _a;
-    if (!data) return;
+    if (!data || state === "loading" || state === "playing") return;
     if (position >= data.beats) position = 0;
     const run = ++token;
     emit("loading");
@@ -848,31 +906,14 @@ function createTransport({ makePlan, audio: providedAudio, onState = () => {
       const audio = audioEngine();
       if (!audio) throw Error("Playback engine missing");
       context != null ? context : context = (_a = audio.getContext()) != null ? _a : new (globalThis.AudioContext || globalThis.webkitAudioContext)();
-      await context.resume();
+      if (context.state !== "running") await context.resume();
       if (run !== token) return;
-      engine = await audio.prepare(context);
+      const prepared = engine != null ? engine : await audio.prepare(context);
       if (run !== token) return;
-      output = context.createGain();
-      output.gain.value = 0.28;
-      output.connect(context.destination);
-      nodes = [output];
-      mixers = [0, 1].map((i) => {
-        const n = context.createGain();
-        n.gain.value = muted.has(i) ? 0 : 1;
-        n.connect(output);
-        nodes.push(n);
-        return n;
-      });
-      planTempo = tempo;
-      const plan = makePlan(data, planTempo), start = engine.play(plan, mixers, position, output);
-      clock = engine.createClock(plan, start, position);
-      emit("playing");
-      tick();
+      engine = prepared;
+      startPrepared();
     } catch (error) {
-      if (run !== token || error.name === "AbortError") return;
-      cancel();
-      emit("error");
-      onError(error);
+      fail(error, run);
     }
   }
   function pause() {
@@ -888,19 +929,60 @@ function createTransport({ makePlan, audio: providedAudio, onState = () => {
     onPosition(null);
   }
   function seek(beat) {
-    var _a;
-    const resume = state === "playing";
-    if (clock) position = clock.position();
-    cancel();
-    position = Math.max(0, Math.min((_a = data == null ? void 0 : data.beats) != null ? _a : 0, beat));
+    var _a, _b;
+    if (!data || !Number.isFinite(beat)) return;
+    position = Math.max(0, Math.min(data.beats, beat));
+    auditionGeneration++;
+    auditionVoice = null;
+    (_a = engine == null ? void 0 : engine.stopAudition) == null ? void 0 : _a.call(engine);
+    if (state === "playing" && !seekPending) {
+      seekPending = true;
+      cancelFrame();
+      clock = null;
+      const run = token;
+      try {
+        let restart = function() {
+          seekFrame = null;
+          if (run !== token || !seekPending) return;
+          if (context.currentTime < fence) {
+            seekFrame = requestAnimationFrame(restart);
+            return;
+          }
+          seekPending = false;
+          try {
+            startPrepared(restoreGain);
+          } catch (error) {
+            fail(error, run);
+          }
+        };
+        let fence = 0;
+        const restoreGain = !!engine.canDiscardQueuedEvents;
+        if (restoreGain) {
+          output.gain.cancelScheduledValues(context.currentTime);
+          output.gain.setValueAtTime(0, context.currentTime);
+        } else {
+          engine.stop();
+          fence = (_b = engine.fence) != null ? _b : 0;
+        }
+        if (context.state && context.state !== "running") {
+          void context.resume().then(() => {
+            if (run === token) seekFrame = requestAnimationFrame(restart);
+          }, (error) => fail(error, run));
+        } else if (run === token) seekFrame = requestAnimationFrame(restart);
+      } catch (error) {
+        fail(error, run);
+        return;
+      }
+    } else if (state === "idle" || state === "error") {
+      emit("paused");
+    }
     onPosition(null);
-    if (resume) void play();
-    else emit("paused");
   }
   return {
     load(next) {
       stop();
       data = next;
+      plan = null;
       tempo = next.tempo;
       muted.clear();
     },
@@ -916,7 +998,7 @@ function createTransport({ makePlan, audio: providedAudio, onState = () => {
       const next = Math.max(40, Math.min(260, Number(value) || 120));
       if (clock) position = clock.position();
       tempo = next;
-      if (state === "playing") engine.setRate(next / planTempo);
+      if (state === "playing" && clock) engine.setRate(next / planTempo);
     },
     setMuted(voice, value) {
       var _a;
@@ -933,20 +1015,26 @@ function createTransport({ makePlan, audio: providedAudio, onState = () => {
       var _a, _b, _c, _d, _e;
       const run = token, voice = (_a = note.voice) != null ? _a : 0;
       if (muted.has(voice)) return;
+      const audition = ++auditionGeneration;
+      auditionVoice = voice;
+      const current = () => run === token && audition === auditionGeneration && !muted.has(voice);
       try {
         const audio = audioEngine();
         context != null ? context : context = (_b = audio.getContext()) != null ? _b : new (globalThis.AudioContext || globalThis.webkitAudioContext)();
-        await context.resume();
-        engine = await audio.prepare(context);
-        if (run !== token || muted.has(voice)) return;
-        const supplied = (_d = (_c = data == null ? void 0 : data.voices) == null ? void 0 : _c.find((v) => v.voice === voice)) == null ? void 0 : _d.program, program = Number.isInteger(supplied) && supplied >= 0 && supplied <= 127 ? supplied : voice === 1 ? 65 : 0;
-        const audition = ++auditionGeneration;
-        auditionVoice = voice;
+        if (context.state !== "running") await context.resume();
+        if (!current()) return;
+        const prepared = engine != null ? engine : await audio.prepare(context);
+        if (!current()) return;
+        engine = prepared;
+        const supplied = (_d = (_c = data == null ? void 0 : data.voices) == null ? void 0 : _c.find((v) => v.voice === voice)) == null ? void 0 : _d.program;
+        const program = Number.isInteger(supplied) && supplied >= 0 && supplied <= 127 ? supplied : voice === 1 ? 65 : 0;
         engine.audition({ pitch: note.pitch, duration: Math.min(2, note.duration * 60 / tempo), velocity: (_e = note.velocity) != null ? _e : voice === 1 ? 80 : 74, program }, () => {
           if (audition === auditionGeneration) auditionVoice = null;
         });
       } catch (error) {
-        if (run === token && error.name !== "AbortError") onError(error);
+        if (!current()) return;
+        auditionVoice = null;
+        if (error.name !== "AbortError") onError(error);
       }
     },
     destroy() {

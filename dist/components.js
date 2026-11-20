@@ -1,4 +1,4 @@
-/*! librawl version: 0.3.5-local; audio source sha256: 71b00333d99d3a7d882060d12d513caeb32390b6548f595fa062dabfc235d734; GPL-3.0-only */
+/*! librawl version: 0.3.5-local; audio source sha256: 76f73238ecd37f8747ca6b9c5ea8b19675b7cc1977a886b66f6012c991fda089; GPL-3.0-only */
 
 // src/components/TonicSymbol.jsx
 import * as React from "react";
@@ -291,6 +291,7 @@ function useTonicRecoloring({ changes, barBeats = 4, measureMap, onChange }) {
 
 // src/notation/RawlNotation.jsx
 var EMPTY_CHANGES = [];
+var EMPTY_MUTED_VOICES = [];
 var atRowStart = (beat, start) => Math.abs(beat - start) < 1e-7;
 var names = ["C", "D\u266D", "D", "E\u266D", "E", "F", "F\u266F", "G", "A\u266D", "A", "B\u266D", "B"];
 var noteName = (p) => names[mod(p)] + (Math.floor(p / 12) - 1);
@@ -404,9 +405,10 @@ function notePlaybackSpan(note, row, independentPlayback) {
   const scale = (end - start) / note.duration;
   return [start + Math.max(0, row.start - note.start) * scale, end - Math.max(0, note.start + note.duration - row.end) * scale];
 }
-function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, hoveredKey, setHoveredKey, hoveredRef, onNote, onNoteAudition, auditionEnabled, onNoteHover, clock }) {
+function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, onNote, onNoteAudition, auditionEnabled, onNoteHover, clock }) {
   const host = useRef(null), [pixelWidth, setPixelWidth] = useState2(100), span = row.end - row.start, section = useMemo(() => [row.start, row.end], [row.start, row.end]);
-  const independentPlayback = visible.some((note) => note.playbackSpan !== void 0), playbackSection = independentPlayback ? null : section;
+  const hoveredRef = useRef(null), [hoveredId, setHoveredId] = useState2(null);
+  const independentPlayback = useMemo(() => visible.some((note) => note.playbackSpan !== void 0), [visible]), playbackSection = independentPlayback ? null : section;
   useLayoutEffect(() => {
     var _a;
     const element = host.current.parentElement, view = element.ownerDocument.defaultView, fit = () => {
@@ -426,8 +428,9 @@ function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, hovere
   const nativeNotes = useMemo(() => visible.map((note) => {
     var _a, _b;
     const degree = mod(note.pitch - tonicAt(tonic, changes, note.start + note.duration / 2)), muted = mutedVoices.includes(note.voice);
-    return { id: String(note.id), note: { midiNumber: note.pitch }, span: notePlaybackSpan(note, row, independentPlayback), displaySpan: [Math.max(row.start, note.start), Math.min(row.end, note.start + note.duration)], voiceIndex: (_a = note.voice) != null ? _a : 0, displayVoiceIndex: (_b = note.voice) != null ? _b : 0, isDrum: false, isActive: !muted, color: `noteColor_${degree}_colors`, colorPitchClass: degree, noteUnderCursor: hoveredKey === `${note.id}:${row.start}`, velocity: note.velocity, ...note.pitchBend ? { pitchBend: note.pitchBend } : {}, ...note.sourceLocation ? { sourceLocation: note.sourceLocation } : {} };
-  }), [visible, row.start, row.end, independentPlayback, tonic, changes, mutedVoices, hoveredKey]);
+    return { id: String(note.id), note: { midiNumber: note.pitch }, span: notePlaybackSpan(note, row, independentPlayback), displaySpan: [Math.max(row.start, note.start), Math.min(row.end, note.start + note.duration)], voiceIndex: (_a = note.voice) != null ? _a : 0, displayVoiceIndex: (_b = note.voice) != null ? _b : 0, isDrum: false, isActive: !muted, color: `noteColor_${degree}_colors`, colorPitchClass: degree, noteUnderCursor: false, velocity: note.velocity, ...note.pitchBend ? { pitchBend: note.pitchBend } : {}, ...note.sourceLocation ? { sourceLocation: note.sourceLocation } : {} };
+  }), [visible, row.start, row.end, independentPlayback, tonic, changes, mutedVoices]);
+  const renderedNotes = useMemo(() => hoveredId === null ? nativeNotes : nativeNotes.map((note) => note.id === hoveredId ? { ...note, noteUnderCursor: true } : note), [nativeNotes, hoveredId]);
   useLayoutEffect(() => {
     const nativeById = new Map(nativeNotes.map((note) => [note.id, note]));
     const unregister = [...host.current.querySelectorAll("[data-note]")].map((element) => {
@@ -437,26 +440,25 @@ function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, hovere
     return () => unregister.forEach((remove) => remove());
   }, [clock, nativeNotes, playbackSection]);
   const hover = (note) => {
-    const original = sourceById.get(note.id), key = `${original.id}:${row.start}`;
-    if (hoveredRef.current === key) return;
-    hoveredRef.current = key;
-    setHoveredKey(key);
-    onNoteHover == null ? void 0 : onNoteHover(original);
+    if (hoveredRef.current === note.id) return;
+    hoveredRef.current = note.id;
+    setHoveredId(note.id);
+    onNoteHover == null ? void 0 : onNoteHover(sourceById.get(note.id));
   };
   const leave = () => {
     if (hoveredRef.current === null) return;
     hoveredRef.current = null;
-    setHoveredKey(null);
+    setHoveredId(null);
     onNoteHover == null ? void 0 : onNoteHover(null);
   };
-  return /* @__PURE__ */ React3.createElement("div", { ref: host, style: { display: "contents" } }, /* @__PURE__ */ React3.createElement(PlaybackSectionContext.Provider, { value: playbackSection }, /* @__PURE__ */ React3.createElement(NoteLayer, { notes: nativeNotes, midiNumberToY: (pitch) => axis.pitchToY(pitch) + axis.glyphHeight / 2, noteHeight: axis.glyphHeight / 2, secondsToX: (beat) => (beat - row.start) / span * pixelWidth, handleNoteClick: (note) => onNote == null ? void 0 : onNote(sourceById.get(note.id)), handleMouseEnter: hover, handleMouseLeave: leave, onNoteAudition: onNoteAudition ? (note) => onNoteAudition(sourceById.get(note.id)) : void 0, auditionEnabled, getNoteAttributes: (note) => {
+  return /* @__PURE__ */ React3.createElement("div", { ref: host, style: { display: "contents" } }, /* @__PURE__ */ React3.createElement(PlaybackSectionContext.Provider, { value: playbackSection }, /* @__PURE__ */ React3.createElement(NoteLayer, { notes: renderedNotes, midiNumberToY: (pitch) => axis.pitchToY(pitch) + axis.glyphHeight / 2, noteHeight: axis.glyphHeight / 2, secondsToX: (beat) => (beat - row.start) / span * pixelWidth, handleNoteClick: (note) => onNote == null ? void 0 : onNote(sourceById.get(note.id)), handleMouseEnter: hover, handleMouseLeave: leave, onNoteAudition: onNoteAudition ? (note) => onNoteAudition(sourceById.get(note.id)) : void 0, auditionEnabled, getNoteAttributes: (note) => {
     var _a;
     const original = sourceById.get(note.id), start = note.displaySpan[0], end = note.displaySpan[1], degree = note.colorPitchClass, muted = mutedVoices.includes(original.voice);
     return { role: "button", tabIndex: -1, "aria-label": noteName(original.pitch), "data-note": original.id, "data-pitch": original.pitch, "data-degree": degree, "data-voice": original.voice, className: `rawln-note rawln-voice-${original.voice}${muted ? " rawln-muted" : ""}`, style: { left: (start - row.start) / span * 100 + "%", width: (end - start) / span * 100 + "%", ...!((_a = note.pitchBend) == null ? void 0 : _a.length) && RAWL_COLORS[degree] ? { background: RAWL_COLORS[degree].background } : {}, zIndex: 100 + (84 - original.pitch) + (original.voice === 1 ? 128 : 0) } };
   } })));
 }
-var RawlNotation = forwardRef2(function RawlNotation2({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = [], onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, renderHeader, renderUnderlay, renderFooter, className = "", style }, ref) {
-  const root = useRef(null), hoveredRef = useRef(null), [hoveredKey, setHoveredKey] = useState2(null), ownClock = useMemo(createSectionPlaybackClock, []), clock = playbackClock != null ? playbackClock : ownClock;
+var RawlNotation = forwardRef2(function RawlNotation2({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = EMPTY_MUTED_VOICES, onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, renderHeader, renderUnderlay, renderFooter, className = "", style }, ref) {
+  const root = useRef(null), ownClock = useMemo(createSectionPlaybackClock, []), clock = playbackClock != null ? playbackClock : ownClock;
   const audition = onNoteAudition != null ? onNoteAudition : onNote;
   const seek = onSeek != null ? onSeek : ((beat) => (playbackClock == null ? void 0 : playbackClock.seek) ? playbackClock.seek(beat) : clock.advance(beat));
   const editor = useTonicRecoloring({ changes, barBeats, measureMap, onChange: onChangesChange }), automatic = recolorable && !onMeasureSelect;
@@ -487,7 +489,7 @@ var RawlNotation = forwardRef2(function RawlNotation2({ notes, beats, rows, toni
       if (selectedMeasure !== null) return;
       const box = e.currentTarget.getBoundingClientRect();
       if (box.width > 0) seek(row.start + Math.max(0, Math.min(1, (e.clientX - box.left) / box.width)) * span);
-    } }, /* @__PURE__ */ React3.createElement(PlaybackMeasureLayer, { row, clock, measureMap, barBeats }), /* @__PURE__ */ React3.createElement("div", { className: "rawln-grid", "aria-hidden": "true" }, regions.flatMap((region, i) => tonalLines(range, axis, region.tonic).map((line, j) => /* @__PURE__ */ React3.createElement("div", { key: `${i}-${j}`, "data-tonic": region.tonic, className: `rawln-${line.kind}-line`, style: { left: x(region.start) + "%", width: (region.end - region.start) / span * 100 + "%", top: line.y } })))), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ React3.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic }), /* @__PURE__ */ React3.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, hoveredKey, setHoveredKey, hoveredRef, onNote: (note) => {
+    } }, /* @__PURE__ */ React3.createElement(PlaybackMeasureLayer, { row, clock, measureMap, barBeats }), /* @__PURE__ */ React3.createElement("div", { className: "rawln-grid", "aria-hidden": "true" }, regions.flatMap((region, i) => tonalLines(range, axis, region.tonic).map((line, j) => /* @__PURE__ */ React3.createElement("div", { key: `${i}-${j}`, "data-tonic": region.tonic, className: `rawln-${line.kind}-line`, style: { left: x(region.start) + "%", width: (region.end - region.start) / span * 100 + "%", top: line.y } })))), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ React3.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic }), /* @__PURE__ */ React3.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, onNote: (note) => {
       if (automatic && editor.chooseNote(note)) return;
       if (onNote) onNote(note);
       else if (selectedMeasure === null) seek(Math.max(row.start, note.start));

@@ -6,7 +6,8 @@ export function createSoundFontPlayback(options={}){
  const fetch=(options.fetch??global.fetch??globalThis.fetch)?.bind(global),AbortController=global.AbortController??globalThis.AbortController;
  const reference=global.document?.baseURI??global.location?.href??import.meta.url;
  const resolveAsset=value=>options.assetBase?new URL(String(value),new URL(String(options.assetBase),reference)).href:String(value);
- const libraryUrl=resolveAsset(options.libraryUrl??'./vendor/spessasynth/index.js'),workletUrl=resolveAsset(options.workletUrl??'vendor/spessasynth/spessasynth_processor.min.js');
+ const libraryUrl=resolveAsset(options.libraryUrl??'./vendor/spessasynth/index.js');
+ const workletUrl=resolveAsset(options.workletUrl??(options.clearQueuedMidi?'spessasynth-seek-processor.js':'vendor/spessasynth/spessasynth_processor.min.js'));
  const importLibrary=options.importLibrary??(url=>import(url));
  const additionalBanks=(options.additionalBanks??[]).map(bank=>{
   if(!bank||typeof bank.url!=='string'||!bank.name||!Number.isInteger(bank.bytes)||bank.bytes<=0||!/^[a-f0-9]{64}$/.test(bank.sha256))throw new Error('Invalid SoundFont bank descriptor');
@@ -290,10 +291,12 @@ export function createSoundFontPlayback(options={}){
     const banks=[{url:resolveAsset('assets/soundfonts/GeneralUser-GS-v4.sf2.1'),name:'caplin',...BANK},...additionalBanks];
     const [library,...bankBytes]=await bounded(Promise.all([importLibrary(libraryUrl),...banks.map(bank=>loadBank(bank.url,bank))]),30000,'assets',signal);
     phase='module';await bounded(context.audioWorklet.addModule(workletUrl),10000,'module',signal);
-    let fail;
+    let fail,discardQueuedMidi;
     const failure=new Promise((_,reject)=>{fail=error=>reject(error instanceof Error?error:new Error(String(error)));});failure.catch(()=>{});
-    const synth=new library.WorkletSynthesizer(context,{oneOutput:false,eventsEnabled:false,audioNodeCreators:{worklet(ctx,name,options){
-     const node=new global.AudioWorkletNode(ctx,name,options),processorError=()=>fail(new Error('SoundFont worklet processor error')),messageError=()=>fail(new Error('SoundFont worklet message error'));
+    const synth=new library.WorkletSynthesizer(context,{oneOutput:false,eventsEnabled:false,audioNodeCreators:{worklet(ctx,name,nodeOptions){
+     const processor=options.clearQueuedMidi?'librawl-'+name:name;
+     const node=new global.AudioWorkletNode(ctx,processor,nodeOptions),processorError=()=>fail(new Error('SoundFont worklet processor error')),messageError=()=>fail(new Error('SoundFont worklet message error'));
+     if(options.clearQueuedMidi)discardQueuedMidi=channels=>node.port.postMessage({type:'librawlClearMidi',channels});
      node.addEventListener('processorerror',processorError);node.port.addEventListener('messageerror',messageError);
      attempt.cleanup.push(()=>{node.removeEventListener('processorerror',processorError);node.port.removeEventListener('messageerror',messageError);});return node;
     }}});
@@ -312,13 +315,26 @@ export function createSoundFontPlayback(options={}){
     synth.setSystemParameter('effectsEnabled',false);synth.setSystemParameter('gain',.8);
     synth.disconnect(warmup);warmup.disconnect();attempt.warmup=null;
     for(const cleanup of attempt.cleanup.splice(0))cleanup();
-    engine=new ContinuousPlaybackEngine(context,synth);attempt.synth=null;phase='ready';return engine;
+    engine=new ContinuousPlaybackEngine(context,synth,discardQueuedMidi);attempt.synth=null;phase='ready';return engine;
    }catch(error){attempt.controller.abort();dispose();if(pending===attempt){phase=error.name==='AbortError'?'idle':'failed';lastError=String(error);}throw error;}
   })();
   try{return await attempt.promise;}finally{if(pending===attempt)pending=null;}
  }
  class ContinuousPlaybackEngine extends PlaybackEngine{
-  constructor(context,synth){super(context,synth);attachContinuousPlayback(this,{setInterval,clearInterval,presentationTime,horizon:HORIZON,interval:INTERVAL});}
+  constructor(context,synth,discardQueuedMidi){
+   super(context,synth);
+   this.discardQueuedMidi=discardQueuedMidi;
+   this.canDiscardQueuedEvents=!!discardQueuedMidi;
+   attachContinuousPlayback(this,{setInterval,clearInterval,presentationTime,discardQueuedMidi,horizon:HORIZON,interval:INTERVAL});
+  }
+  stopAudition(){
+   if(!this.discardQueuedMidi)return super.stopAudition();
+   const channels=this.auditionState?[AUDITION_CHANNEL]:[];
+   for(const entry of this.overlapAudition?.entries??[])channels.push(entry.channel);
+   super.stopAudition();
+   if(channels.length)this.discardQueuedMidi(channels);
+   this.auditionFence=this.context.currentTime;
+  }
  }
  function stop(){if(pending){const attempt=pending;pending=null;attempt.controller.abort();phase='idle';}engine?.stop();}
  return {prepare,stop,stopAudition:()=>engine?.stopAudition(),getContext:()=>audioContext,getPreparationState:()=>({phase,pending:!!pending,error:lastError}),PlaybackEngine:ContinuousPlaybackEngine,presentationTime,soundingIntervals,room:ROOM,roomImpulse,masterGain:MASTER_GAIN};

@@ -23,9 +23,10 @@ const environment="typeof window==='undefined'?globalThis:window";
 const base="(function(global){global.SoundFontPlayback=LibrawlAudio.createSoundFontPlayback({environment:global,importLibrary:()=>import('./vendor/spessasynth/index.js')";
 const profiles={
  'soundfont-playback':base+"});})("+environment+");",
- 'soundfont-playback-sax':base+",allowAuditionPrograms:true,additionalBanks:[{url:'assets/soundfonts/GeneralUser-GS-alto-sax.sf2',name:'alto-sax',bytes:505140,sha256:'d7079d82a5fb6c985770578a89db8db153c20cefff38ed94270bb790bf3378e6'}]});})("+environment+");"
+ 'soundfont-playback-sax':base+",allowAuditionPrograms:true,clearQueuedMidi:true,additionalBanks:[{url:'assets/soundfonts/GeneralUser-GS-alto-sax.sf2',name:'alto-sax',bytes:505140,sha256:'d7079d82a5fb6c985770578a89db8db153c20cefff38ed94270bb790bf3378e6'}]});})("+environment+");"
 };
 fs.mkdirSync(path.join(out,'browser'),{recursive:true});
+for(const name of ['spessasynth-seek-processor.js','spessasynth-seek-registration.js'])fs.copyFileSync(path.join(root,'src/audio',name),path.join(out,'browser',name));
 for(const [name,globalName] of [['tempo-keys','LibrawlTempoKeys'],['playback-keys','LibrawlPlaybackKeys']])await build({entryPoints:[path.join(root,`src/audio/${name}.js`)],outfile:path.join(out,`browser/${name}.js`),bundle:true,format:'iife',globalName,platform:'browser',target:'es2018',banner:{js:banner},logLevel:'error'});
 await build({entryPoints:[path.join(root,'src/notation/harmony-annotations.mjs')],outfile:path.join(out,'browser/harmony-annotations.js'),bundle:true,format:'iife',globalName:'LibrawlHarmony',platform:'browser',target:'es2018',banner:{js:banner},logLevel:'error'});
 fs.copyFileSync(path.join(root,'src/audio/native/midi-output-worklet.js'),path.join(out,'browser/midi-output-worklet.js'));

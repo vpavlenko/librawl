@@ -8,6 +8,7 @@ import {NoteLayer,NotePlaybackContext,PlaybackSectionContext,createSectionPlayba
 import {useTonicRecoloring} from './recolor.jsx';
 
 const EMPTY_CHANGES=[];
+const EMPTY_MUTED_VOICES=[];
 const atRowStart=(beat,start)=>Math.abs(beat-start)<1e-7;
 const names=['C','D♭','D','E♭','E','F','F♯','G','A♭','A','B♭','B'];
 const noteName=p=>names[mod(p)]+(Math.floor(p/12)-1);
@@ -108,9 +109,10 @@ function notePlaybackSpan(note,row,independentPlayback){
 }
 
 /** Adapt authored quarter beats to the native renderer without changing source data. */
-function BeatNoteLayer({visible,row,axis,tonic,changes,mutedVoices,hoveredKey,setHoveredKey,hoveredRef,onNote,onNoteAudition,auditionEnabled,onNoteHover,clock}){
+function BeatNoteLayer({visible,row,axis,tonic,changes,mutedVoices,onNote,onNoteAudition,auditionEnabled,onNoteHover,clock}){
  const host=useRef(null),[pixelWidth,setPixelWidth]=useState(100),span=row.end-row.start,section=useMemo(()=>[row.start,row.end],[row.start,row.end]);
- const independentPlayback=visible.some(note=>note.playbackSpan!==undefined),playbackSection=independentPlayback?null:section;
+ const hoveredRef=useRef(null),[hoveredId,setHoveredId]=useState(null);
+ const independentPlayback=useMemo(()=>visible.some(note=>note.playbackSpan!==undefined),[visible]),playbackSection=independentPlayback?null:section;
  useLayoutEffect(()=>{
   const element=host.current.parentElement,view=element.ownerDocument.defaultView,fit=()=>{const width=element.getBoundingClientRect().width||element.clientWidth||100;setPixelWidth(previous=>previous===width?previous:width);},Observer=view?.ResizeObserver??globalThis.ResizeObserver;
   fit();const observer=Observer?new Observer(fit):null;observer?.observe(element);view?.addEventListener('resize',fit);
@@ -119,8 +121,10 @@ function BeatNoteLayer({visible,row,axis,tonic,changes,mutedVoices,hoveredKey,se
  const sourceById=useMemo(()=>new Map(visible.map(note=>[String(note.id),note])),[visible]);
  const nativeNotes=useMemo(()=>visible.map(note=>{
   const degree=mod(note.pitch-tonicAt(tonic,changes,note.start+note.duration/2)),muted=mutedVoices.includes(note.voice);
-  return {id:String(note.id),note:{midiNumber:note.pitch},span:notePlaybackSpan(note,row,independentPlayback),displaySpan:[Math.max(row.start,note.start),Math.min(row.end,note.start+note.duration)],voiceIndex:note.voice??0,displayVoiceIndex:note.voice??0,isDrum:false,isActive:!muted,color:`noteColor_${degree}_colors`,colorPitchClass:degree,noteUnderCursor:hoveredKey===`${note.id}:${row.start}`,velocity:note.velocity,...(note.pitchBend?{pitchBend:note.pitchBend}:{}),...(note.sourceLocation?{sourceLocation:note.sourceLocation}:{})};
- }),[visible,row.start,row.end,independentPlayback,tonic,changes,mutedVoices,hoveredKey]);
+  return {id:String(note.id),note:{midiNumber:note.pitch},span:notePlaybackSpan(note,row,independentPlayback),displaySpan:[Math.max(row.start,note.start),Math.min(row.end,note.start+note.duration)],voiceIndex:note.voice??0,displayVoiceIndex:note.voice??0,isDrum:false,isActive:!muted,color:`noteColor_${degree}_colors`,colorPitchClass:degree,noteUnderCursor:false,velocity:note.velocity,...(note.pitchBend?{pitchBend:note.pitchBend}:{}),...(note.sourceLocation?{sourceLocation:note.sourceLocation}:{})};
+ }),[visible,row.start,row.end,independentPlayback,tonic,changes,mutedVoices]);
+ const renderedNotes=useMemo(()=>hoveredId===null?nativeNotes:nativeNotes.map(note=>
+  note.id===hoveredId?{...note,noteUnderCursor:true}:note),[nativeNotes,hoveredId]);
  // Preserve the host's compatibility class without duplicating note geometry.
  // Both the native renderer and this small notification use the same index.
  useLayoutEffect(()=>{
@@ -132,20 +136,19 @@ function BeatNoteLayer({visible,row,axis,tonic,changes,mutedVoices,hoveredKey,se
   return()=>unregister.forEach(remove=>remove());
  },[clock,nativeNotes,playbackSection]);
  const hover=note=>{
-  const original=sourceById.get(note.id),key=`${original.id}:${row.start}`;
-  if(hoveredRef.current===key)return;
-  hoveredRef.current=key;setHoveredKey(key);onNoteHover?.(original);
+  if(hoveredRef.current===note.id)return;
+  hoveredRef.current=note.id;setHoveredId(note.id);onNoteHover?.(sourceById.get(note.id));
  };
- const leave=()=>{if(hoveredRef.current===null)return;hoveredRef.current=null;setHoveredKey(null);onNoteHover?.(null);};
- return <div ref={host} style={{display:'contents'}}><PlaybackSectionContext.Provider value={playbackSection}><NoteLayer notes={nativeNotes} midiNumberToY={pitch=>axis.pitchToY(pitch)+axis.glyphHeight/2} noteHeight={axis.glyphHeight/2} secondsToX={beat=>(beat-row.start)/span*pixelWidth} handleNoteClick={note=>onNote?.(sourceById.get(note.id))} handleMouseEnter={hover} handleMouseLeave={leave} onNoteAudition={onNoteAudition?note=>onNoteAudition(sourceById.get(note.id)):undefined} auditionEnabled={auditionEnabled} getNoteAttributes={note=>{
+ const leave=()=>{if(hoveredRef.current===null)return;hoveredRef.current=null;setHoveredId(null);onNoteHover?.(null);};
+ return <div ref={host} style={{display:'contents'}}><PlaybackSectionContext.Provider value={playbackSection}><NoteLayer notes={renderedNotes} midiNumberToY={pitch=>axis.pitchToY(pitch)+axis.glyphHeight/2} noteHeight={axis.glyphHeight/2} secondsToX={beat=>(beat-row.start)/span*pixelWidth} handleNoteClick={note=>onNote?.(sourceById.get(note.id))} handleMouseEnter={hover} handleMouseLeave={leave} onNoteAudition={onNoteAudition?note=>onNoteAudition(sourceById.get(note.id)):undefined} auditionEnabled={auditionEnabled} getNoteAttributes={note=>{
   const original=sourceById.get(note.id),start=note.displaySpan[0],end=note.displaySpan[1],degree=note.colorPitchClass,muted=mutedVoices.includes(original.voice);
   return {role:'button',tabIndex:-1,'aria-label':noteName(original.pitch),'data-note':original.id,'data-pitch':original.pitch,'data-degree':degree,'data-voice':original.voice,className:`rawln-note rawln-voice-${original.voice}${muted?' rawln-muted':''}`,style:{left:(start-row.start)/span*100+'%',width:(end-start)/span*100+'%',...(!note.pitchBend?.length&&RAWL_COLORS[degree]?{background:RAWL_COLORS[degree].background}:{}),zIndex:100+(84-original.pitch)+(original.voice===1?128:0)}};
  }}/></PlaybackSectionContext.Provider></div>;
 }
 
 /** A host-independent Rawl score. Times are quarter-note beats, pitches MIDI. */
-export const RawlNotation=forwardRef(function RawlNotation({notes,beats,rows,tonic=0,changes=EMPTY_CHANGES,barBeats=4,beatBeats=1,phraseStarts,measureMap,hideInitialTonic=false,showTonalGuides=true,noteScale=1,position,playbackClock,mutedVoices=[],onSeek,onNote,onNoteAudition,onNoteHover,onMeasureSelect,selectedMeasure=null,onChangesChange,recolorable=true,renderHeader,renderUnderlay,renderFooter,className='',style},ref){
- const root=useRef(null),hoveredRef=useRef(null),[hoveredKey,setHoveredKey]=useState(null),ownClock=useMemo(createSectionPlaybackClock,[]),clock=playbackClock??ownClock;
+export const RawlNotation=forwardRef(function RawlNotation({notes,beats,rows,tonic=0,changes=EMPTY_CHANGES,barBeats=4,beatBeats=1,phraseStarts,measureMap,hideInitialTonic=false,showTonalGuides=true,noteScale=1,position,playbackClock,mutedVoices=EMPTY_MUTED_VOICES,onSeek,onNote,onNoteAudition,onNoteHover,onMeasureSelect,selectedMeasure=null,onChangesChange,recolorable=true,renderHeader,renderUnderlay,renderFooter,className='',style},ref){
+ const root=useRef(null),ownClock=useMemo(createSectionPlaybackClock,[]),clock=playbackClock??ownClock;
  const audition=onNoteAudition??onNote;
  const seek=onSeek??(beat=>playbackClock?.seek?playbackClock.seek(beat):clock.advance(beat));
  const editor=useTonicRecoloring({changes,barBeats,measureMap,onChange:onChangesChange}),automatic=recolorable&&!onMeasureSelect;
@@ -171,7 +174,7 @@ export const RawlNotation=forwardRef(function RawlNotation({notes,beats,rows,ton
      </div>
      {renderUnderlay?.(row,axis)}
      <RawlMeasureHeader row={row} height={axis.notesBottom} tonic={tonic} changes={changes} barBeats={barBeats} beatBeats={beatBeats} phraseStarts={phraseStarts} measureMap={measureMap} selectedMeasure={selectedMeasure} onMeasureSelect={onMeasureSelect} hideInitialTonic={hideInitialTonic}/>
-     <BeatNoteLayer visible={visible} row={row} axis={axis} tonic={tonic} changes={changes} mutedVoices={mutedVoices} hoveredKey={hoveredKey} setHoveredKey={setHoveredKey} hoveredRef={hoveredRef} onNote={note=>{if(automatic&&editor.chooseNote(note))return;if(onNote)onNote(note);else if(selectedMeasure===null)seek(Math.max(row.start,note.start));}} onNoteAudition={audition} auditionEnabled={selectedMeasure==null} onNoteHover={onNoteHover} clock={clock}/>
+     <BeatNoteLayer visible={visible} row={row} axis={axis} tonic={tonic} changes={changes} mutedVoices={mutedVoices} onNote={note=>{if(automatic&&editor.chooseNote(note))return;if(onNote)onNote(note);else if(selectedMeasure===null)seek(Math.max(row.start,note.start));}} onNoteAudition={audition} auditionEnabled={selectedMeasure==null} onNoteHover={onNoteHover} clock={clock}/>
     </div>
     {renderFooter&&<div className="rawln-footer">{renderFooter(row,{changes,selectedMeasure})}</div>}
    </div>;
