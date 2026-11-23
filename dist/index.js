@@ -1,7 +1,7 @@
 /*! librawl version: 0.4.1-local; audio source sha256: 76f73238ecd37f8747ca6b9c5ea8b19675b7cc1977a886b66f6012c991fda089; GPL-3.0-only */
 
 // src/notation/RawlNotation.jsx
-import React5, { useImperativeHandle, useLayoutEffect as useLayoutEffect2, useMemo as useMemo2, useRef as useRef2, useState as useState3 } from "react";
+import React5, { useImperativeHandle, useLayoutEffect as useLayoutEffect2, useMemo as useMemo3, useRef as useRef2, useState as useState4 } from "react";
 
 // src/notation/score-grid.mjs
 var octave = (value) => (value % 12 + 12) % 12;
@@ -139,10 +139,11 @@ function modulationLabelOffset(beat, barBeats, { initial: initial2 = beat === 0,
 function keyMarkers(tonic, changes) {
   return tonicMarkers(tonicEvents(tonic, changes));
 }
+var sameBeat = (a, b) => Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) < 1e-7;
 function recolorBoundary(changes, measureBeat, barBeats, measureMap) {
-  var _a, _b;
+  var _a, _b, _c, _d;
   const measure = measureMap == null ? void 0 : measureMap.find((measure2) => Math.abs(measure2.start - measureBeat) < 1e-7), end = measure ? measure.start + measure.duration : measureBeat + barBeats;
-  return (_b = (_a = changes.find((change) => change.beat >= measureBeat - 1e-7 && change.beat < end - 1e-7)) == null ? void 0 : _a.beat) != null ? _b : measureBeat;
+  return (_d = (_c = (_a = changes.find((change) => sameBeat(change.measureBeat, measureBeat))) == null ? void 0 : _a.beat) != null ? _c : (_b = changes.find((change) => change.measureBeat == null && change.beat >= measureBeat - 1e-7 && change.beat < end - 1e-7)) == null ? void 0 : _b.beat) != null ? _d : measureBeat;
 }
 function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatBeats = 1, phraseStarts, measureMap, width = 0, selectedMeasure = null, hideInitialTonic = false, modulationMarkerPlacement }) {
   var _a, _b;
@@ -187,7 +188,8 @@ function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatB
         return { ...marker, beat: next.start, originBeat: marker.beat, number: next.sourceNumber, onsetOverride: false };
       }
     }
-    return { ...marker, onsetOverride };
+    const number = marker.measureBeat == null ? marker.number : numberAt(marker.measureBeat);
+    return { ...marker, onsetOverride, number };
   });
   const displacedOnsets = new Set(events.map((marker) => marker.originBeat).filter(Number.isFinite));
   const localChanges = displacedOnsets.size ? changes.filter((change) => !displacedOnsets.has(change.beat)) : changes;
@@ -715,28 +717,114 @@ function PlaybackMeasureBorders({ left, width, top = true, bottom = true, hidden
 }
 
 // src/notation/RawlNotation.jsx
-import { NoteLayer, NotePlaybackContext, PlaybackSectionContext, createSectionPlaybackClock } from "librawl/native";
+import { NoteLayer, NotePlaybackContext, PlaybackSectionContext, createSectionPlaybackClock, ModulationOnsetEditingContext } from "librawl/native";
 
 // src/notation/recolor.jsx
+import { useEffect as useEffect2, useMemo as useMemo2, useState as useState3 } from "react";
+
+// src/rawlnative/modulation-onset-editing.js
 import { useEffect, useState as useState2 } from "react";
-var ROOTS = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
-function recolorModulation(changes, beat, pitch) {
-  if (!Number.isFinite(beat) || beat < 0 || !Number.isFinite(pitch)) return changes;
-  const tonic = (Math.round(pitch) % 12 + 12) % 12, existing = changes.find((change) => Math.abs(change.beat - beat) < 1e-7), choice = { ...existing != null ? existing : { beat }, tonic, root: ROOTS[tonic] };
-  const events = [...changes.filter((change) => Math.abs(change.beat - beat) >= 1e-7).map((change) => ({ ...change })), choice].sort((a, b) => a.beat - b.beat), result = [];
-  for (const event of events) if (!result.length || result.at(-1).tonic !== event.tonic) result.push(event);
-  return result;
+function isModulationOnsetAllowed(start, range) {
+  return range != null && Number.isFinite(start) && start >= range[0] && start < range[1];
 }
-var clearedSelection = { selectedMeasure: null, selectedElement: null, boundary: null, preview: null };
+function useModulationOnsetEditing({ getRange, noteStart, onChoose }) {
+  const [shiftHeld, setShiftHeld] = useState2(false);
+  useEffect(() => {
+    const update = (event) => setShiftHeld(event.shiftKey);
+    const clear = () => setShiftHeld(false);
+    window.addEventListener("keydown", update);
+    window.addEventListener("keyup", update);
+    window.addEventListener("blur", clear);
+    return () => {
+      window.removeEventListener("keydown", update);
+      window.removeEventListener("keyup", update);
+      window.removeEventListener("blur", clear);
+    };
+  }, []);
+  const isAllowed = (note) => isModulationOnsetAllowed(noteStart(note), getRange());
+  return {
+    active: shiftHeld && getRange() != null,
+    isAllowed,
+    chooseNote(note, event) {
+      var _a;
+      const range = getRange();
+      if (!((_a = event == null ? void 0 : event.shiftKey) != null ? _a : shiftHeld) || range == null) return false;
+      if (isModulationOnsetAllowed(noteStart(note), range)) onChoose(note);
+      return true;
+    },
+    onClickCapture(event) {
+      var _a, _b;
+      if (!event.shiftKey || getRange() == null || ((_b = (_a = event.target).closest) == null ? void 0 : _b.call(_a, '[data-modulation-onset-note="true"]'))) return;
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
+}
+
+// src/notation/recolor.jsx
+var ROOTS = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+function orderChanges(changes) {
+  return changes.sort((a, b) => {
+    var _a, _b;
+    return a.beat - b.beat || ((_a = a.measureBeat) != null ? _a : a.beat) - ((_b = b.measureBeat) != null ? _b : b.beat);
+  });
+}
+function recolor(changes, beat, pitch, existing) {
+  if (!Number.isFinite(beat) || beat < 0 || !Number.isFinite(pitch)) return changes;
+  const tonic = mod(Math.round(pitch));
+  const choice = { ...existing != null ? existing : { beat }, tonic, root: ROOTS[tonic] };
+  const remaining = changes.filter((change) => change !== existing && ((existing == null ? void 0 : existing.measureBeat) != null || change.measureBeat != null || !sameBeat(change.beat, beat)));
+  const events = orderChanges([...remaining, choice]);
+  return events.filter((event, index) => event.measureBeat != null || index === 0 || event.tonic !== events[index - 1].tonic);
+}
+function recolorModulation(changes, beat, pitch) {
+  const existing = changes.find((change) => sameBeat(change.beat, beat));
+  return recolor(changes, beat, pitch, existing);
+}
+function onsetRange(measureBeat, barBeats, measureMap) {
+  var _a, _b;
+  if (!measureMap) return [Math.max(0, measureBeat - barBeats), measureBeat + barBeats];
+  const index = measureMap.findIndex((measure2) => sameBeat(measure2.start, measureBeat));
+  if (index < 0) return null;
+  const measure = measureMap[index];
+  const end = (_b = (_a = measureMap[index + 1]) == null ? void 0 : _a.start) != null ? _b : measure.start + measure.duration;
+  return [measureMap[Math.max(0, index - 1)].start, end];
+}
+function snapOnset(changes, change, measureBeat, beat) {
+  const snapped = { ...change, beat, measureBeat, onsetOverride: true };
+  return orderChanges(changes.map((entry) => entry === change ? snapped : entry));
+}
+var clearedSelection = { selectedMeasure: null, selectedElement: null, boundary: null, hoveredNote: null };
 var initial = (source) => ({ source, committed: source, ...clearedSelection });
 function useTonicRecoloring({ changes, barBeats = 4, measureMap, onChange }) {
   var _a;
-  const [stored, setStored] = useState2(() => initial(changes)), state = stored.source === changes ? stored : initial(changes);
+  const [stored, setStored] = useState3(() => initial(changes));
+  const state = stored.source === changes ? stored : initial(changes);
+  const { committed, selectedMeasure, selectedElement, boundary, hoveredNote } = state;
+  const selectedChange = selectedMeasure === null ? void 0 : (_a = committed.find((change) => sameBeat(change.measureBeat, selectedMeasure))) != null ? _a : committed.findLast((change) => change.measureBeat == null && sameBeat(change.beat, boundary));
+  const range = selectedChange ? onsetRange(selectedMeasure, barBeats, measureMap) : null;
   const cancel = () => setStored((previous) => ({ ...previous, ...clearedSelection }));
-  useEffect(() => {
+  function commit(next) {
+    setStored({ ...state, committed: next, ...clearedSelection });
+    onChange == null ? void 0 : onChange(next);
+  }
+  const onsetEditing = useModulationOnsetEditing({
+    getRange: () => range,
+    noteStart: (note) => note.start,
+    onChoose: (note) => commit(snapOnset(committed, selectedChange, selectedMeasure, note.start))
+  });
+  const eligibleOnset = hoveredNote && onsetEditing.active && onsetEditing.isAllowed(hoveredNote);
+  const preview = useMemo2(() => {
+    if (boundary === null || !hoveredNote) return committed;
+    if (onsetEditing.active) {
+      return eligibleOnset ? snapOnset(committed, selectedChange, selectedMeasure, hoveredNote.start) : committed;
+    }
+    return recolor(committed, boundary, hoveredNote.pitch, selectedChange);
+  }, [committed, boundary, hoveredNote, onsetEditing.active, eligibleOnset, selectedChange, selectedMeasure]);
+  useEffect2(() => {
     var _a2;
-    if (state.selectedMeasure === null) return;
-    const { selectedElement } = state, ownerDocument = (_a2 = selectedElement == null ? void 0 : selectedElement.ownerDocument) != null ? _a2 : document;
+    if (selectedMeasure === null) return;
+    const ownerDocument = (_a2 = selectedElement == null ? void 0 : selectedElement.ownerDocument) != null ? _a2 : document;
     const escape3 = (event) => {
       if (event.key !== "Escape") return;
       cancel();
@@ -744,28 +832,27 @@ function useTonicRecoloring({ changes, barBeats = 4, measureMap, onChange }) {
     };
     ownerDocument.addEventListener("keydown", escape3);
     return () => ownerDocument.removeEventListener("keydown", escape3);
-  }, [state.selectedMeasure, state.selectedElement]);
+  }, [selectedMeasure, selectedElement]);
   return {
-    changes: (_a = state.preview) != null ? _a : state.committed,
-    selectedMeasure: state.selectedMeasure,
+    changes: preview,
+    selectedMeasure,
+    onsetEditing,
     selectMeasure(beat, measure, element) {
       setStored((previous) => {
         var _a2, _b;
         const current = previous.source === changes ? previous : initial(changes);
         if (current.selectedMeasure === beat) return { ...current, ...clearedSelection };
-        const boundary = (_b = (_a2 = measure == null ? void 0 : measure.recolorBeat) != null ? _a2 : measure == null ? void 0 : measure.modulationBeat) != null ? _b : recolorBoundary(current.committed, beat, barBeats, measureMap);
-        return { ...current, selectedMeasure: beat, selectedElement: element != null ? element : null, boundary, preview: null };
+        const boundary2 = (_b = (_a2 = measure == null ? void 0 : measure.recolorBeat) != null ? _a2 : measure == null ? void 0 : measure.modulationBeat) != null ? _b : recolorBoundary(current.committed, beat, barBeats, measureMap);
+        return { ...current, selectedMeasure: beat, selectedElement: element != null ? element : null, boundary: boundary2, hoveredNote: null };
       });
     },
     hoverNote(note) {
-      if (state.boundary === null) return;
-      setStored((previous) => ({ ...previous, preview: note ? recolorModulation(state.committed, state.boundary, note.pitch) : null }));
+      if (boundary === null) return;
+      setStored((previous) => ({ ...previous, hoveredNote: note }));
     },
-    chooseNote(note) {
-      if (state.boundary === null) return false;
-      const committed = recolorModulation(state.committed, state.boundary, note.pitch);
-      setStored({ ...state, committed, ...clearedSelection });
-      onChange == null ? void 0 : onChange(committed);
+    chooseNote(note, event) {
+      if (boundary === null) return false;
+      if (!onsetEditing.chooseNote(note, event)) commit(recolor(committed, boundary, note.pitch, selectedChange));
       return true;
     },
     cancel
@@ -775,6 +862,7 @@ function useTonicRecoloring({ changes, barBeats = 4, measureMap, onChange }) {
 // src/notation/RawlNotation.jsx
 var EMPTY_CHANGES2 = [];
 var EMPTY_MUTED_VOICES = [];
+var NO_ONSET_EDITING = { active: false, isAllowed: () => false };
 var atRowStart = (beat, start) => Math.abs(beat - start) < 1e-7;
 var noteName = (p) => TONIC_NAMES[mod(p)] + (Math.floor(p / 12) - 1);
 function PlaybackMeasureLayer({ row, clock, measureMap, barBeats = 4 }) {
@@ -835,10 +923,10 @@ function notePlaybackSpan(note, row, independentPlayback) {
   const scale = (end - start) / note.duration;
   return [start + Math.max(0, row.start - note.start) * scale, end - Math.max(0, note.start + note.duration - row.end) * scale];
 }
-function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, onNote, onNoteAudition, auditionEnabled, onNoteHover, clock }) {
-  const host = useRef2(null), [pixelWidth, setPixelWidth] = useState3(100), span = row.end - row.start, section = useMemo2(() => [row.start, row.end], [row.start, row.end]);
-  const hoveredRef = useRef2(null), [hoveredId, setHoveredId] = useState3(null);
-  const independentPlayback = useMemo2(() => visible.some((note) => note.playbackSpan !== void 0), [visible]), playbackSection = independentPlayback ? null : section;
+function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, onNote, onNoteAudition, auditionEnabled, onNoteHover, clock, onsetEditing }) {
+  const host = useRef2(null), [pixelWidth, setPixelWidth] = useState4(100), span = row.end - row.start, section = useMemo3(() => [row.start, row.end], [row.start, row.end]);
+  const hoveredRef = useRef2(null), [hoveredId, setHoveredId] = useState4(null);
+  const independentPlayback = useMemo3(() => visible.some((note) => note.playbackSpan !== void 0), [visible]), playbackSection = independentPlayback ? null : section;
   useLayoutEffect2(() => {
     var _a;
     const element = host.current.parentElement, view = element.ownerDocument.defaultView, fit = () => {
@@ -854,13 +942,17 @@ function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, onNote
       view == null ? void 0 : view.removeEventListener("resize", fit);
     };
   }, []);
-  const sourceById = useMemo2(() => new Map(visible.map((note) => [String(note.id), note])), [visible]);
-  const nativeNotes = useMemo2(() => visible.map((note) => {
+  const sourceById = useMemo3(() => new Map(visible.map((note) => [String(note.id), note])), [visible]);
+  const onsetContext = useMemo3(() => ({
+    active: onsetEditing.active,
+    isAllowed: (note) => onsetEditing.isAllowed(sourceById.get(note.id))
+  }), [onsetEditing, sourceById]);
+  const nativeNotes = useMemo3(() => visible.map((note) => {
     var _a, _b;
     const degree = mod(note.pitch - tonicAt(tonic, changes, note.start + note.duration / 2)), muted = mutedVoices.includes(note.voice);
     return { id: String(note.id), note: { midiNumber: note.pitch }, span: notePlaybackSpan(note, row, independentPlayback), displaySpan: [Math.max(row.start, note.start), Math.min(row.end, note.start + note.duration)], voiceIndex: (_a = note.voice) != null ? _a : 0, displayVoiceIndex: (_b = note.voice) != null ? _b : 0, isDrum: false, isActive: !muted, color: `noteColor_${degree}_colors`, colorPitchClass: degree, noteUnderCursor: false, velocity: note.velocity, ...note.pitchBend ? { pitchBend: note.pitchBend } : {}, ...note.sourceLocation ? { sourceLocation: note.sourceLocation } : {} };
   }), [visible, row.start, row.end, independentPlayback, tonic, changes, mutedVoices]);
-  const renderedNotes = useMemo2(() => hoveredId === null ? nativeNotes : nativeNotes.map((note) => note.id === hoveredId ? { ...note, noteUnderCursor: true } : note), [nativeNotes, hoveredId]);
+  const renderedNotes = useMemo3(() => hoveredId === null ? nativeNotes : nativeNotes.map((note) => note.id === hoveredId ? { ...note, noteUnderCursor: true } : note), [nativeNotes, hoveredId]);
   useLayoutEffect2(() => {
     const nativeById = new Map(nativeNotes.map((note) => [note.id, note]));
     const unregister = [...host.current.querySelectorAll("[data-note]")].map((element) => {
@@ -881,18 +973,18 @@ function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, onNote
     setHoveredId(null);
     onNoteHover == null ? void 0 : onNoteHover(null);
   };
-  return /* @__PURE__ */ React5.createElement("div", { ref: host, style: { display: "contents" } }, /* @__PURE__ */ React5.createElement(PlaybackSectionContext.Provider, { value: playbackSection }, /* @__PURE__ */ React5.createElement(NoteLayer, { notes: renderedNotes, midiNumberToY: (pitch) => axis.pitchToY(pitch) + axis.glyphHeight / 2, noteHeight: axis.glyphHeight / 2, secondsToX: (beat) => (beat - row.start) / span * pixelWidth, handleNoteClick: (note) => onNote == null ? void 0 : onNote(sourceById.get(note.id)), handleMouseEnter: hover, handleMouseLeave: leave, onNoteAudition: onNoteAudition ? (note) => onNoteAudition(sourceById.get(note.id)) : void 0, auditionEnabled, getNoteAttributes: (note) => {
+  return /* @__PURE__ */ React5.createElement("div", { ref: host, style: { display: "contents" } }, /* @__PURE__ */ React5.createElement(ModulationOnsetEditingContext.Provider, { value: onsetContext }, /* @__PURE__ */ React5.createElement(PlaybackSectionContext.Provider, { value: playbackSection }, /* @__PURE__ */ React5.createElement(NoteLayer, { notes: renderedNotes, midiNumberToY: (pitch) => axis.pitchToY(pitch) + axis.glyphHeight / 2, noteHeight: axis.glyphHeight / 2, secondsToX: (beat) => (beat - row.start) / span * pixelWidth, handleNoteClick: (note, event) => onNote == null ? void 0 : onNote(sourceById.get(note.id), event), handleMouseEnter: hover, handleMouseLeave: leave, onNoteAudition: onNoteAudition ? (note) => onNoteAudition(sourceById.get(note.id)) : void 0, auditionEnabled, getNoteAttributes: (note) => {
     var _a;
     const original = sourceById.get(note.id), start = note.displaySpan[0], end = note.displaySpan[1], degree = note.colorPitchClass, muted = mutedVoices.includes(original.voice);
     return { role: "button", tabIndex: -1, "aria-label": noteName(original.pitch), "data-note": original.id, "data-pitch": original.pitch, "data-degree": degree, "data-voice": original.voice, className: `rawln-note rawln-voice-${original.voice}${muted ? " rawln-muted" : ""}`, style: { left: (start - row.start) / span * 100 + "%", width: (end - start) / span * 100 + "%", ...!((_a = note.pitchBend) == null ? void 0 : _a.length) && RAWL_COLORS[degree] ? { background: RAWL_COLORS[degree].background } : {}, zIndex: 100 + (84 - original.pitch) + (original.voice === 1 ? 128 : 0) } };
-  } })));
+  } }))));
 }
 function useSectionRows({ notes, rows, beats, sectionEditing, onSectionRowsChange }) {
-  const baseRows = useMemo2(() => (rows == null ? void 0 : rows.length) ? rows : [{ start: 0, end: beats, label: 1 }], [rows, beats]);
+  const baseRows = useMemo3(() => (rows == null ? void 0 : rows.length) ? rows : [{ start: 0, end: beats, label: 1 }], [rows, beats]);
   const layoutKey = baseRows.map(({ start, end }) => start + ":" + end).join("|");
-  const [edit, setEdit] = useState3(null);
+  const [edit, setEdit] = useState4(null);
   const intervals = sectionEditing === void 0 && (edit == null ? void 0 : edit.notes) === notes && edit.layoutKey === layoutKey ? edit.intervals : null;
-  const editedRows = useMemo2(() => {
+  const editedRows = useMemo3(() => {
     if (!intervals) return null;
     const authored = new Map(baseRows.map((row) => [row.start, row]));
     return alignScoreRows(intervals.map(({ start, end }) => ({ ...authored.get(start), start, end }))).rows;
@@ -928,16 +1020,18 @@ function useSectionRows({ notes, rows, beats, sectionEditing, onSectionRowsChang
   }
   return { spans, editingForRow };
 }
-function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, modulationMarkerPlacement, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = EMPTY_MUTED_VOICES, onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, sectionEditing, onSectionRowsChange, renderMeasureExtras, renderHeader, renderUnderlay, renderFooter, className = "", style, ref }) {
-  const root = useRef2(null), ownClock = useMemo2(createSectionPlaybackClock, []), clock = playbackClock != null ? playbackClock : ownClock;
+function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, modulationMarkerPlacement, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = EMPTY_MUTED_VOICES, onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, recoloring, sectionEditing, onSectionRowsChange, renderMeasureExtras, renderHeader, renderUnderlay, renderFooter, className = "", style, ref }) {
+  var _a;
+  const root = useRef2(null), ownClock = useMemo3(createSectionPlaybackClock, []), clock = playbackClock != null ? playbackClock : ownClock;
   const audition = onNoteAudition != null ? onNoteAudition : onNote;
   const seek = onSeek != null ? onSeek : ((beat) => (playbackClock == null ? void 0 : playbackClock.seek) ? playbackClock.seek(beat) : clock.advance(beat));
-  const editor = useTonicRecoloring({ changes, barBeats, measureMap, onChange: onChangesChange }), automatic = recolorable && !onMeasureSelect;
-  if (!onMeasureSelect && (recolorable || sectionEditing !== false)) {
-    selectedMeasure = editor.selectedMeasure;
-    onMeasureSelect = editor.selectMeasure;
+  const localEditor = useTonicRecoloring({ changes, barBeats, measureMap, onChange: onChangesChange });
+  const editor = recoloring != null ? recoloring : recolorable && !onMeasureSelect ? localEditor : null;
+  if (editor || !onMeasureSelect && sectionEditing !== false) {
+    selectedMeasure = (editor != null ? editor : localEditor).selectedMeasure;
+    onMeasureSelect = (editor != null ? editor : localEditor).selectMeasure;
   }
-  if (automatic) {
+  if (editor) {
     changes = editor.changes;
     const originalHover = onNoteHover;
     onNoteHover = (note) => {
@@ -945,8 +1039,9 @@ function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2,
       originalHover == null ? void 0 : originalHover(note);
     };
   }
+  const onsetEditing = (_a = editor == null ? void 0 : editor.onsetEditing) != null ? _a : NO_ONSET_EDITING;
   const { spans, editingForRow } = useSectionRows({ notes, rows, beats, sectionEditing, onSectionRowsChange });
-  const prepared = useMemo2(() => spans.map((row) => {
+  const prepared = useMemo3(() => spans.map((row) => {
     const visible = notes.filter((n) => n.start < row.end - 1e-6 && n.start + n.duration > row.start + 1e-6), range = pitchRange(visible), axis = staveGeometry(range, { noteScale });
     return { row, visible, range, axis, regions: showTonalGuides ? tonalSegments(tonic, changes, row.start, row.end) : [] };
   }), [notes, spans, tonic, changes, noteScale, showTonalGuides]);
@@ -956,7 +1051,7 @@ function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2,
     if (position !== void 0 || !playbackClock) setPosition(position);
   }, [position, clock, playbackClock]);
   useLayoutEffect2(() => () => ownClock.reset(), [ownClock]);
-  return /* @__PURE__ */ React5.createElement(NotePlaybackContext.Provider, { value: clock.register }, /* @__PURE__ */ React5.createElement("div", { className: "rawln" + (className ? " " + className : ""), style, ref: root }, prepared.map(({ row, visible, range, axis, regions }, index) => {
+  return /* @__PURE__ */ React5.createElement(NotePlaybackContext.Provider, { value: clock.register }, /* @__PURE__ */ React5.createElement("div", { className: ["rawln", onsetEditing.active && "modulation-onset-editing", className].filter(Boolean).join(" "), style, ref: root, onClickCapture: onsetEditing.onClickCapture }, prepared.map(({ row, visible, range, axis, regions }, index) => {
     const span = row.end - row.start, x = (beat) => (beat - row.start) / span * 100;
     return /* @__PURE__ */ React5.createElement("div", { className: "rawln-row", "data-section": row.section, key: `${row.start}-${row.end}`, "data-start": row.start, "data-end": row.end, style: row.style }, renderHeader && /* @__PURE__ */ React5.createElement("div", { className: "rawln-header" }, renderHeader(row)), /* @__PURE__ */ React5.createElement("div", { className: "rawln-score", "data-seekable": selectedMeasure === null || void 0, role: "group", "aria-label": "Rawl notation", style: { height: axis.notesBottom }, onClick: (e) => {
       if (selectedMeasure !== null) return;
@@ -969,16 +1064,16 @@ function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2,
         pitchToY: (pitch) => axis.pitchToY(pitch) + axis.pitchStep,
         regions: regions.map((region) => ({ ...region, left: x(region.start) + "%", width: (region.end - region.start) / span * 100 + "%" }))
       }
-    ), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ React5.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic, modulationMarkerPlacement, sectionEditing: editingForRow(index), renderMeasureExtras }), /* @__PURE__ */ React5.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, onNote: (note) => {
-      if (automatic && editor.chooseNote(note)) return;
-      if (onNote) onNote(note);
+    ), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ React5.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic, modulationMarkerPlacement, sectionEditing: editingForRow(index), renderMeasureExtras }), /* @__PURE__ */ React5.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, onNote: (note, event) => {
+      if (editor == null ? void 0 : editor.chooseNote(note, event)) return;
+      if (onNote) onNote(note, event);
       else if (selectedMeasure === null) seek(Math.max(row.start, note.start));
-    }, onNoteAudition: audition, auditionEnabled: selectedMeasure == null, onNoteHover, clock })), renderFooter && /* @__PURE__ */ React5.createElement("div", { className: "rawln-footer" }, renderFooter(row, { changes, selectedMeasure })));
+    }, onNoteAudition: audition, auditionEnabled: selectedMeasure == null, onNoteHover, clock, onsetEditing })), renderFooter && /* @__PURE__ */ React5.createElement("div", { className: "rawln-footer" }, renderFooter(row, { changes, selectedMeasure })));
   })));
 }
 
 // src/components/PlaybackFooter.jsx
-import React6, { memo, useCallback, useEffect as useEffect2, useLayoutEffect as useLayoutEffect3, useMemo as useMemo3, useRef as useRef3 } from "react";
+import React6, { memo, useCallback, useEffect as useEffect3, useLayoutEffect as useLayoutEffect3, useMemo as useMemo4, useRef as useRef3 } from "react";
 
 // src/audio/tempo-keys.js
 function bindTempoKeys({ target = globalThis.document, adjustTempo, enabled = () => true }) {
@@ -1151,7 +1246,7 @@ function PlaybackFooter({
   const elapsedRef = useRef3(null);
   const activePointer = useRef3(null);
   const elapsed = clamp(Number.isFinite(position) ? position : 0, 0, length);
-  const geometry = useMemo3(() => length ? timelineGeometry(timeline, length) : null, [timeline, length]);
+  const geometry = useMemo4(() => length ? timelineGeometry(timeline, length) : null, [timeline, length]);
   const paintPosition = useCallback((next) => {
     const input = seekRef.current;
     const label = elapsedRef.current;
@@ -1182,12 +1277,12 @@ function PlaybackFooter({
     if (commit && !disabled && length) onSeek(Number(event.currentTarget.value));
     else paintPosition(playing && getPosition ? getPosition() : elapsed);
   }
-  useEffect2(() => {
+  useEffect3(() => {
     if (!keyboardShortcuts || disabled) return;
     const keys = bindPlaybackKeys({ toggle: onTogglePlay, allowInInputs: allowSpaceInInputs });
     return () => keys.destroy();
   }, [keyboardShortcuts, disabled, onTogglePlay, allowSpaceInInputs]);
-  useEffect2(() => {
+  useEffect3(() => {
     if (!keyboardShortcuts || disabled || !hasTempo) return;
     return bindTempoKeys({
       adjustTempo: (delta) => onRateChange(clamp(Number((rate + delta).toFixed(2)), 0.1, 4))
@@ -2267,7 +2362,7 @@ function createShiftHoverAudition({ audition, isEnabled = () => true, keyForNote
 }
 
 // src/components/RomanNumeral.jsx
-import React7, { useEffect as useEffect3, useMemo as useMemo4, useRef as useRef4 } from "react";
+import React7, { useEffect as useEffect4, useMemo as useMemo5, useRef as useRef4 } from "react";
 
 // src/notation/roman-numerals.mjs
 var escape = (value) => String(value).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -2903,8 +2998,8 @@ function bindRomanNumeralTooltip(anchor, render) {
 // src/components/RomanNumeral.jsx
 function RomanNumeral({ notation, options, tooltip = false }) {
   const ref = useRef4(null);
-  const model = useMemo4(() => romanNumeralTooltipModel(notation, options, tooltip), [notation, options, tooltip]);
-  useEffect3(() => {
+  const model = useMemo5(() => romanNumeralTooltipModel(notation, options, tooltip), [notation, options, tooltip]);
+  useEffect4(() => {
     if (!model) return;
     return bindRomanNumeralTooltip(ref.current, () => romanNumeralTooltipHTML(notation, options != null ? options : {}, model));
   }, [notation, options, model]);
@@ -2923,14 +3018,14 @@ function RomanNumeral({ notation, options, tooltip = false }) {
 }
 
 // src/components/ScoreSizeSliders.jsx
-import React8, { useEffect as useEffect4, useRef as useRef5, useState as useState4 } from "react";
+import React8, { useEffect as useEffect5, useRef as useRef5, useState as useState5 } from "react";
 var HEIGHT = { min: 1, max: 10 };
 var SPACING = { min: 2, max: 150 };
 var clamp2 = (value, { min, max }) => Math.min(max, Math.max(min, value));
 function SizeRange({ label, title = label, value, bounds, onChange, before, after, vertical = false }) {
-  const [draft, setDraft] = useState4(null);
+  const [draft, setDraft] = useState5(null);
   const timer = useRef5(null);
-  useEffect4(() => () => clearTimeout(timer.current), []);
+  useEffect5(() => () => clearTimeout(timer.current), []);
   const displayValue = draft != null ? draft : value;
   return /* @__PURE__ */ React8.createElement("label", { className: vertical ? "rawln-size-option rawln-size-option-height" : "rawln-size-option" }, /* @__PURE__ */ React8.createElement("span", { className: "rawln-size-key", "aria-hidden": "true" }, before), /* @__PURE__ */ React8.createElement(
     "input",
@@ -2957,7 +3052,7 @@ function SizeRange({ label, title = label, value, bounds, onChange, before, afte
   ), /* @__PURE__ */ React8.createElement("span", { className: "rawln-size-key", "aria-hidden": "true" }, after));
 }
 function ScoreSizeSliders({ noteHeight, timeSpacing, onNoteHeightChange, onTimeSpacingChange, keyboardShortcuts = false, titles }) {
-  useEffect4(() => {
+  useEffect5(() => {
     if (!keyboardShortcuts) return;
     const onKey = (event) => {
       var _a, _b;
@@ -2987,7 +3082,7 @@ function ScoreSizeSliders({ noteHeight, timeSpacing, onNoteHeightChange, onTimeS
 }
 
 // src/components/PianoLegend.jsx
-import React9, { useEffect as useEffect5, useRef as useRef6, useState as useState5 } from "react";
+import React9, { useEffect as useEffect6, useRef as useRef6, useState as useState6 } from "react";
 var WHITE_KEYS = [0, 2, 4, 5, 7, 9, 11];
 var BLACK_KEYS = [1, 3, null, 6, 8, 10, null];
 var BLACK_LABELS = ["\u266D2", "\u266D3", null, "\u266F4", "\u266D6", "\u266D7"];
@@ -3071,10 +3166,10 @@ function PianoLegend({
   activePitch = null,
   onAudition
 }) {
-  const [playing, setPlaying] = useState5(null);
+  const [playing, setPlaying] = useState6(null);
   const timer = useRef6(null);
   const stop = useRef6(null);
-  useEffect5(() => () => {
+  useEffect6(() => () => {
     var _a;
     clearTimeout(timer.current);
     (_a = stop.current) == null ? void 0 : _a.call(stop);
@@ -3114,9 +3209,9 @@ function InlinePianoLegend(props) {
 }
 function ChordRow({ mode, tonic, guitar, onAudition, setHoveredColors }) {
   var _a, _b;
-  const [playing, setPlaying] = useState5(null);
+  const [playing, setPlaying] = useState6(null);
   const timer = useRef6(null);
-  useEffect5(() => () => clearTimeout(timer.current), []);
+  useEffect6(() => () => clearTimeout(timer.current), []);
   const voiced = [];
   for (const chord of mode.chords) {
     if (!chord.pitches.length) continue;
@@ -3232,14 +3327,14 @@ function FoldablePianoLegend({
   setHoveredColors,
   storageKey = "showLegend"
 }) {
-  const [mobile, setMobile] = useState5(getMobile);
-  const [expanded, setExpanded] = useState5(() => storedExpansion(storageKey, mobile));
-  const [scale, setScale] = useState5(null);
-  const [highlight, setHighlight] = useState5(null);
-  const [guitar, setGuitar] = useState5(false);
+  const [mobile, setMobile] = useState6(getMobile);
+  const [expanded, setExpanded] = useState6(() => storedExpansion(storageKey, mobile));
+  const [scale, setScale] = useState6(null);
+  const [highlight, setHighlight] = useState6(null);
+  const [guitar, setGuitar] = useState6(false);
   const audition = useRef6(null);
   const legend = useRef6(null);
-  useEffect5(() => {
+  useEffect6(() => {
     if (!expanded && legend.current) return reserveCollapsedLegendSpace(legend.current);
   }, [expanded]);
   function stop() {
@@ -3248,7 +3343,7 @@ function FoldablePianoLegend({
     audition.current = null;
     (_a = run == null ? void 0 : run.cancel) == null ? void 0 : _a.call(run);
   }
-  useEffect5(() => {
+  useEffect6(() => {
     var _a, _b;
     const media = (_a = window.matchMedia) == null ? void 0 : _a.call(window, MOBILE);
     const changed = (event) => setMobile(event.matches);
@@ -3258,8 +3353,8 @@ function FoldablePianoLegend({
       return (_a2 = media == null ? void 0 : media.removeEventListener) == null ? void 0 : _a2.call(media, "change", changed);
     };
   }, []);
-  useEffect5(() => setExpanded(storedExpansion(storageKey, mobile)), [storageKey, mobile]);
-  useEffect5(() => {
+  useEffect6(() => setExpanded(storedExpansion(storageKey, mobile)), [storageKey, mobile]);
+  useEffect6(() => {
     setHighlight(null);
     setScale(null);
     return stop;

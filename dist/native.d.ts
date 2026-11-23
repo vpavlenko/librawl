@@ -108,3 +108,13 @@ export function nativeColorStyles():string;
 export interface ShiftHoverAuditionOptions<N,E={shiftKey?:boolean;type?:string}> {audition?:(note:N,event:E,time?:number)=>void;isEnabled?:(note:N,event:E,time?:number)=>boolean;keyForNote?:(note:N)=>unknown;}
 export interface ShiftHoverAudition<N,E={shiftKey?:boolean;type?:string}> {enter(note:N,event?:E,time?:number):boolean;leave():void;reset():void;}
 export function createShiftHoverAudition<N,E={shiftKey?:boolean;type?:string}>(options:ShiftHoverAuditionOptions<N,E>):ShiftHoverAudition<N,E>;
+
+export const modulationOnsetStyles:string;
+export function isModulationOnsetAllowed(start:number,range:readonly [number,number]|null):boolean;
+export function useModulationOnsetEditing<N>(options:{
+ getRange:()=>readonly [number,number]|null; noteStart:(note:N)=>number; onChoose:(note:N)=>void;
+}):{
+ active:boolean; isAllowed:(note:N)=>boolean;
+ chooseNote:(note:N,event?:{shiftKey:boolean})=>boolean;
+ onClickCapture:React.MouseEventHandler;
+};

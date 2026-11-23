@@ -39,3 +39,15 @@ export const nativeColorStyles=()=>`
   `;
   }).join("\n")}
 `;
+
+export const modulationOnsetStyles = `
+  .modulation-onset-editing,
+  .modulation-onset-editing * {
+    cursor: not-allowed !important;
+  }
+
+  .modulation-onset-editing [data-modulation-onset-allowed="true"],
+  .modulation-onset-editing [data-modulation-onset-allowed="true"] * {
+    cursor: crosshair !important;
+  }
+`;

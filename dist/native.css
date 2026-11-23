@@ -116,6 +116,16 @@
     }
     
   
+
+  .modulation-onset-editing,
+  .modulation-onset-editing * {
+    cursor: not-allowed !important;
+  }
+
+  .modulation-onset-editing [data-modulation-onset-allowed="true"],
+  .modulation-onset-editing [data-modulation-onset-allowed="true"] * {
+    cursor: crosshair !important;
+  }
 .voiceShape-0 {
     border-radius: 6px 6px 6px 6px;
 

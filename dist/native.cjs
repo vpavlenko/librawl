@@ -50,7 +50,9 @@ __export(index_exports, {
   getQuarterToneMarkerPosition: () => getQuarterToneMarkerPosition,
   getStaticPitchBend: () => getStaticPitchBend,
   interpolatedPitchColor: () => interpolatedPitchColor,
+  isModulationOnsetAllowed: () => isModulationOnsetAllowed,
   isQuarterTonePitch: () => isQuarterTonePitch,
+  modulationOnsetStyles: () => modulationOnsetStyles,
   nativeColorStyles: () => nativeColorStyles,
   noteColorClass: () => noteColorClass,
   noteLetterColors: () => noteLetterColors,
@@ -58,6 +60,7 @@ __export(index_exports, {
   pitchBendToSemitones: () => pitchBendToSemitones,
   pitchColor: () => pitchColor,
   useDrumPlaybackClock: () => useDrumPlaybackClock,
+  useModulationOnsetEditing: () => useModulationOnsetEditing,
   useNotePlaybackClock: () => useNotePlaybackClock,
   voiceHoverContains: () => voiceHoverContains
 });
@@ -987,3 +990,53 @@ var nativeColorStyles = () => `
   `;
 }).join("\n")}
 `;
+var modulationOnsetStyles = `
+  .modulation-onset-editing,
+  .modulation-onset-editing * {
+    cursor: not-allowed !important;
+  }
+
+  .modulation-onset-editing [data-modulation-onset-allowed="true"],
+  .modulation-onset-editing [data-modulation-onset-allowed="true"] * {
+    cursor: crosshair !important;
+  }
+`;
+
+// src/rawlnative/modulation-onset-editing.js
+var import_react5 = require("react");
+function isModulationOnsetAllowed(start, range) {
+  return range != null && Number.isFinite(start) && start >= range[0] && start < range[1];
+}
+function useModulationOnsetEditing({ getRange, noteStart, onChoose }) {
+  const [shiftHeld, setShiftHeld] = (0, import_react5.useState)(false);
+  (0, import_react5.useEffect)(() => {
+    const update = (event) => setShiftHeld(event.shiftKey);
+    const clear = () => setShiftHeld(false);
+    window.addEventListener("keydown", update);
+    window.addEventListener("keyup", update);
+    window.addEventListener("blur", clear);
+    return () => {
+      window.removeEventListener("keydown", update);
+      window.removeEventListener("keyup", update);
+      window.removeEventListener("blur", clear);
+    };
+  }, []);
+  const isAllowed = (note) => isModulationOnsetAllowed(noteStart(note), getRange());
+  return {
+    active: shiftHeld && getRange() != null,
+    isAllowed,
+    chooseNote(note, event) {
+      var _a;
+      const range = getRange();
+      if (!((_a = event == null ? void 0 : event.shiftKey) != null ? _a : shiftHeld) || range == null) return false;
+      if (isModulationOnsetAllowed(noteStart(note), range)) onChoose(note);
+      return true;
+    },
+    onClickCapture(event) {
+      var _a, _b;
+      if (!event.shiftKey || getRange() == null || ((_b = (_a = event.target).closest) == null ? void 0 : _b.call(_a, '[data-modulation-onset-note="true"]'))) return;
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
+}

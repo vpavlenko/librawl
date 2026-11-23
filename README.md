@@ -190,6 +190,15 @@ Hosts that render their own rows can pass `sectionEditing` with `sectionStarts`,
 `onSplit`, and `onGlue` to `RawlMeasureHeader` or `RawlNotation`. Attach the second
 `renderMeasureExtras` argument to a rhythm input to support the shortcuts when the
 field is empty.
+
+Select a measure with a tonic change and hold Shift while hovering a note to
+preview moving the change to its onset. Shift-click commits the move. Eligible
+note onsets are in the selected measure or its predecessor. The edit follows
+the score's time coordinates and retains the original measure association in
+`TonicChange.measureBeat`. Hosts rendering parts of the same score in separate
+`RawlNotation` instances can pass a shared `useTonicRecoloring` controller as
+`recoloring`.
+
 `TonalGrid` takes positioned key regions and the host pitch axis.
 
 Plain DOM hosts load `librawl/browser/score-grid.js`. Its `TonalGrid` global

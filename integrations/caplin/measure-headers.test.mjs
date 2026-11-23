@@ -131,6 +131,26 @@ test('the preceding measure and a displaced flag have independent recoloring tar
     await Promise.resolve();
     assert.deepEqual(colors.at(-1).map(({beat, tonic}) => [beat, tonic]), [[0, 5], [3.5, 4]]);
     assert.equal(flag().dataset.tonic, '4');
+
+    // The existing browser adapter already forwards source notes and works
+    // without changes to its host's note click binding.
+    const note = document.createElement('div');
+    note.dataset.start = '2.75';
+    note.dataset.modulationOnsetNote = 'true';
+    scores[0].append(note);
+    flushSync(() => scores[1].querySelector('.rawln-measure-number').click());
+    flushSync(() => document.dispatchEvent(new window.KeyboardEvent('keydown', {
+      key: 'Shift', shiftKey: true, bubbles: true,
+    })));
+    assert.equal(note.dataset.modulationOnsetAllowed, 'true');
+    handle.hoverNote({start: 2.75, pitch: 63});
+    await Promise.resolve();
+    assert.equal(scores[0].querySelector('.rawln-modulation[data-beat="2.75"]').dataset.tonic, '4');
+    assert.equal(handle.chooseNote({start: 2.75, pitch: 63}), true);
+    await Promise.resolve();
+    assert.deepEqual(colors.at(-1).map(({beat, tonic, measureBeat}) => [beat, tonic, measureBeat]),
+      [[0, 5, undefined], [2.75, 4, 4]]);
+    assert.equal(panel.classList.contains('modulation-onset-editing'), false);
     assert.deepEqual(changes, [{beat: 3.5, tonic: 7}]);
   } finally {
     handle.destroy();

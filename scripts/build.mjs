@@ -3,7 +3,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {build} from 'esbuild';
-import {nativeColorStyles} from '../src/rawlnative/native-style.mjs';
+import {nativeColorStyles,modulationOnsetStyles} from '../src/rawlnative/native-style.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url)),pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'))),out=path.join(root,'dist');
 fs.mkdirSync(out,{recursive:true});
 const hash=file=>createHash('sha256').update(fs.readFileSync(path.join(root,file))).digest('hex');
@@ -18,7 +18,7 @@ for(const name of ['playback-footer.css','score-size-sliders.css','piano-legend.
 fs.copyFileSync(path.join(root,'src/notation/index.d.ts'),path.join(out,'notation.d.ts'));
 for(const name of ['index','components','audio','geometry','palette','native','native-audio','roman-numerals','piano-legend','harmony-annotations'])fs.copyFileSync(path.join(root,`types/${name}.d.ts`),path.join(out,`${name}.d.ts`));
 fs.copyFileSync(path.join(root,'src/rawlnative/voice-shapes.css'),path.join(out,'voice-shapes.css'));
-fs.writeFileSync(path.join(out,'native.css'),nativeColorStyles()+fs.readFileSync(path.join(out,'voice-shapes.css'),'utf8'));
+fs.writeFileSync(path.join(out,'native.css'),nativeColorStyles()+modulationOnsetStyles+fs.readFileSync(path.join(out,'voice-shapes.css'),'utf8'));
 fs.writeFileSync(path.join(out,'legacy-style.css'),['style.css','native.css','harmony.css','roman-numerals.css','harmony-annotations.css'].map(name=>fs.readFileSync(path.join(out,name),'utf8')).join(''));
 await build({...modulePaths,entryPoints:[path.join(root,'integrations/caplin/react-notes.jsx')],outfile:path.join(out,'browser/caplin-notes.js'),bundle:true,format:'iife',globalName:'LibrawlCaplinNotes',platform:'browser',target:'es2018',jsx:'transform',define:{'process.env.NODE_ENV':'"production"'},banner:{js:banner},logLevel:'error'});
 const environment="typeof window==='undefined'?globalThis:window";

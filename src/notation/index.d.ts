@@ -6,7 +6,11 @@ export interface MidiNote {
  playbackSpan?:readonly [start:number,end:number];
 }
 export interface ScoreRow { start:number; end:number; anchor?:number; label?:number; style?:React.CSSProperties; }
-export interface TonicChange { beat:number; tonic:number; join?:boolean; name?:string; onsetOverride?:boolean; }
+export interface TonicChange {
+ beat:number; tonic:number; join?:boolean; name?:string; onsetOverride?:boolean;
+ /** Original measure start when beat was snapped to a note. */
+ measureBeat?:number;
+}
 /** Place mid-measure flags at the following printed measure when a measure map is provided. */
 export type ModulationMarkerPlacement = 'onset' | 'following-measure';
 export interface SourceMeasure {
@@ -31,9 +35,11 @@ export interface RawlNotationProps {
  /** An externally advanced clock. When position is omitted, its lifecycle belongs to the host. */
  playbackClock?:NotePlaybackClock & {seek?:(beat:number)=>void};
  showTonalGuides?:boolean; noteScale?:number;
- onSeek?:(beat:number)=>void; onNote?:(note:MidiNote)=>void; onNoteAudition?:(note:MidiNote)=>void; onNoteHover?:(note:MidiNote|null)=>void;
+ onSeek?:(beat:number)=>void; onNote?:(note:MidiNote,event?:React.MouseEvent)=>void; onNoteAudition?:(note:MidiNote)=>void; onNoteHover?:(note:MidiNote|null)=>void;
  onMeasureSelect?:(beat:number,measure:PositionedMeasure,element?:HTMLDivElement)=>void; selectedMeasure?:number|null;
  onChangesChange?:(changes:TonicChange[])=>void; recolorable?:boolean;
+ /** Share one controller across multiple viewers of the same score. */
+ recoloring?:ReturnType<typeof useTonicRecoloring>;
  /** Transient section editing is built in. Pass false to disable it or supply a custom editor. */
  sectionEditing?:MeasureSectionEditing|false;
  /** Observe the edited layout, or null when the original rows are shown. */
@@ -100,4 +106,4 @@ export const RAWL_COLORS:ReadonlyArray<{background:string;foreground:string;dot?
 
 export function recolorModulation(changes:TonicChange[],beat:number,pitch:number):TonicChange[];
 export function recolorBoundary(changes:TonicChange[],measureBeat:number,barBeats:number,measureMap?:SourceMeasure[]):number;
-export function useTonicRecoloring(options:{changes:TonicChange[];barBeats?:number;measureMap?:SourceMeasure[];onChange?:(changes:TonicChange[])=>void}):{changes:TonicChange[];selectedMeasure:number|null;selectMeasure(beat:number,measure?:PositionedMeasure,element?:HTMLDivElement):void;hoverNote(note:MidiNote|null):void;chooseNote(note:MidiNote):boolean;cancel():void};
+export function useTonicRecoloring(options:{changes:TonicChange[];barBeats?:number;measureMap?:SourceMeasure[];onChange?:(changes:TonicChange[])=>void}):{changes:TonicChange[];selectedMeasure:number|null;onsetEditing:ReturnType<typeof import('./native').useModulationOnsetEditing<MidiNote>>;selectMeasure(beat:number,measure?:PositionedMeasure,element?:HTMLDivElement):void;hoverNote(note:MidiNote|null):void;chooseNote(note:MidiNote,event?:{shiftKey:boolean}):boolean;cancel():void};

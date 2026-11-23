@@ -35,6 +35,7 @@ __export(geometry_exports, {
   modulationLabelOffset: () => modulationLabelOffset,
   pitchRange: () => pitchRange,
   recolorBoundary: () => recolorBoundary,
+  sameBeat: () => sameBeat,
   staveGeometry: () => staveGeometry,
   tonalLines: () => tonalLines,
   tonalSegments: () => tonalSegments,
@@ -179,10 +180,11 @@ function modulationLabelOffset(beat, barBeats, { initial = beat === 0, onsetOver
 function keyMarkers(tonic, changes) {
   return tonicMarkers(tonicEvents(tonic, changes));
 }
+var sameBeat = (a, b) => Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) < 1e-7;
 function recolorBoundary(changes, measureBeat, barBeats, measureMap) {
-  var _a, _b;
+  var _a, _b, _c, _d;
   const measure = measureMap == null ? void 0 : measureMap.find((measure2) => Math.abs(measure2.start - measureBeat) < 1e-7), end = measure ? measure.start + measure.duration : measureBeat + barBeats;
-  return (_b = (_a = changes.find((change) => change.beat >= measureBeat - 1e-7 && change.beat < end - 1e-7)) == null ? void 0 : _a.beat) != null ? _b : measureBeat;
+  return (_d = (_c = (_a = changes.find((change) => sameBeat(change.measureBeat, measureBeat))) == null ? void 0 : _a.beat) != null ? _c : (_b = changes.find((change) => change.measureBeat == null && change.beat >= measureBeat - 1e-7 && change.beat < end - 1e-7)) == null ? void 0 : _b.beat) != null ? _d : measureBeat;
 }
 function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatBeats = 1, phraseStarts, measureMap, width = 0, selectedMeasure = null, hideInitialTonic = false, modulationMarkerPlacement }) {
   var _a, _b;
@@ -227,7 +229,8 @@ function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatB
         return { ...marker, beat: next.start, originBeat: marker.beat, number: next.sourceNumber, onsetOverride: false };
       }
     }
-    return { ...marker, onsetOverride };
+    const number = marker.measureBeat == null ? marker.number : numberAt(marker.measureBeat);
+    return { ...marker, onsetOverride, number };
   });
   const displacedOnsets = new Set(events.map((marker) => marker.originBeat).filter(Number.isFinite));
   const localChanges = displacedOnsets.size ? changes.filter((change) => !displacedOnsets.has(change.beat)) : changes;

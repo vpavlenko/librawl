@@ -15245,10 +15245,49 @@ var LibrawlCaplinNotes = (() => {
     };
   }
 
-  // src/notation/PlaybackMeasureBorders.jsx
+  // src/rawlnative/modulation-onset-editing.js
   var import_react5 = __toESM(require_react(), 1);
+  function isModulationOnsetAllowed(start, range) {
+    return range != null && Number.isFinite(start) && start >= range[0] && start < range[1];
+  }
+  function useModulationOnsetEditing({ getRange, noteStart, onChoose }) {
+    const [shiftHeld, setShiftHeld] = (0, import_react5.useState)(false);
+    (0, import_react5.useEffect)(() => {
+      const update = (event) => setShiftHeld(event.shiftKey);
+      const clear = () => setShiftHeld(false);
+      window.addEventListener("keydown", update);
+      window.addEventListener("keyup", update);
+      window.addEventListener("blur", clear);
+      return () => {
+        window.removeEventListener("keydown", update);
+        window.removeEventListener("keyup", update);
+        window.removeEventListener("blur", clear);
+      };
+    }, []);
+    const isAllowed = (note) => isModulationOnsetAllowed(noteStart(note), getRange());
+    return {
+      active: shiftHeld && getRange() != null,
+      isAllowed,
+      chooseNote(note, event) {
+        var _a;
+        const range = getRange();
+        if (!((_a = event == null ? void 0 : event.shiftKey) != null ? _a : shiftHeld) || range == null) return false;
+        if (isModulationOnsetAllowed(noteStart(note), range)) onChoose(note);
+        return true;
+      },
+      onClickCapture(event) {
+        var _a, _b;
+        if (!event.shiftKey || getRange() == null || ((_b = (_a = event.target).closest) == null ? void 0 : _b.call(_a, '[data-modulation-onset-note="true"]'))) return;
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+  }
+
+  // src/notation/PlaybackMeasureBorders.jsx
+  var import_react6 = __toESM(require_react(), 1);
   function PlaybackMeasureBorders({ left, width, top = true, bottom = true, hidden = false, ref }) {
-    return /* @__PURE__ */ import_react5.default.createElement("div", { "aria-hidden": "true", className: "rawln-playback-measure", hidden, ref, style: {
+    return /* @__PURE__ */ import_react6.default.createElement("div", { "aria-hidden": "true", className: "rawln-playback-measure", hidden, ref, style: {
       position: "absolute",
       left,
       width,
@@ -15348,10 +15387,11 @@ var LibrawlCaplinNotes = (() => {
   function keyMarkers(tonic, changes) {
     return tonicMarkers(tonicEvents(tonic, changes));
   }
+  var sameBeat = (a, b) => Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) < 1e-7;
   function recolorBoundary(changes, measureBeat, barBeats, measureMap) {
-    var _a, _b;
+    var _a, _b, _c, _d;
     const measure = measureMap == null ? void 0 : measureMap.find((measure2) => Math.abs(measure2.start - measureBeat) < 1e-7), end = measure ? measure.start + measure.duration : measureBeat + barBeats;
-    return (_b = (_a = changes.find((change) => change.beat >= measureBeat - 1e-7 && change.beat < end - 1e-7)) == null ? void 0 : _a.beat) != null ? _b : measureBeat;
+    return (_d = (_c = (_a = changes.find((change) => sameBeat(change.measureBeat, measureBeat))) == null ? void 0 : _a.beat) != null ? _c : (_b = changes.find((change) => change.measureBeat == null && change.beat >= measureBeat - 1e-7 && change.beat < end - 1e-7)) == null ? void 0 : _b.beat) != null ? _d : measureBeat;
   }
   function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatBeats = 1, phraseStarts, measureMap, width = 0, selectedMeasure = null, hideInitialTonic = false, modulationMarkerPlacement }) {
     var _a, _b;
@@ -15396,7 +15436,8 @@ var LibrawlCaplinNotes = (() => {
           return { ...marker, beat: next.start, originBeat: marker.beat, number: next.sourceNumber, onsetOverride: false };
         }
       }
-      return { ...marker, onsetOverride };
+      const number = marker.measureBeat == null ? marker.number : numberAt(marker.measureBeat);
+      return { ...marker, onsetOverride, number };
     });
     const displacedOnsets = new Set(events.map((marker) => marker.originBeat).filter(Number.isFinite));
     const localChanges = displacedOnsets.size ? changes.filter((change) => !displacedOnsets.has(change.beat)) : changes;
@@ -15558,15 +15599,15 @@ var LibrawlCaplinNotes = (() => {
   }
 
   // integrations/caplin/measure-headers.jsx
-  var import_react10 = __toESM(require_react(), 1);
+  var import_react11 = __toESM(require_react(), 1);
   var import_react_dom = __toESM(require_react_dom(), 1);
   var import_client = __toESM(require_client(), 1);
 
   // src/notation/RawlMeasureHeader.jsx
-  var import_react8 = __toESM(require_react(), 1);
+  var import_react9 = __toESM(require_react(), 1);
 
   // node_modules/lucide-react/dist/esm/createLucideIcon.js
-  var import_react7 = __toESM(require_react());
+  var import_react8 = __toESM(require_react());
 
   // node_modules/lucide-react/dist/esm/shared/src/utils.js
   var toKebabCase = (string) => string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
@@ -15590,7 +15631,7 @@ var LibrawlCaplinNotes = (() => {
   };
 
   // node_modules/lucide-react/dist/esm/Icon.js
-  var import_react6 = __toESM(require_react());
+  var import_react7 = __toESM(require_react());
 
   // node_modules/lucide-react/dist/esm/defaultAttributes.js
   var defaultAttributes = {
@@ -15606,7 +15647,7 @@ var LibrawlCaplinNotes = (() => {
   };
 
   // node_modules/lucide-react/dist/esm/Icon.js
-  var Icon = (0, import_react6.forwardRef)(
+  var Icon = (0, import_react7.forwardRef)(
     ({
       color = "currentColor",
       size = 24,
@@ -15616,7 +15657,7 @@ var LibrawlCaplinNotes = (() => {
       children,
       iconNode,
       ...rest
-    }, ref) => (0, import_react6.createElement)(
+    }, ref) => (0, import_react7.createElement)(
       "svg",
       {
         ref,
@@ -15630,7 +15671,7 @@ var LibrawlCaplinNotes = (() => {
         ...rest
       },
       [
-        ...iconNode.map(([tag, attrs]) => (0, import_react6.createElement)(tag, attrs)),
+        ...iconNode.map(([tag, attrs]) => (0, import_react7.createElement)(tag, attrs)),
         ...Array.isArray(children) ? children : [children]
       ]
     )
@@ -15638,8 +15679,8 @@ var LibrawlCaplinNotes = (() => {
 
   // node_modules/lucide-react/dist/esm/createLucideIcon.js
   var createLucideIcon = (iconName, iconNode) => {
-    const Component = (0, import_react7.forwardRef)(
-      ({ className, ...props }, ref) => (0, import_react7.createElement)(Icon, {
+    const Component = (0, import_react8.forwardRef)(
+      ({ className, ...props }, ref) => (0, import_react8.createElement)(Icon, {
         ref,
         iconNode,
         className: mergeClasses(
@@ -15733,7 +15774,7 @@ var LibrawlCaplinNotes = (() => {
   var cssLength = (value) => typeof value === "number" ? value + "px" : value;
   var offsetLeft = (left, offset) => typeof left === "number" ? left + offset : offset < 0 ? `calc(${left} - ${-offset}px)` : offset > 0 ? `calc(${left} + ${offset}px)` : left;
   function arrow({ direction }) {
-    return /* @__PURE__ */ import_react8.default.createElement("svg", { viewBox: "0 0 24 24", "aria-hidden": "true" }, direction === "down" ? /* @__PURE__ */ import_react8.default.createElement(import_react8.default.Fragment, null, /* @__PURE__ */ import_react8.default.createElement("path", { d: "M12 5v14" }), /* @__PURE__ */ import_react8.default.createElement("path", { d: "m19 12-7 7-7-7" })) : /* @__PURE__ */ import_react8.default.createElement(import_react8.default.Fragment, null, /* @__PURE__ */ import_react8.default.createElement("path", { d: "m5 12 7-7 7 7" }), /* @__PURE__ */ import_react8.default.createElement("path", { d: "M12 19V5" })));
+    return /* @__PURE__ */ import_react9.default.createElement("svg", { viewBox: "0 0 24 24", "aria-hidden": "true" }, direction === "down" ? /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M12 5v14" }), /* @__PURE__ */ import_react9.default.createElement("path", { d: "m19 12-7 7-7-7" })) : /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement("path", { d: "m5 12 7-7 7 7" }), /* @__PURE__ */ import_react9.default.createElement("path", { d: "M12 19V5" })));
   }
   function rowLayout(options) {
     const { row } = options;
@@ -15781,11 +15822,11 @@ var LibrawlCaplinNotes = (() => {
     modulationMarkerPlacement,
     sectionEditing
   }) {
-    const element = (0, import_react8.useRef)(null);
-    const previousSelection = (0, import_react8.useRef)(selectedMeasure);
-    const [width, setWidth] = (0, import_react8.useState)(0);
+    const element = (0, import_react9.useRef)(null);
+    const previousSelection = (0, import_react9.useRef)(selectedMeasure);
+    const [width, setWidth] = (0, import_react9.useState)(0);
     const hasPositionedLayout = !!positioned;
-    (0, import_react8.useLayoutEffect)(() => {
+    (0, import_react9.useLayoutEffect)(() => {
       var _a;
       if (hasPositionedLayout) return;
       const el = element.current, view = el.ownerDocument.defaultView;
@@ -15800,13 +15841,13 @@ var LibrawlCaplinNotes = (() => {
         view == null ? void 0 : view.removeEventListener("resize", fit);
       };
     }, [hasPositionedLayout]);
-    (0, import_react8.useLayoutEffect)(() => {
+    (0, import_react9.useLayoutEffect)(() => {
       const previous = previousSelection.current;
       previousSelection.current = selectedMeasure;
       if (previous === null || previous === selectedMeasure) return;
       releaseMeasureFocus(element.current.querySelector(`.rawln-measure-number[data-beat="${previous}"]`));
     }, [selectedMeasure]);
-    const { measures, beats, markers } = (0, import_react8.useMemo)(() => positioned != null ? positioned : rowLayout({
+    const { measures, beats, markers } = (0, import_react9.useMemo)(() => positioned != null ? positioned : rowLayout({
       row,
       tonic,
       changes,
@@ -15834,9 +15875,9 @@ var LibrawlCaplinNotes = (() => {
       event.stopPropagation();
       if (action && action.glue === event.shiftKey) applySection(event, measure, action);
     };
-    return /* @__PURE__ */ import_react8.default.createElement("div", { ref: element, className: "rawln-measure-grid", style: { height } }, measures.map((measure) => {
+    return /* @__PURE__ */ import_react9.default.createElement("div", { ref: element, className: "rawln-measure-grid", style: { height } }, measures.map((measure) => {
       var _a;
-      return /* @__PURE__ */ import_react8.default.createElement(
+      return /* @__PURE__ */ import_react9.default.createElement(
         "div",
         {
           className: "rawln-bar" + (measure.isPhraseStart ? " rawln-phrase-bar" : ""),
@@ -15847,10 +15888,10 @@ var LibrawlCaplinNotes = (() => {
           style: { left: (_a = measure.barLeft) != null ? _a : measure.left }
         }
       );
-    }), beats.map(({ beat, left }) => /* @__PURE__ */ import_react8.default.createElement("div", { className: "rawln-beat-bar", key: beat, "data-beat": beat, style: { left } })), showHeader && /* @__PURE__ */ import_react8.default.createElement(import_react8.default.Fragment, null, /* @__PURE__ */ import_react8.default.createElement("div", { className: "rawln-modulations" }, markers.map((marker) => {
+    }), beats.map(({ beat, left }) => /* @__PURE__ */ import_react9.default.createElement("div", { className: "rawln-beat-bar", key: beat, "data-beat": beat, style: { left } })), showHeader && /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement("div", { className: "rawln-modulations" }, markers.map((marker) => {
       var _a;
       const interval = marker.delta == null ? null : mod(marker.delta);
-      return /* @__PURE__ */ import_react8.default.createElement(
+      return /* @__PURE__ */ import_react9.default.createElement(
         "div",
         {
           key: marker.beat,
@@ -15864,7 +15905,7 @@ var LibrawlCaplinNotes = (() => {
           style: { left: marker.left },
           title: marker.name
         },
-        /* @__PURE__ */ import_react8.default.createElement(
+        /* @__PURE__ */ import_react9.default.createElement(
           TonicSymbol,
           {
             left: 0,
@@ -15882,14 +15923,14 @@ var LibrawlCaplinNotes = (() => {
           }
         )
       );
-    })), /* @__PURE__ */ import_react8.default.createElement("div", { className: "rawln-measure-labels", "aria-hidden": !(onMeasureSelect || sectionEditing) || void 0 }, measures.filter((measure) => !measure.terminal && measure.showLabel !== false).map((measure) => {
+    })), /* @__PURE__ */ import_react9.default.createElement("div", { className: "rawln-measure-labels", "aria-hidden": !(onMeasureSelect || sectionEditing) || void 0 }, measures.filter((measure) => !measure.terminal && measure.showLabel !== false).map((measure) => {
       var _a;
       const labelLeft = offsetLeft(measure.left, (_a = measure.labelOffset) != null ? _a : 6);
       const isSelected = selectedMeasure === measure.beat;
       const action = isSelected ? measureSectionAction(sectionEditing, measure) : void 0;
       const CommandIcon = (action == null ? void 0 : action.glue) ? CornerRightUp : CornerDownLeft;
       const commandName = (action == null ? void 0 : action.glue) ? "Glue" : "Split";
-      const menu = action && /* @__PURE__ */ import_react8.default.createElement(
+      const menu = action && /* @__PURE__ */ import_react9.default.createElement(
         "button",
         {
           type: "button",
@@ -15905,16 +15946,16 @@ var LibrawlCaplinNotes = (() => {
             if (event.key === "Enter" || event.key === " ") event.stopPropagation();
           }
         },
-        /* @__PURE__ */ import_react8.default.createElement(CommandIcon, { size: 14, "aria-hidden": "true", focusable: false })
+        /* @__PURE__ */ import_react9.default.createElement(CommandIcon, { size: 14, "aria-hidden": "true", focusable: false })
       );
-      return /* @__PURE__ */ import_react8.default.createElement(
+      return /* @__PURE__ */ import_react9.default.createElement(
         "div",
         {
           className: "rawln-measure-position",
           key: measure.beat,
           style: { gridTemplateColumns: `minmax(0, ${cssLength(labelLeft)}) max-content` }
         },
-        /* @__PURE__ */ import_react8.default.createElement(
+        /* @__PURE__ */ import_react9.default.createElement(
           "div",
           {
             className: "rawln-measure-number",
@@ -15942,33 +15983,74 @@ var LibrawlCaplinNotes = (() => {
             }
           },
           renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && isSelected ? (event) => editSection(event, measure, action) : void 0),
-          /* @__PURE__ */ import_react8.default.createElement("span", { style: measure.hasModulation ? numberOnFlag : void 0 }, measure.number)
+          /* @__PURE__ */ import_react9.default.createElement("span", { style: measure.hasModulation ? numberOnFlag : void 0 }, measure.number)
         ),
-        menu != null && /* @__PURE__ */ import_react8.default.createElement("div", { className: "rawln-measure-menu" }, menu)
+        menu != null && /* @__PURE__ */ import_react9.default.createElement("div", { className: "rawln-measure-menu" }, menu)
       );
     }))));
   }
 
   // src/notation/recolor.jsx
-  var import_react9 = __toESM(require_react(), 1);
+  var import_react10 = __toESM(require_react(), 1);
   var ROOTS = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
-  function recolorModulation(changes, beat, pitch) {
-    if (!Number.isFinite(beat) || beat < 0 || !Number.isFinite(pitch)) return changes;
-    const tonic = (Math.round(pitch) % 12 + 12) % 12, existing = changes.find((change) => Math.abs(change.beat - beat) < 1e-7), choice = { ...existing != null ? existing : { beat }, tonic, root: ROOTS[tonic] };
-    const events = [...changes.filter((change) => Math.abs(change.beat - beat) >= 1e-7).map((change) => ({ ...change })), choice].sort((a, b) => a.beat - b.beat), result = [];
-    for (const event of events) if (!result.length || result.at(-1).tonic !== event.tonic) result.push(event);
-    return result;
+  function orderChanges(changes) {
+    return changes.sort((a, b) => {
+      var _a, _b;
+      return a.beat - b.beat || ((_a = a.measureBeat) != null ? _a : a.beat) - ((_b = b.measureBeat) != null ? _b : b.beat);
+    });
   }
-  var clearedSelection = { selectedMeasure: null, selectedElement: null, boundary: null, preview: null };
+  function recolor(changes, beat, pitch, existing) {
+    if (!Number.isFinite(beat) || beat < 0 || !Number.isFinite(pitch)) return changes;
+    const tonic = mod(Math.round(pitch));
+    const choice = { ...existing != null ? existing : { beat }, tonic, root: ROOTS[tonic] };
+    const remaining = changes.filter((change) => change !== existing && ((existing == null ? void 0 : existing.measureBeat) != null || change.measureBeat != null || !sameBeat(change.beat, beat)));
+    const events = orderChanges([...remaining, choice]);
+    return events.filter((event, index) => event.measureBeat != null || index === 0 || event.tonic !== events[index - 1].tonic);
+  }
+  function onsetRange(measureBeat, barBeats, measureMap) {
+    var _a, _b;
+    if (!measureMap) return [Math.max(0, measureBeat - barBeats), measureBeat + barBeats];
+    const index = measureMap.findIndex((measure2) => sameBeat(measure2.start, measureBeat));
+    if (index < 0) return null;
+    const measure = measureMap[index];
+    const end = (_b = (_a = measureMap[index + 1]) == null ? void 0 : _a.start) != null ? _b : measure.start + measure.duration;
+    return [measureMap[Math.max(0, index - 1)].start, end];
+  }
+  function snapOnset(changes, change, measureBeat, beat) {
+    const snapped = { ...change, beat, measureBeat, onsetOverride: true };
+    return orderChanges(changes.map((entry) => entry === change ? snapped : entry));
+  }
+  var clearedSelection = { selectedMeasure: null, selectedElement: null, boundary: null, hoveredNote: null };
   var initial = (source) => ({ source, committed: source, ...clearedSelection });
   function useTonicRecoloring({ changes, barBeats = 4, measureMap, onChange }) {
     var _a;
-    const [stored, setStored] = (0, import_react9.useState)(() => initial(changes)), state = stored.source === changes ? stored : initial(changes);
+    const [stored, setStored] = (0, import_react10.useState)(() => initial(changes));
+    const state = stored.source === changes ? stored : initial(changes);
+    const { committed, selectedMeasure, selectedElement, boundary, hoveredNote } = state;
+    const selectedChange = selectedMeasure === null ? void 0 : (_a = committed.find((change) => sameBeat(change.measureBeat, selectedMeasure))) != null ? _a : committed.findLast((change) => change.measureBeat == null && sameBeat(change.beat, boundary));
+    const range = selectedChange ? onsetRange(selectedMeasure, barBeats, measureMap) : null;
     const cancel = () => setStored((previous) => ({ ...previous, ...clearedSelection }));
-    (0, import_react9.useEffect)(() => {
+    function commit(next) {
+      setStored({ ...state, committed: next, ...clearedSelection });
+      onChange == null ? void 0 : onChange(next);
+    }
+    const onsetEditing = useModulationOnsetEditing({
+      getRange: () => range,
+      noteStart: (note) => note.start,
+      onChoose: (note) => commit(snapOnset(committed, selectedChange, selectedMeasure, note.start))
+    });
+    const eligibleOnset = hoveredNote && onsetEditing.active && onsetEditing.isAllowed(hoveredNote);
+    const preview = (0, import_react10.useMemo)(() => {
+      if (boundary === null || !hoveredNote) return committed;
+      if (onsetEditing.active) {
+        return eligibleOnset ? snapOnset(committed, selectedChange, selectedMeasure, hoveredNote.start) : committed;
+      }
+      return recolor(committed, boundary, hoveredNote.pitch, selectedChange);
+    }, [committed, boundary, hoveredNote, onsetEditing.active, eligibleOnset, selectedChange, selectedMeasure]);
+    (0, import_react10.useEffect)(() => {
       var _a2;
-      if (state.selectedMeasure === null) return;
-      const { selectedElement } = state, ownerDocument = (_a2 = selectedElement == null ? void 0 : selectedElement.ownerDocument) != null ? _a2 : document;
+      if (selectedMeasure === null) return;
+      const ownerDocument = (_a2 = selectedElement == null ? void 0 : selectedElement.ownerDocument) != null ? _a2 : document;
       const escape = (event) => {
         if (event.key !== "Escape") return;
         cancel();
@@ -15976,28 +16058,27 @@ var LibrawlCaplinNotes = (() => {
       };
       ownerDocument.addEventListener("keydown", escape);
       return () => ownerDocument.removeEventListener("keydown", escape);
-    }, [state.selectedMeasure, state.selectedElement]);
+    }, [selectedMeasure, selectedElement]);
     return {
-      changes: (_a = state.preview) != null ? _a : state.committed,
-      selectedMeasure: state.selectedMeasure,
+      changes: preview,
+      selectedMeasure,
+      onsetEditing,
       selectMeasure(beat, measure, element) {
         setStored((previous) => {
           var _a2, _b;
           const current = previous.source === changes ? previous : initial(changes);
           if (current.selectedMeasure === beat) return { ...current, ...clearedSelection };
-          const boundary = (_b = (_a2 = measure == null ? void 0 : measure.recolorBeat) != null ? _a2 : measure == null ? void 0 : measure.modulationBeat) != null ? _b : recolorBoundary(current.committed, beat, barBeats, measureMap);
-          return { ...current, selectedMeasure: beat, selectedElement: element != null ? element : null, boundary, preview: null };
+          const boundary2 = (_b = (_a2 = measure == null ? void 0 : measure.recolorBeat) != null ? _a2 : measure == null ? void 0 : measure.modulationBeat) != null ? _b : recolorBoundary(current.committed, beat, barBeats, measureMap);
+          return { ...current, selectedMeasure: beat, selectedElement: element != null ? element : null, boundary: boundary2, hoveredNote: null };
         });
       },
       hoverNote(note) {
-        if (state.boundary === null) return;
-        setStored((previous) => ({ ...previous, preview: note ? recolorModulation(state.committed, state.boundary, note.pitch) : null }));
+        if (boundary === null) return;
+        setStored((previous) => ({ ...previous, hoveredNote: note }));
       },
-      chooseNote(note) {
-        if (state.boundary === null) return false;
-        const committed = recolorModulation(state.committed, state.boundary, note.pitch);
-        setStored({ ...state, committed, ...clearedSelection });
-        onChange == null ? void 0 : onChange(committed);
+      chooseNote(note, event) {
+        if (boundary === null) return false;
+        if (!onsetEditing.chooseNote(note, event)) commit(recolor(committed, boundary, note.pitch, selectedChange));
         return true;
       },
       cancel
@@ -16008,9 +16089,9 @@ var LibrawlCaplinNotes = (() => {
   var emptyChanges = [];
   function MeasureHeaders({ rows, tonic, changes, measureMap, beatBeats, barBeats, phraseStarts, modulationMarkerPlacement, publish }) {
     const editor = useTonicRecoloring({ changes, barBeats, measureMap });
-    (0, import_react10.useLayoutEffect)(() => publish(editor));
+    (0, import_react11.useLayoutEffect)(() => publish(editor));
     return rows.map(({ score, row, axis }) => (0, import_react_dom.createPortal)(
-      /* @__PURE__ */ import_react10.default.createElement("div", { className: "rawln", style: { position: "absolute", inset: `${axis.guideTop}px 0 0`, pointerEvents: "none" } }, /* @__PURE__ */ import_react10.default.createElement(
+      /* @__PURE__ */ import_react11.default.createElement("div", { className: "rawln", style: { position: "absolute", inset: `${axis.guideTop}px 0 0`, pointerEvents: "none" } }, /* @__PURE__ */ import_react11.default.createElement(
         RawlMeasureHeader,
         {
           row,
@@ -16038,16 +16119,32 @@ var LibrawlCaplinNotes = (() => {
     let state;
     let painted = changes;
     let destroyed = false;
+    const captureClick = (event) => state.onsetEditing.onClickCapture(event);
+    function paintTargets() {
+      const { active, isAllowed } = state.onsetEditing;
+      panel.classList.toggle("modulation-onset-editing", active);
+      for (const note of panel.querySelectorAll("[data-modulation-onset-note][data-start]")) {
+        if (active && isAllowed({ start: Number(note.dataset.start) })) note.dataset.modulationOnsetAllowed = "true";
+        else delete note.dataset.modulationOnsetAllowed;
+      }
+    }
     function publish(next) {
+      var _a;
+      const wasActive = (_a = state == null ? void 0 : state.onsetEditing.active) != null ? _a : false;
+      const previousMeasure = state == null ? void 0 : state.selectedMeasure;
       state = next;
+      const active = next.onsetEditing.active;
+      if (wasActive !== active || active && previousMeasure !== next.selectedMeasure) paintTargets();
       if (next.changes === painted) return;
       queueMicrotask(() => {
         if (destroyed || state.changes === painted) return;
         painted = state.changes;
         onTonicChange == null ? void 0 : onTonicChange(painted);
+        if (state.onsetEditing.active) paintTargets();
       });
     }
-    (0, import_react_dom.flushSync)(() => root.render(/* @__PURE__ */ import_react10.default.createElement(MeasureHeaders, { ...options, changes, publish })));
+    (0, import_react_dom.flushSync)(() => root.render(/* @__PURE__ */ import_react11.default.createElement(MeasureHeaders, { ...options, changes, publish })));
+    panel.addEventListener("click", captureClick, true);
     return {
       get selectedMeasure() {
         return state.selectedMeasure;
@@ -16055,12 +16152,15 @@ var LibrawlCaplinNotes = (() => {
       hoverNote(note) {
         if (!destroyed) (0, import_react_dom.flushSync)(() => state.hoverNote(note));
       },
-      chooseNote(note) {
-        return !destroyed && (0, import_react_dom.flushSync)(() => state.chooseNote(note));
+      chooseNote(note, event) {
+        return !destroyed && (0, import_react_dom.flushSync)(() => state.chooseNote(note, event));
       },
       destroy() {
         if (destroyed) return;
         destroyed = true;
+        panel.removeEventListener("click", captureClick, true);
+        panel.classList.remove("modulation-onset-editing");
+        for (const note of panel.querySelectorAll("[data-modulation-onset-allowed]")) delete note.dataset.modulationOnsetAllowed;
         root.unmount();
         element.remove();
       }
