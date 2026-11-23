@@ -70,8 +70,8 @@ test('default notation previews and moves a modulation across a row boundary', a
     assert.equal(note('before').dataset.modulationOnsetAllowed, undefined);
     assert.equal(note('start').dataset.modulationOnsetAllowed, 'true');
     assert.equal(note('after').dataset.modulationOnsetAllowed, undefined);
-    assert.equal(window.getComputedStyle(note('across')).cursor, 'e-resize');
-    assert.equal(window.getComputedStyle(note('across', 1)).cursor, 'e-resize');
+    assert.match(decodeURIComponent(window.getComputedStyle(note('across')).cursor), /M21 12H7.*22 12, e-resize$/);
+    assert.match(decodeURIComponent(window.getComputedStyle(note('across', 1)).cursor), /M21 12H7.*22 12, e-resize$/);
     assert.equal(window.getComputedStyle(note('after')).cursor, 'not-allowed');
     assert.equal(click(container.querySelector('.rawln-score'), true), true);
     click(note('after'), true);

@@ -94,6 +94,16 @@ function applyTonalPitchStops(curve, tonalStops, basePitch, width) {
   return result;
 }
 
+// src/rawlnative/note-cursors.mjs
+function iconCursor(shape, x, y, fallback) {
+  const outline = `<g fill="none" stroke="black" color="black" stroke-width="4">${shape}</g>`;
+  const icon = `<g fill="none" stroke="white" color="white" stroke-width="2">${shape}</g>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="-1 -1 26 26" stroke-linecap="round" stroke-linejoin="round">${outline}${icon}</svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${x} ${y}, ${fallback}`;
+}
+var TONIC_CURSOR = iconCursor('<path d="m12 9-8.414 8.414A2 2 0 0 0 3 18.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 3.828 21h1.344a2 2 0 0 0 1.414-.586L15 12"/><path d="m18 9 .4.4a1 1 0 1 1-3 3l-3.8-3.8a1 1 0 1 1 3-3l.4.4 3.4-3.4a1 1 0 1 1 3 3z"/><path d="m2 22 .414-.414"/>', 3, 21, "pointer");
+var MODULATION_SNAP_CURSOR = iconCursor('<path d="M3 5v14"/><path d="M21 12H7"/><path d="m15 18 6-6-6-6"/>', 22, 12, "e-resize");
+
 // src/notation/palette.mjs
 var RAWL_COLORS = [
   { background: "white", foreground: "black" },
@@ -687,7 +697,7 @@ var NoteRectangle = React.memo(({
 }) => {
   var _a, _b, _c, _d;
   const onsetEditing = React.useContext(ModulationOnsetEditingContext);
-  const onsetCursor = onsetEditing.active && handleNoteClick ? onsetEditing.isAllowed(note) ? "e-resize" : "not-allowed" : void 0;
+  const onsetCursor = onsetEditing.active && handleNoteClick ? onsetEditing.isAllowed(note) ? MODULATION_SNAP_CURSOR : "not-allowed" : void 0;
   const registerNote = React.useContext(NotePlaybackContext);
   const section = React.useContext(PlaybackSectionContext);
   const voiceZIndices = React.useContext(VoiceZIndicesContext);
@@ -1024,7 +1034,7 @@ var modulationOnsetStyles = `
 
   .modulation-onset-editing [data-modulation-onset-allowed="true"],
   .modulation-onset-editing [data-modulation-onset-allowed="true"] * {
-    cursor: e-resize !important;
+    cursor: ${MODULATION_SNAP_CURSOR} !important;
   }
 `;
 

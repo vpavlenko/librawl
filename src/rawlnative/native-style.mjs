@@ -1,4 +1,5 @@
 import {RAWL_COLORS,pitchColor,noteColorClass} from "./colors.mjs";
+import {MODULATION_SNAP_CURSOR} from "./note-cursors.mjs";
 
 // The native renderer keeps its pitch classes for bends and fractional notes.
 // A host-owned semitone note can update its current degree without rerendering.
@@ -48,6 +49,6 @@ export const modulationOnsetStyles = `
 
   .modulation-onset-editing [data-modulation-onset-allowed="true"],
   .modulation-onset-editing [data-modulation-onset-allowed="true"] * {
-    cursor: e-resize !important;
+    cursor: ${MODULATION_SNAP_CURSOR} !important;
   }
 `;

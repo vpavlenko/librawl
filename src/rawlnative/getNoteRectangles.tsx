@@ -1,5 +1,6 @@
 import { voiceHoverContains } from "./voiceHover";
 import { applyTonalPitchStops } from "./tonalPitchStops";
+import { MODULATION_SNAP_CURSOR } from "./note-cursors.mjs";
 import { interpolatedPitchColor, noteColorClass, notePitchDotClass } from "./colors";
 import { getNotePitchAtTime, getPitchBendSamples, getStaticPitchBend, getQuarterToneMarkerPosition, QUARTER_TONE_MARKER_SIZE, QUARTER_TONE_MARKER_OFFSET } from "./pitchBend";
 import * as React from "react";
@@ -415,7 +416,7 @@ const NoteRectangle = React.memo(({
 }) => {
   const onsetEditing = React.useContext(ModulationOnsetEditingContext);
   const onsetCursor = onsetEditing.active && handleNoteClick
-    ? (onsetEditing.isAllowed(note) ? "e-resize" : "not-allowed") : undefined;
+    ? (onsetEditing.isAllowed(note) ? MODULATION_SNAP_CURSOR : "not-allowed") : undefined;
   const registerNote = React.useContext(NotePlaybackContext);
   const section = React.useContext(PlaybackSectionContext);
   const voiceZIndices = React.useContext(VoiceZIndicesContext);

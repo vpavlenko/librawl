@@ -7,18 +7,11 @@ import {PlaybackMeasureBorders} from './PlaybackMeasureBorders.jsx';
 import {NoteLayer,NotePlaybackContext,PlaybackSectionContext,createSectionPlaybackClock,ModulationOnsetEditingContext,getStaticPitchBend,interpolatedPitchColor} from 'librawl/native';
 
 import {useTonicRecoloring} from './recolor.jsx';
+import {MODULATION_SNAP_CURSOR,TONIC_CURSOR} from '../rawlnative/note-cursors.mjs';
 
 const EMPTY_CHANGES=[];
 const EMPTY_MUTED_VOICES=[];
 const NO_ONSET_EDITING={active:false,isAllowed:()=>false};
-// Lucide pipette geometry with a contrasting outline.
-function iconCursor(shape, x, y){
- const outline=`<g fill="none" stroke="black" color="black" stroke-width="4">${shape}</g>`;
- const icon=`<g fill="none" stroke="white" color="white" stroke-width="2">${shape}</g>`;
- const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="-1 -1 26 26" stroke-linecap="round" stroke-linejoin="round">${outline}${icon}</svg>`;
- return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${x} ${y}, pointer`;
-}
-const TONIC_CURSOR=iconCursor('<path d="m12 9-8.414 8.414A2 2 0 0 0 3 18.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 3.828 21h1.344a2 2 0 0 0 1.414-.586L15 12"/><path d="m18 9 .4.4a1 1 0 1 1-3 3l-3.8-3.8a1 1 0 1 1 3-3l.4.4 3.4-3.4a1 1 0 1 1 3 3z"/><path d="m2 22 .414-.414"/>',3,21);
 const atRowStart=(beat,start)=>Math.abs(beat-start)<1e-7;
 const noteName=p=>TONIC_NAMES[mod(p)]+(Math.floor(p/12)-1);
 
@@ -141,7 +134,7 @@ function BeatNoteLayer({visible,row,axis,tonic,changes,regions,mutedVoices,onNot
  return <div ref={host} style={{display:'contents'}}><ModulationOnsetEditingContext.Provider value={onsetContext}><PlaybackSectionContext.Provider value={playbackSection}><NoteLayer notes={renderedNotes} midiNumberToY={pitch=>axis.pitchToY(pitch)+axis.glyphHeight/2} noteHeight={axis.glyphHeight/2} secondsToX={beat=>(beat-row.start)/span*pixelWidth} handleNoteClick={(note,event)=>onNote?.(sourceById.get(note.id),event)} handleMouseEnter={hover} handleMouseLeave={leave} onNoteAudition={onNoteAudition?note=>onNoteAudition(sourceById.get(note.id)):undefined} auditionEnabled={auditionEnabled} getNoteAttributes={note=>{
   const original=sourceById.get(note.id),start=note.displaySpan[0],end=note.displaySpan[1],degree=note.colorPitchClass,muted=mutedVoices.includes(original.voice);
   const cursor=onsetEditing.active
-   ? (onsetEditing.isAllowed(original)?'e-resize':'not-allowed')
+   ? (onsetEditing.isAllowed(original)?MODULATION_SNAP_CURSOR:'not-allowed')
    : noteCursor;
   return {role:'button',tabIndex:-1,'aria-label':noteName(original.pitch),'data-note':original.id,'data-pitch':original.pitch,'data-degree':degree,'data-voice':original.voice,className:`rawln-note rawln-voice-${original.voice}${muted?' rawln-muted':''}`,style:{cursor,left:(start-row.start)/span*100+'%',width:(end-start)/span*100+'%',background:note.background,zIndex:100+(84-original.pitch)+(original.voice===1?128:0)}};
  }}/></PlaybackSectionContext.Provider></ModulationOnsetEditingContext.Provider></div>;
