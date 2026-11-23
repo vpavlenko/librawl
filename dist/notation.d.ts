@@ -44,6 +44,10 @@ export interface RawlNotationProps {
  recoloring?:ReturnType<typeof useTonicRecoloring>;
  /** Transient section editing is built in. Pass false to disable it or supply a custom editor. */
  sectionEditing?:MeasureSectionEditing|false;
+ /** Musical section starts in order, when display rows also include wraps. */
+ sectionStarts?:readonly number[];
+ /** Called after the viewer applies a temporary section edit. */
+ onSectionEdit?:()=>void;
  /** Observe the edited layout, or null when the original rows are shown. */
  onSectionRowsChange?:(rows:ScoreRow[]|null)=>void;
  renderMeasureExtras?:RenderMeasureExtras;
@@ -83,10 +87,13 @@ export interface MeasureSectionEditing {
  sectionStarts:readonly number[];
  /** Override the default requirement that a split fall on a phrase start. */
  canSplit?:(measure:PositionedMeasure)=>boolean;
+ /** Restrict merges at section starts that cannot join their predecessor. */
+ canMerge?:(measure:PositionedMeasure)=>boolean;
  onSplit:(measure:PositionedMeasure)=>void;
  onGlue:(measure:PositionedMeasure)=>void;
 }
-export type RenderMeasureExtras = (measure:PositionedMeasure, onSectionKeyDown?:React.KeyboardEventHandler<HTMLInputElement>)=>React.ReactNode;
+export type MeasureSectionAction = 'split' | 'merge';
+export type RenderMeasureExtras = (measure:PositionedMeasure, onSectionKeyDown?:React.KeyboardEventHandler<HTMLInputElement>, sectionAction?:MeasureSectionAction)=>React.ReactNode;
 export type RawlMeasureHeaderProps = ({
  row:ScoreRow; layout?:never; tonic?:number; changes?:TonicChange[]; barBeats?:number; beatBeats?:number;
  /** Absolute quarter-beat phrase starts; optional closing boundary has no label. */

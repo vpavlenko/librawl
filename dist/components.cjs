@@ -494,7 +494,8 @@ function fitModulationLabels(header, digits, labels, commands) {
   if (!width || !bounds.width) return;
   const scale = bounds.width / width;
   const digitRects = new Map(digits.map((digit) => [digit.parentElement.dataset.beat, digit.getBoundingClientRect()]));
-  const occupied = [...digitRects.values(), ...commands.map((command) => command.getBoundingClientRect())];
+  const commandRects = commands.map((command) => command.getBoundingClientRect());
+  const occupied = [...digitRects.values(), ...commandRects];
   const positions = labels.map((label) => {
     const marker = label.parentElement;
     const anchor = marker.getBoundingClientRect().left;
@@ -507,7 +508,10 @@ function fitModulationLabels(header, digits, labels, commands) {
     occupied.push({ left, right: left + width2 });
   }
   for (const position of positions) {
-    if (position.digit) place(position, position.digit.right);
+    if (!position.digit) continue;
+    const left = position.digit.right;
+    const touchesCommand = commandRects.some((box) => box.left < left + position.width && box.right > left);
+    place(position, touchesCommand ? nearestLabelLeft(left, position.width, bounds, occupied) : left);
   }
   for (const position of positions) {
     if (!position.digit) place(position, nearestLabelLeft(position.anchor, position.width, bounds, occupied));
@@ -529,11 +533,14 @@ function rowLayout(options) {
 }
 function measureSectionAction(sectionEditing, measure) {
   var _a, _b;
-  if (!(sectionEditing == null ? void 0 : sectionEditing.sectionStarts.some((start) => start < measure.beat))) return;
-  if (sectionEditing.sectionStarts.includes(measure.beat)) {
-    return { glue: true, apply: sectionEditing.onGlue };
+  if (!sectionEditing) return;
+  const { sectionStarts, canSplit, canMerge, onSplit, onGlue } = sectionEditing;
+  const hasEarlierSection = sectionStarts.some((start) => start < measure.beat && !sameBeat(start, measure.beat));
+  if (sectionStarts.some((start) => sameBeat(start, measure.beat))) {
+    if (hasEarlierSection && ((_a = canMerge == null ? void 0 : canMerge(measure)) != null ? _a : true)) return { kind: "merge", apply: onGlue };
+    return;
   }
-  if ((_b = (_a = sectionEditing.canSplit) == null ? void 0 : _a.call(sectionEditing, measure)) != null ? _b : measure.isPhraseStart) return { glue: false, apply: sectionEditing.onSplit };
+  if (hasEarlierSection && ((_b = canSplit == null ? void 0 : canSplit(measure)) != null ? _b : measure.isPhraseStart)) return { kind: "split", apply: onSplit };
 }
 function releaseMeasureFocus(element) {
   const position = element == null ? void 0 : element.closest(".rawln-measure-position");
@@ -630,7 +637,7 @@ function RawlMeasureHeader({
       observer == null ? void 0 : observer.disconnect();
       view.removeEventListener("resize", fit);
     };
-  }, [markers, measures, renderMeasureExtras, showHeader]);
+  }, [markers, measures, renderMeasureExtras, selectedMeasure, showHeader]);
   const select = (event, measure) => {
     event.stopPropagation();
     const control = event.currentTarget;
@@ -648,7 +655,7 @@ function RawlMeasureHeader({
     if (event.defaultPrevented || event.key !== "Enter" || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing || ((_a = event.currentTarget.value) == null ? void 0 : _a.trim())) return;
     event.preventDefault();
     event.stopPropagation();
-    if (action && action.glue === event.shiftKey) applySection(event, measure, action);
+    if (action && action.kind === "merge" === event.shiftKey) applySection(event, measure, action);
   };
   return /* @__PURE__ */ import_react3.default.createElement(
     "div",
@@ -720,13 +727,14 @@ function RawlMeasureHeader({
       const labelLeft = offsetLeft(measure.left, (_a = measure.labelOffset) != null ? _a : 6);
       const isSelected = selectedMeasure === measure.beat;
       const action = isSelected ? measureSectionAction(sectionEditing, measure) : void 0;
-      const CommandIcon = (action == null ? void 0 : action.glue) ? CornerRightUp : CornerDownLeft;
-      const commandName = (action == null ? void 0 : action.glue) ? "Glue" : "Split";
+      const CommandIcon = (action == null ? void 0 : action.kind) === "merge" ? CornerRightUp : CornerDownLeft;
+      const commandName = (action == null ? void 0 : action.kind) === "merge" ? "Merge" : "Split";
       const menu = action && /* @__PURE__ */ import_react3.default.createElement(
         "button",
         {
           type: "button",
           className: "rawln-section-command",
+          "data-section-action": action.kind,
           "aria-label": commandName,
           title: commandName,
           onMouseDown: (event) => event.preventDefault(),
@@ -777,7 +785,7 @@ function RawlMeasureHeader({
               cursor: onMeasureSelect ? "pointer" : void 0
             }
           },
-          renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && isSelected ? (event) => editSection(event, measure, action) : void 0),
+          renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && isSelected ? (event) => editSection(event, measure, action) : void 0, action == null ? void 0 : action.kind),
           /* @__PURE__ */ import_react3.default.createElement("span", { className: "rawln-measure-digits", style: measureDigits }, measure.number)
         ),
         menu != null && /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-measure-menu" }, menu)

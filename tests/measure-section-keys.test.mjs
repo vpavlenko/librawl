@@ -126,7 +126,7 @@ for (const Host of [RawlMeasureHeader, RawlNotation]) {
       assert.equal(window.document.activeElement, window.document.body);
       label.focus();
       assert.ok(press(label));
-      assert.equal(command().getAttribute('aria-label'), 'Glue');
+      assert.equal(command().getAttribute('aria-label'), 'Merge');
       assert.equal(command().textContent, '');
       assert.ok(command().querySelector('svg.lucide-corner-right-up[aria-hidden="true"]'));
       assert.ok(press(label, {shiftKey: true}));
@@ -142,7 +142,7 @@ for (const Host of [RawlMeasureHeader, RawlNotation]) {
 
       numberAt(8).focus();
       assert.ok(press(numberAt(8)));
-      assert.equal(command().getAttribute('aria-label'), 'Glue');
+      assert.equal(command().getAttribute('aria-label'), 'Merge');
       let outerClicks = 0;
       window.document.addEventListener('click', () => outerClicks++);
       flushSync(() => command().click());
@@ -193,13 +193,19 @@ test('RawlNotation edits its own rows without a section editor or persistence', 
     assert.deepEqual(ranges(), [[0, 8], [8, 16]]);
     press(4);
     assert.equal(action().getAttribute('aria-label'), 'Split');
+    press(4, true);
+    assert.deepEqual(ranges(), [[0, 8], [8, 16]]);
     press(4);
     assert.deepEqual(ranges(), [[0, 4], [4, 8], [8, 16]]);
     assert.equal(window.document.activeElement, window.document.body);
-    assert.equal(action().getAttribute('aria-label'), 'Glue');
+    assert.equal(action(), null);
     assert.equal(rowsSeen.at(-1).length, 3);
     assert.equal(element.querySelectorAll('[data-note="note"]').length, 1);
 
+    press(4);
+    assert.equal(action().getAttribute('aria-label'), 'Merge');
+    press(4);
+    assert.deepEqual(ranges(), [[0, 4], [4, 8], [8, 16]]);
     press(4, true);
     assert.deepEqual(ranges(), [[0, 8], [8, 16]]);
     assert.equal(window.document.activeElement, window.document.body);
@@ -207,6 +213,8 @@ test('RawlNotation edits its own rows without a section editor or persistence', 
     click(label(8));
     click(action());
     assert.deepEqual(ranges(), [[0, 16]]);
+    assert.equal(action(), null);
+    click(label(8));
     assert.equal(action().getAttribute('aria-label'), 'Split', 'A glued source boundary can be restored');
     click(action());
     assert.deepEqual(ranges(), [[0, 8], [8, 16]]);
@@ -225,6 +233,21 @@ test('RawlNotation edits its own rows without a section editor or persistence', 
     render('disabled', {sectionEditing: false});
     click(label(4));
     assert.equal(action(), null);
+
+    render('wrapped', {
+      rows: [{start: 0, end: 4}, {start: 4, end: 8}, {start: 8, end: 16}],
+      sectionStarts: [0, 8], phraseStarts: [0, 4, 8, 12],
+    });
+    click(label(4));
+    assert.equal(action().getAttribute('aria-label'), 'Split', 'A wrapped phrase can split its authored section');
+    assert.equal(element.querySelector('[data-section-edited]'), null);
+    click(action());
+    assert.ok(element.querySelector('[data-section-edited]'));
+    click(label(4));
+    assert.equal(action().getAttribute('aria-label'), 'Merge');
+    click(action());
+    assert.equal(element.querySelector('[data-section-edited]'), null);
+    assert.deepEqual(ranges(), [[0, 4], [4, 8], [8, 16]]);
   } finally {
     flushSync(() => root.unmount());
     await new Promise(setImmediate);

@@ -47,7 +47,8 @@ function fitModulationLabels(header, digits, labels, commands) {
   if (!width || !bounds.width) return;
   const scale = bounds.width / width;
   const digitRects = new Map(digits.map(digit => [digit.parentElement.dataset.beat, digit.getBoundingClientRect()]));
-  const occupied = [...digitRects.values(), ...commands.map(command => command.getBoundingClientRect())];
+  const commandRects = commands.map(command => command.getBoundingClientRect());
+  const occupied = [...digitRects.values(), ...commandRects];
   const positions = labels.map(label => {
     const marker = label.parentElement;
     const anchor = marker.getBoundingClientRect().left;
@@ -60,7 +61,10 @@ function fitModulationLabels(header, digits, labels, commands) {
     occupied.push({left, right: left + width});
   }
   for (const position of positions) {
-    if (position.digit) place(position, position.digit.right);
+    if (!position.digit) continue;
+    const left = position.digit.right;
+    const touchesCommand = commandRects.some(box => box.left < left + position.width && box.right > left);
+    place(position, touchesCommand ? nearestLabelLeft(left, position.width, bounds, occupied) : left);
   }
   for (const position of positions) {
     if (!position.digit) place(position, nearestLabelLeft(position.anchor, position.width, bounds, occupied));
@@ -82,11 +86,14 @@ function rowLayout(options) {
 }
 
 function measureSectionAction(sectionEditing, measure) {
-  if (!sectionEditing?.sectionStarts.some(start => start < measure.beat)) return;
-  if (sectionEditing.sectionStarts.includes(measure.beat)) {
-    return {glue: true, apply: sectionEditing.onGlue};
+  if (!sectionEditing) return;
+  const {sectionStarts, canSplit, canMerge, onSplit, onGlue} = sectionEditing;
+  const hasEarlierSection = sectionStarts.some(start => start < measure.beat && !sameBeat(start, measure.beat));
+  if (sectionStarts.some(start => sameBeat(start, measure.beat))) {
+    if (hasEarlierSection && (canMerge?.(measure) ?? true)) return {kind: 'merge', apply: onGlue};
+    return;
   }
-  if (sectionEditing.canSplit?.(measure) ?? measure.isPhraseStart) return {glue: false, apply: sectionEditing.onSplit};
+  if (hasEarlierSection && (canSplit?.(measure) ?? measure.isPhraseStart)) return {kind: 'split', apply: onSplit};
 }
 
 function releaseMeasureFocus(element) {
@@ -162,7 +169,7 @@ export function RawlMeasureHeader({
       observer?.disconnect();
       view.removeEventListener('resize', fit);
     };
-  }, [markers, measures, renderMeasureExtras, showHeader]);
+  }, [markers, measures, renderMeasureExtras, selectedMeasure, showHeader]);
   const select = (event, measure) => {
     event.stopPropagation();
     const control = event.currentTarget;
@@ -181,7 +188,7 @@ export function RawlMeasureHeader({
       event.nativeEvent.isComposing || event.currentTarget.value?.trim()) return;
     event.preventDefault();
     event.stopPropagation();
-    if (action && action.glue === event.shiftKey) applySection(event, measure, action);
+    if (action && (action.kind === 'merge') === event.shiftKey) applySection(event, measure, action);
   };
   return <div ref={element} className="rawln-measure-grid"
     data-modulation-tonics={showModulationTonics || undefined} style={{height}}>
@@ -222,9 +229,10 @@ export function RawlMeasureHeader({
           const labelLeft = offsetLeft(measure.left, measure.labelOffset ?? 6);
           const isSelected = selectedMeasure === measure.beat;
           const action = isSelected ? measureSectionAction(sectionEditing, measure) : undefined;
-          const CommandIcon = action?.glue ? CornerRightUp : CornerDownLeft;
-          const commandName = action?.glue ? 'Glue' : 'Split';
+          const CommandIcon = action?.kind === 'merge' ? CornerRightUp : CornerDownLeft;
+          const commandName = action?.kind === 'merge' ? 'Merge' : 'Split';
           const menu = action && <button type="button" className="rawln-section-command"
+            data-section-action={action.kind}
             aria-label={commandName} title={commandName}
             onMouseDown={event => event.preventDefault()}
             onClick={event => {
@@ -259,7 +267,7 @@ export function RawlMeasureHeader({
               style={{color: measure.color, top: measureNumberTop, pointerEvents: onMeasureSelect ? 'auto' : undefined,
                 cursor: onMeasureSelect ? 'pointer' : undefined}}>
               {renderMeasureExtras?.(measure, sectionEditing && isSelected
-                ? event => editSection(event, measure, action) : undefined)}
+                ? event => editSection(event, measure, action) : undefined, action?.kind)}
               <span className="rawln-measure-digits" style={measureDigits}>{measure.number}</span>
             </div>
             {menu != null && <div className="rawln-measure-menu">{menu}</div>}

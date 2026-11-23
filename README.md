@@ -178,10 +178,9 @@ React hosts rendering their own score shell use `RawlMeasureHeader` and `TonalGr
 `librawl/components` with `librawl/style.css`. Pass authored measures and key
 changes to the header, or position them against the host clock and pass a
 `layout`. Use `renderMeasureExtras` for editor controls in a measure label.
-`RawlNotation` supports temporary section editing by default. Select a measure
-number and press Enter to split at a phrase boundary, or Shift+Enter to glue a
-section to its predecessor. The same actions are available as Split and Glue
-buttons. The score keeps its notes, measures, and playback times. Edited rows
+`RawlNotation` supports temporary section editing by default. Select an interior
+phrase start for Split (Enter), or the first measure of a later section for Merge
+(Shift+Enter). The score keeps its notes, measures, and playback times. Edited rows
 belong to the mounted viewer and are available through `onSectionRowsChange`
 for hosts rendering their own overlays. Pass `sectionEditing={false}` to turn off
 section editing.
@@ -189,7 +188,7 @@ section editing.
 Hosts that render their own rows can pass `sectionEditing` with `sectionStarts`,
 `onSplit`, and `onGlue` to `RawlMeasureHeader` or `RawlNotation`. Attach the second
 `renderMeasureExtras` argument to a rhythm input to support the shortcuts when the
-field is empty.
+field is empty. Its third argument identifies the available section action.
 
 ### Modulation onsets and pickups
 

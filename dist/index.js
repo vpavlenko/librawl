@@ -496,7 +496,8 @@ function fitModulationLabels(header, digits, labels, commands) {
   if (!width || !bounds.width) return;
   const scale = bounds.width / width;
   const digitRects = new Map(digits.map((digit) => [digit.parentElement.dataset.beat, digit.getBoundingClientRect()]));
-  const occupied = [...digitRects.values(), ...commands.map((command) => command.getBoundingClientRect())];
+  const commandRects = commands.map((command) => command.getBoundingClientRect());
+  const occupied = [...digitRects.values(), ...commandRects];
   const positions = labels.map((label) => {
     const marker = label.parentElement;
     const anchor = marker.getBoundingClientRect().left;
@@ -509,7 +510,10 @@ function fitModulationLabels(header, digits, labels, commands) {
     occupied.push({ left, right: left + width2 });
   }
   for (const position of positions) {
-    if (position.digit) place(position, position.digit.right);
+    if (!position.digit) continue;
+    const left = position.digit.right;
+    const touchesCommand = commandRects.some((box) => box.left < left + position.width && box.right > left);
+    place(position, touchesCommand ? nearestLabelLeft(left, position.width, bounds, occupied) : left);
   }
   for (const position of positions) {
     if (!position.digit) place(position, nearestLabelLeft(position.anchor, position.width, bounds, occupied));
@@ -531,11 +535,14 @@ function rowLayout(options) {
 }
 function measureSectionAction(sectionEditing, measure) {
   var _a, _b;
-  if (!(sectionEditing == null ? void 0 : sectionEditing.sectionStarts.some((start) => start < measure.beat))) return;
-  if (sectionEditing.sectionStarts.includes(measure.beat)) {
-    return { glue: true, apply: sectionEditing.onGlue };
+  if (!sectionEditing) return;
+  const { sectionStarts, canSplit, canMerge, onSplit, onGlue } = sectionEditing;
+  const hasEarlierSection = sectionStarts.some((start) => start < measure.beat && !sameBeat(start, measure.beat));
+  if (sectionStarts.some((start) => sameBeat(start, measure.beat))) {
+    if (hasEarlierSection && ((_a = canMerge == null ? void 0 : canMerge(measure)) != null ? _a : true)) return { kind: "merge", apply: onGlue };
+    return;
   }
-  if ((_b = (_a = sectionEditing.canSplit) == null ? void 0 : _a.call(sectionEditing, measure)) != null ? _b : measure.isPhraseStart) return { glue: false, apply: sectionEditing.onSplit };
+  if (hasEarlierSection && ((_b = canSplit == null ? void 0 : canSplit(measure)) != null ? _b : measure.isPhraseStart)) return { kind: "split", apply: onSplit };
 }
 function releaseMeasureFocus(element) {
   const position = element == null ? void 0 : element.closest(".rawln-measure-position");
@@ -632,7 +639,7 @@ function RawlMeasureHeader({
       observer == null ? void 0 : observer.disconnect();
       view.removeEventListener("resize", fit);
     };
-  }, [markers, measures, renderMeasureExtras, showHeader]);
+  }, [markers, measures, renderMeasureExtras, selectedMeasure, showHeader]);
   const select = (event, measure) => {
     event.stopPropagation();
     const control = event.currentTarget;
@@ -650,7 +657,7 @@ function RawlMeasureHeader({
     if (event.defaultPrevented || event.key !== "Enter" || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing || ((_a = event.currentTarget.value) == null ? void 0 : _a.trim())) return;
     event.preventDefault();
     event.stopPropagation();
-    if (action && action.glue === event.shiftKey) applySection(event, measure, action);
+    if (action && action.kind === "merge" === event.shiftKey) applySection(event, measure, action);
   };
   return /* @__PURE__ */ React2.createElement(
     "div",
@@ -722,13 +729,14 @@ function RawlMeasureHeader({
       const labelLeft = offsetLeft(measure.left, (_a = measure.labelOffset) != null ? _a : 6);
       const isSelected = selectedMeasure === measure.beat;
       const action = isSelected ? measureSectionAction(sectionEditing, measure) : void 0;
-      const CommandIcon = (action == null ? void 0 : action.glue) ? CornerRightUp : CornerDownLeft;
-      const commandName = (action == null ? void 0 : action.glue) ? "Glue" : "Split";
+      const CommandIcon = (action == null ? void 0 : action.kind) === "merge" ? CornerRightUp : CornerDownLeft;
+      const commandName = (action == null ? void 0 : action.kind) === "merge" ? "Merge" : "Split";
       const menu = action && /* @__PURE__ */ React2.createElement(
         "button",
         {
           type: "button",
           className: "rawln-section-command",
+          "data-section-action": action.kind,
           "aria-label": commandName,
           title: commandName,
           onMouseDown: (event) => event.preventDefault(),
@@ -779,7 +787,7 @@ function RawlMeasureHeader({
               cursor: onMeasureSelect ? "pointer" : void 0
             }
           },
-          renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && isSelected ? (event) => editSection(event, measure, action) : void 0),
+          renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && isSelected ? (event) => editSection(event, measure, action) : void 0, action == null ? void 0 : action.kind),
           /* @__PURE__ */ React2.createElement("span", { className: "rawln-measure-digits", style: measureDigits }, measure.number)
         ),
         menu != null && /* @__PURE__ */ React2.createElement("div", { className: "rawln-measure-menu" }, menu)
@@ -1083,9 +1091,18 @@ function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, onNote
     return { role: "button", tabIndex: -1, "aria-label": noteName(original.pitch), "data-note": original.id, "data-pitch": original.pitch, "data-degree": degree, "data-voice": original.voice, className: `rawln-note rawln-voice-${original.voice}${muted ? " rawln-muted" : ""}`, style: { left: (start - row.start) / span * 100 + "%", width: (end - start) / span * 100 + "%", ...!((_a = note.pitchBend) == null ? void 0 : _a.length) && RAWL_COLORS[degree] ? { background: RAWL_COLORS[degree].background } : {}, zIndex: 100 + (84 - original.pitch) + (original.voice === 1 ? 128 : 0) } };
   } }))));
 }
-function useSectionRows({ notes, rows, beats, sectionEditing, onSectionRowsChange }) {
+function useSectionRows({ notes, rows, beats, sectionStarts, phraseStarts, barBeats, sectionEditing, onSectionRowsChange, onEdit }) {
   const baseRows = useMemo3(() => (rows == null ? void 0 : rows.length) ? rows : [{ start: 0, end: beats, label: 1 }], [rows, beats]);
-  const layoutKey = baseRows.map(({ start, end }) => start + ":" + end).join("|");
+  const baseSections = useMemo3(() => {
+    if (!(sectionStarts == null ? void 0 : sectionStarts.length)) return baseRows;
+    const start = baseRows[0].start, end = baseRows.at(-1).end;
+    const starts2 = [start, ...sectionStarts.slice(1).filter((beat) => beat > start && beat < end)];
+    return starts2.map((start2, index) => {
+      var _a;
+      return { start: start2, end: (_a = starts2[index + 1]) != null ? _a : end };
+    });
+  }, [baseRows, sectionStarts]);
+  const layoutKey = baseSections.map(({ start, end }) => start + ":" + end).join("|");
   const [edit, setEdit] = useState4(null);
   const intervals = sectionEditing === void 0 && (edit == null ? void 0 : edit.notes) === notes && edit.layoutKey === layoutKey ? edit.intervals : null;
   const editedRows = useMemo3(() => {
@@ -1097,43 +1114,53 @@ function useSectionRows({ notes, rows, beats, sectionEditing, onSectionRowsChang
   useLayoutEffect2(() => {
     onSectionRowsChange == null ? void 0 : onSectionRowsChange(editedRows);
   }, [editedRows, onSectionRowsChange]);
-  function editingForRow(index) {
-    var _a;
+  const sections = intervals != null ? intervals : baseSections;
+  const starts = sections.map((section) => section.start);
+  const indexAt = (beat) => sections.findLastIndex((section) => section.start < beat || atRowStart(section.start, beat));
+  function editingForRow() {
     if (sectionEditing !== void 0) return sectionEditing || void 0;
-    const row = spans[index], previous = spans[index - 1];
-    const canGlue = previous && atRowStart(previous.end, row.start);
-    const opening = index === 0 ? Math.max(row.start, (_a = row.anchor) != null ? _a : row.start) : row.start;
     function update(beat, split) {
-      const next = spans.map(({ start, end }) => ({ start, end }));
+      const index = indexAt(beat), section = sections[index], previous = sections[index - 1];
+      const next = sections.map(({ start, end }) => ({ start, end }));
       if (split) {
-        if (!(beat > opening && beat < row.end)) return;
-        next.splice(index, 1, { start: row.start, end: beat }, { start: beat, end: row.end });
+        next.splice(index, 1, { start: section.start, end: beat }, { start: beat, end: section.end });
       } else {
-        if (!canGlue || !atRowStart(beat, row.start)) return;
-        next.splice(index - 1, 2, { start: previous.start, end: row.end });
+        next.splice(index - 1, 2, { start: previous.start, end: section.end });
       }
-      const restored = next.length === baseRows.length && next.every(({ start, end }, i) => start === baseRows[i].start && end === baseRows[i].end);
+      const restored = next.length === baseSections.length && next.every(({ start, end }, i) => start === baseSections[i].start && end === baseSections[i].end);
       setEdit(restored ? null : { notes, layoutKey, intervals: next });
+      onEdit == null ? void 0 : onEdit();
     }
     return {
-      sectionStarts: canGlue ? [previous.start, row.start] : [row.start],
-      canSplit: ({ beat, isPhraseStart }) => beat > opening && beat < row.end && (isPhraseStart || baseRows.some((base) => atRowStart(beat, base.start))),
+      sectionStarts: starts,
+      canMerge: ({ beat }) => {
+        var _a;
+        return atRowStart((_a = sections[indexAt(beat) - 1]) == null ? void 0 : _a.end, beat);
+      },
+      canSplit: ({ beat, isPhraseStart }) => {
+        var _a, _b, _c;
+        const index = indexAt(beat), section = sections[index];
+        const opening = index === 0 ? Math.max(section.start, (_b = (_a = sectionStarts == null ? void 0 : sectionStarts[0]) != null ? _a : baseRows[0].anchor) != null ? _b : section.start) : section == null ? void 0 : section.start;
+        const phrase = (sectionStarts == null ? void 0 : sectionStarts.length) ? (_c = phraseStarts == null ? void 0 : phraseStarts.some((start) => atRowStart(start, beat))) != null ? _c : atRowStart(Math.round(beat / (4 * barBeats)) * 4 * barBeats, beat) : isPhraseStart;
+        return section && beat > opening && beat < section.end && (phrase || baseSections.some((base) => atRowStart(beat, base.start)));
+      },
       onSplit: ({ beat }) => update(beat, true),
       onGlue: ({ beat }) => update(beat, false)
     };
   }
-  return { spans, editingForRow };
+  return { spans, editing: editingForRow(), hasEditedRows: !!editedRows };
 }
-function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, showModulationTonics = false, modulationMarkerPlacement, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = EMPTY_MUTED_VOICES, onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, recoloring, sectionEditing, onSectionRowsChange, renderMeasureExtras, renderHeader, renderUnderlay, renderFooter, className = "", style, ref }) {
+function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, showModulationTonics = false, modulationMarkerPlacement, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = EMPTY_MUTED_VOICES, onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, recoloring, sectionEditing, sectionStarts, onSectionRowsChange, onSectionEdit, renderMeasureExtras, renderHeader, renderUnderlay, renderFooter, className = "", style, ref }) {
   var _a;
   const root = useRef2(null), ownClock = useMemo3(createSectionPlaybackClock, []), clock = playbackClock != null ? playbackClock : ownClock;
   const audition = onNoteAudition != null ? onNoteAudition : onNote;
   const seek = onSeek != null ? onSeek : ((beat) => (playbackClock == null ? void 0 : playbackClock.seek) ? playbackClock.seek(beat) : clock.advance(beat));
   const localEditor = useTonicRecoloring({ changes, barBeats, measureMap, onChange: onChangesChange });
   const editor = recoloring != null ? recoloring : recolorable && !onMeasureSelect ? localEditor : null;
-  if (editor || !onMeasureSelect && sectionEditing !== false) {
-    selectedMeasure = (editor != null ? editor : localEditor).selectedMeasure;
-    onMeasureSelect = (editor != null ? editor : localEditor).selectMeasure;
+  const ownsSelection = editor || (!onMeasureSelect && sectionEditing !== false ? localEditor : null);
+  if (ownsSelection) {
+    selectedMeasure = ownsSelection.selectedMeasure;
+    onMeasureSelect = ownsSelection.selectMeasure;
   }
   if (editor) {
     changes = editor.changes;
@@ -1144,7 +1171,10 @@ function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2,
     };
   }
   const onsetEditing = (_a = editor == null ? void 0 : editor.onsetEditing) != null ? _a : NO_ONSET_EDITING;
-  const { spans, editingForRow } = useSectionRows({ notes, rows, beats, sectionEditing, onSectionRowsChange });
+  const { spans, editing, hasEditedRows } = useSectionRows({ notes, rows, beats, sectionStarts, phraseStarts, barBeats, sectionEditing, onSectionRowsChange, onEdit: () => {
+    ownsSelection == null ? void 0 : ownsSelection.cancel();
+    onSectionEdit == null ? void 0 : onSectionEdit();
+  } });
   const prepared = useMemo3(() => spans.map((row) => {
     const visible = notes.filter((n) => n.start < row.end - 1e-6 && n.start + n.duration > row.start + 1e-6), range = pitchRange(visible), axis = staveGeometry(range, { noteScale });
     return { row, visible, range, axis, regions: showTonalGuides ? tonalSegments(tonic, changes, row.start, row.end) : [] };
@@ -1155,7 +1185,7 @@ function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2,
     if (position !== void 0 || !playbackClock) setPosition(position);
   }, [position, clock, playbackClock]);
   useLayoutEffect2(() => () => ownClock.reset(), [ownClock]);
-  return /* @__PURE__ */ React5.createElement(NotePlaybackContext.Provider, { value: clock.register }, /* @__PURE__ */ React5.createElement("div", { className: ["rawln", onsetEditing.active && "modulation-onset-editing", className].filter(Boolean).join(" "), style, ref: root, onClickCapture: onsetEditing.onClickCapture }, prepared.map(({ row, visible, range, axis, regions }, index) => {
+  return /* @__PURE__ */ React5.createElement(NotePlaybackContext.Provider, { value: clock.register }, /* @__PURE__ */ React5.createElement("div", { className: ["rawln", onsetEditing.active && "modulation-onset-editing", className].filter(Boolean).join(" "), style, ref: root, "data-section-edited": hasEditedRows || void 0, onClickCapture: onsetEditing.onClickCapture }, prepared.map(({ row, visible, range, axis, regions }) => {
     const span = row.end - row.start, x = (beat) => (beat - row.start) / span * 100;
     return /* @__PURE__ */ React5.createElement("div", { className: "rawln-row", "data-section": row.section, key: `${row.start}-${row.end}`, "data-start": row.start, "data-end": row.end, style: row.style }, renderHeader && /* @__PURE__ */ React5.createElement("div", { className: "rawln-header" }, renderHeader(row)), /* @__PURE__ */ React5.createElement("div", { className: "rawln-score", "data-seekable": selectedMeasure === null || void 0, role: "group", "aria-label": "Rawl notation", style: { height: axis.notesBottom }, onClick: (e) => {
       if (selectedMeasure !== null) return;
@@ -1168,7 +1198,7 @@ function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2,
         pitchToY: (pitch) => axis.pitchToY(pitch) + axis.pitchStep,
         regions: regions.map((region) => ({ ...region, left: x(region.start) + "%", width: (region.end - region.start) / span * 100 + "%" }))
       }
-    ), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ React5.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic, showModulationTonics, modulationMarkerPlacement, sectionEditing: editingForRow(index), renderMeasureExtras }), /* @__PURE__ */ React5.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, onNote: (note, event) => {
+    ), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ React5.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic, showModulationTonics, modulationMarkerPlacement, sectionEditing: editing, renderMeasureExtras }), /* @__PURE__ */ React5.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, onNote: (note, event) => {
       if (editor == null ? void 0 : editor.chooseNote(note, event)) return;
       if (onNote) onNote(note, event);
       else if (selectedMeasure === null) seek(Math.max(row.start, note.start));
