@@ -323,6 +323,7 @@ var triadNames = ["\u0442\u0440\u0435\u0437\u0432\u0443\u0447\u0438\u0435", "\u0
 var seventhNames = ["\u0441\u0435\u043F\u0442\u0430\u043A\u043A\u043E\u0440\u0434", "\u043A\u0432\u0438\u043D\u0442\u0441\u0435\u043A\u0441\u0442\u0430\u043A\u043A\u043E\u0440\u0434", "\u0442\u0435\u0440\u0446\u043A\u0432\u0430\u0440\u0442\u0430\u043A\u043A\u043E\u0440\u0434", "\u0441\u0435\u043A\u0443\u043D\u0434\u0430\u043A\u043A\u043E\u0440\u0434"];
 var inversionNames = ["\u043E\u0441\u043D\u043E\u0432\u043D\u043E\u0439 \u0432\u0438\u0434", "\u043F\u0435\u0440\u0432\u043E\u0435 \u043E\u0431\u0440\u0430\u0449\u0435\u043D\u0438\u0435", "\u0432\u0442\u043E\u0440\u043E\u0435 \u043E\u0431\u0440\u0430\u0449\u0435\u043D\u0438\u0435", "\u0442\u0440\u0435\u0442\u044C\u0435 \u043E\u0431\u0440\u0430\u0449\u0435\u043D\u0438\u0435"];
 var englishInversions = ["root position", "first inversion", "second inversion", "third inversion"];
+var jazzNinthChord = /^[b♭#♯]?[IV]+(?:maj|min|m(?:maj|M)?|dim|aug|[△Δ+ø°o-])?(?:9|7(?:[b♭#♯]\d+)*[b♭#♯]9)(?!\d)/iu;
 var escape2 = (text) => String(text).replace(/[&<>"']/g, (c) => ({
   "&": "&amp;",
   "<": "&lt;",
@@ -560,6 +561,7 @@ function caption(column, options) {
   if (column.special) return [options.jazz || options.english ? "augmented sixth" : "\u0443\u0432\u0435\u043B\u0438\u0447\u0435\u043D\u043D\u0430\u044F \u0441\u0435\u043A\u0441\u0442\u0430"];
   const inversion = column.inversion;
   if (options.jazz) {
+    if (jazzNinthChord.test(column.notation)) return ["seventh chord"];
     const third = column.pitches.length === 3 && !/(?:sus|add|omit|no)/i.test(column.notation);
     const seventh = column.pitches.length === 4 && /7/.test(column.notation);
     return [
@@ -605,8 +607,9 @@ function romanNumeralDiagramColumns(columns, options = {}) {
   return `<div class="rawln-rn-tooltip-columns${options.sequence ? " cadence-sequence" : ""}">${diagram}</div>`;
 }
 function romanNumeralTooltipHTML(notation, options, model) {
+  const showInversion = model.inversion && !model.special && !(options.jazz && jazzNinthChord.test(notation));
   const columns = [
-    ...model.inversion && !model.special && model.rootPitches && model.rootNotation ? [{ ...model, pitches: model.rootPitches, notation: model.rootNotation, inversion: 0, cadentialSixFour: false, labelOptions: { bassPitch: null } }] : [],
+    ...showInversion && model.rootPitches && model.rootNotation ? [{ ...model, pitches: model.rootPitches, notation: model.rootNotation, inversion: 0, cadentialSixFour: false, labelOptions: { bassPitch: null } }] : [],
     { ...model, notation }
   ];
   const copy = !options.jazz && model.token ? romanNumeralExplanations({

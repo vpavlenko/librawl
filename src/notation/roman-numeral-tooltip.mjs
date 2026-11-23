@@ -8,6 +8,7 @@ const triadNames = ['трезвучие', 'секстаккорд', 'кварт�
 const seventhNames = ['септаккорд', 'квинтсекстаккорд', 'терцквартаккорд', 'секундаккорд'];
 const inversionNames = ['основной вид', 'первое обращение', 'второе обращение', 'третье обращение'];
 const englishInversions = ['root position', 'first inversion', 'second inversion', 'third inversion'];
+const jazzNinthChord = /^[b♭#♯]?[IV]+(?:maj|min|m(?:maj|M)?|dim|aug|[△Δ+ø°o-])?(?:9|7(?:[b♭#♯]\d+)*[b♭#♯]9)(?!\d)/iu;
 const escape = text => String(text).replace(/[&<>"']/g, c => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[c]));
@@ -285,6 +286,7 @@ function caption(column, options) {
   if (column.special) return [options.jazz || options.english ? 'augmented sixth' : 'увеличенная секста'];
   const inversion = column.inversion;
   if (options.jazz) {
+    if (jazzNinthChord.test(column.notation)) return ['seventh chord'];
     const third = column.pitches.length === 3 && !/(?:sus|add|omit|no)/i.test(column.notation);
     const seventh = column.pitches.length === 4 && /7/.test(column.notation);
     return [third ? 'triad' : seventh ? 'seventh chord' : '',
@@ -326,8 +328,9 @@ export function romanNumeralDiagramColumns(columns, options = {}) {
 }
 
 export function romanNumeralTooltipHTML(notation, options, model) {
+  const showInversion = model.inversion && !model.special && !(options.jazz && jazzNinthChord.test(notation));
   const columns = [
-    ...(model.inversion && !model.special && model.rootPitches && model.rootNotation
+    ...(showInversion && model.rootPitches && model.rootNotation
       ? [{...model, pitches: model.rootPitches, notation: model.rootNotation, inversion: 0, cadentialSixFour: false, labelOptions: {bassPitch: null}}] : []),
     {...model, notation},
   ];

@@ -43,6 +43,36 @@ test('Jazz tooltip preserves explicit extensions and bass while avoiding figured
   assert.equal(romanNumeralTooltipModel(notation, options, {pitches: [99999999999]}), null);
 });
 
+test('Jazz ninths use the seventh-chord caption and preserve the supplied voicing', () => {
+  for (const [notation, rootPitches, pitches] of [
+    ['♭II9', [1, 5, 8, 11, 15], [8, 11, 13, 15, 17]],
+    ['♭IIm9', [1, 4, 8, 11, 15], [8, 11, 13, 15, 16]],
+    ['♭IImaj9', [1, 5, 8, 12, 15], [8, 12, 13, 15, 17]],
+    ['♭II7b9', [1, 5, 8, 11, 14], [8, 11, 13, 14, 17]],
+    ['♭II7#5#9', [1, 5, 9, 11, 16], [9, 11, 13, 16, 17]],
+  ]) {
+    const options = {jazz: true};
+    const model = romanNumeralTooltipModel(notation, options, {
+      pitches, rootPitches, rootNotation: notation, inversion: 2,
+    });
+    const document = parse(romanNumeralTooltipHTML(notation, options, model));
+    assert.deepEqual(notePitches(document), pitches);
+    assert.equal(document.querySelectorAll('.rawln-rn-tooltip-column').length, 1);
+    assert.equal(document.querySelector('.rawln-rn-tooltip-kind').textContent, 'seventh chord');
+    assert.equal(document.querySelector('.rawln-rn-tooltip-inversion'), null);
+  }
+
+  for (const [notation, pitches, kind] of [
+    ['♭II7', [8, 11, 13, 17], 'seventh chord'],
+    ['♭IIadd9', [8, 13, 15, 17], undefined],
+    ['♭II6/9', [8, 10, 13, 15, 17], undefined],
+  ]) {
+    const document = parse(romanNumeralDiagramColumns([{notation, pitches, inversion: 2}], {jazz: true}));
+    assert.equal(document.querySelector('.rawln-rn-tooltip-kind')?.textContent, kind);
+    assert.equal(document.querySelector('.rawln-rn-tooltip-inversion').textContent, 'second inversion');
+  }
+});
+
 test('Tooltip opens on hover, focus and click, and preserves native Space handling', () => {
   const dom = new JSDOM('<div id="scroll"><span id="a" tabindex="0" aria-describedby="extra">V</span><span id="b" tabindex="0">I</span></div>');
   const {window} = dom, {document} = window, first = document.querySelector('#a'), second = document.querySelector('#b');
