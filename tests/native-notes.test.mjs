@@ -9,6 +9,8 @@ import {createHash} from 'node:crypto';
 import {build} from 'esbuild';
 import {JSDOM} from 'jsdom';
 import {MODULATION_SNAP_CURSOR} from '../src/rawlnative/note-cursors.mjs';
+import {pitchBendOutline} from '../src/rawlnative/pitch-bend-outline.mjs';
+import {voiceShapeStyles} from '../src/rawlnative/voice-shapes.mjs';
 const require=createRequire(import.meta.url),root=fileURLToPath(new URL('../',import.meta.url));
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const provenance=JSON.parse(fs.readFileSync(path.join(root,'docs/native-provenance.json')));
@@ -47,7 +49,7 @@ function cases(){
   if(variant===3)Object.assign(extras,{isPlayingNow:true});
   cases.push({notes:[note('allowed',extras)],options:{source:true,onsetEditing:variant===2,bands:[[2,3000]]}});
  }
- for(const value of [6144,7168,8000,8192,9216,10240])for(const moving of [false,true])cases.push({notes:[note('bend',{pitchBend:moving?[{time:0,value:8192},{time:1,value},{time:1,value:10240}]:[{time:0,value}],colorPitchClass:5})],options:{startX:40,endX:120}});
+ for(const value of [6144,7168,8000,8192,9216,10240])for(const moving of [false,true])cases.push({notes:[note('bend',{pitchBend:moving?[{time:0,value:8192},{time:1,value},{time:1,value:10240}]:[{time:0,value}],displayVoiceIndex:moving?15:0,colorPitchClass:5})],options:{startX:40,endX:120}});
  cases.push({notes:[note('zero',{span:[1,1]}),note('negative',{span:[2,1]}),note('tiny',{span:[1,1.000001]}),note('display',{span:[0,3],displaySpan:[-1,4],displayMidiNumber:72,sourceLocation:{row:3,col:5,command:'copy'}})],options:{startX:0,endX:160,source:true}});
  cases.push({notes:[note('strum',{span:[0,5]}),note('short',{span:[0,.1]}),note('same',{span:[0,.1],note:{midiNumber:72}})],options:{strums:['strum'],bands:[[0,4000]],hoveredColors:['noteColor_0_colors']}});
  for(const isActive of [true,false])for(const hoveredVoiceIndex of [null,0,1,[0,2]])cases.push({notes:[note('drum',{isDrum:true,note:{midiNumber:38},isActive}),note('allowed',{voiceIndex:2})],options:{hoveredVoiceIndex,onsetEditing:true,manual:true}});
@@ -62,6 +64,8 @@ test('native source fixtures retain every recorded upstream source byte and comp
   .replace('export type TonalPitchStop = {\n  offset: number;\n  pitchClass: number;\n};\n\n','')
   .replace('  /** Rendering only. Ordered tonal pitch classes starting at fractions of the visible note width. */\n  tonalPitchStops?: readonly TonalPitchStop[];\n','');
  assert.ok(sourceTypes.includes(model));
+ const originalRenderer=fs.readFileSync(path.join(root,'tests/fixtures/native/getNoteRectangles.tsx'),'utf8');
+ const originalBendOutline=originalRenderer.slice(originalRenderer.indexOf('  const edge ='),originalRenderer.indexOf('  // Add a stop'));
  let extracted=fs.readFileSync(path.join(root,'src/rawlnative/getNoteRectangles.tsx'),'utf8').replace('from "./voiceHover"','from "./instrumentVoiceGroups"').replaceAll('from "./types"','from "./Rawl"').replace('import { ColoredNote, Note, PitchBendPoint } from "./Rawl";','import { ColoredNote, Note, PitchBendPoint } from "./parseMidi";').replace('from "./voiceOrderContext"','from "./voiceOrder"').replace('      title={undefined}\n','').replace('}${attributes?.className ? ` ${attributes.className}` : ""}`}','}`}');
  // The opt-in tonal stops leave the original rectangle and pitch-bend behavior intact.
  extracted=extracted
@@ -71,10 +75,54 @@ test('native source fixtures retain every recorded upstream source byte and comp
   .replace('  const colorStops = tonalPitchStops?.length ? applyTonalPitchStops(stops, tonalPitchStops, basePitch, width) : stops;\n','')
   .replace('colorStops.map((stop, index) => (','stops.map((stop, index) => (')
   .replace('          tonalPitchStops={note.tonalPitchStops}\n','')
+  .replace('import { pitchBendOutline } from "./pitch-bend-outline.mjs";\n','')
+  .replace('  displayVoiceIndex: number;\n','')
+  .replace('  displayVoiceIndex,\n','')
+  .replace('          displayVoiceIndex={displayVoiceIndex}\n','')
+  .replace(/  const path = pitchBendOutline\([\s\S]+?(?=  \/\/ Add a stop)/,originalBendOutline)
   .replace('import { MODULATION_SNAP_CURSOR } from "./note-cursors.mjs";\n','')
   .replace('onsetEditing.isAllowed(note) ? MODULATION_SNAP_CURSOR', 'onsetEditing.isAllowed(note) ? "crosshair"');
- assert.equal(extracted,fs.readFileSync(path.join(root,'tests/fixtures/native/getNoteRectangles.tsx'),'utf8'));
+ assert.equal(extracted,originalRenderer);
  for(const filename of ['playbackIndex.ts','notePlayback.ts','drumPlayback.ts','strumContext.ts'])assert.equal(fs.readFileSync(path.join(root,'src/rawlnative',filename),'utf8'),fs.readFileSync(path.join(root,'tests/fixtures/native',filename),'utf8'));
+});
+
+test('moving bends preserve the display voice corners, including on short and collapsed notes', () => {
+ const points = [{x:0,y:0},{x:1,y:-2},{x:12,y:3},{x:20,y:1}];
+ const outline = (samples, height, voice) => pitchBendOutline(samples, height, voice)
+  .slice(2, -2).split(' L ').map(point => point.split(' ').map(Number));
+ const caps = (vertices, width) => vertices.filter(([x]) => x === 0 || x === width).map(([,y]) => y);
+ const cssRadii = [...voiceShapeStyles().matchAll(/border-radius: (\d+)px (\d+)px (\d+)px (\d+)px;/g)]
+  .map(match => match.slice(1).map(Number));
+ assert.equal(cssRadii.length, 16);
+ assert.deepEqual(cssRadii[1], [6, 0, 6, 0]);
+ assert.deepEqual(cssRadii[2], [0, 6, 0, 6]);
+ cssRadii.forEach(([tl,tr,br,bl], voice) => {
+  assert.deepEqual(caps(outline(points, 12, voice), 20), [tl, 1+tr, 13-br, 12-bl]);
+ });
+
+ const rounded = outline(points, 12, 1);
+ const coasting = outline(points.map(({x}) => ({x,y:0})), 12, 1);
+ rounded.forEach(([x,y], index) => {
+  const after = points.findIndex(point => point.x >= x);
+  const a = points[Math.max(0, after - 1)], b = points[after];
+  const bend = a.x === b.x ? a.y : a.y + (x-a.x)*(b.y-a.y)/(b.x-a.x);
+  assert.equal(coasting[index][0], x);
+  assert.ok(Math.abs(y - coasting[index][1] - bend) < 1e-12);
+ });
+ const short = [{x:0,y:0},{x:1,y:-2},{x:2,y:0}];
+ assert.deepEqual(caps(outline(short, 12, 0), 2), [1, 1, 11, 11]);
+ assert.deepEqual(caps(outline(short, 0.5, 0), 2), [0.25, 0.25, 0.25, 0.25]);
+
+ const api = load(nativeCode);
+ const bend = note('bend',{voiceIndex:15,displayVoiceIndex:1,pitchBend:[{time:0,value:8192},{time:1,value:10240}]});
+ const dom = new JSDOM(staticMarkup(api,[bend]));
+ try {
+  const path = dom.window.document.querySelector('.voiceShape-1 svg path');
+  assert.match(path.getAttribute('d'), /^M 0 5 L /);
+  assert.equal(path.style.pointerEvents, 'visiblePainted');
+ } finally {
+  dom.window.close();
+ }
 });
 test('React 19 complete native rendering equals original Rawl across pitches, bends, voices, drums, strums and source metadata',()=>{
  const actual=load(nativeCode),original=load(referenceCode),all=cases();

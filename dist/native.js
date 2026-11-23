@@ -121,6 +121,63 @@ function getNotePitchAtTime(note, time = note.span[0]) {
   return note.note.midiNumber + before.bend + fraction * (after.bend - before.bend);
 }
 
+// src/rawlnative/voice-shapes.mjs
+var radius = 6;
+var voiceShapes = [15, 5, 10, 9, 6, 3, 12, 14, 13, 11, 7, 1, 2, 4, 8, 0];
+var voiceCornerRadii = (voice) => [1, 2, 4, 8].map(
+  (corner) => voiceShapes[voice] & corner ? radius : 0
+);
+
+// src/rawlnative/pitch-bend-outline.mjs
+var cornerSamples = Array.from(
+  { length: 11 },
+  (_, i) => 1 - Math.cos((i + 1) * Math.PI / 24)
+).concat(1);
+var reversedCornerSamples = [...cornerSamples].reverse();
+function cornerInset(distance, radius2) {
+  return distance < radius2 ? radius2 - Math.sqrt(distance * (2 * radius2 - distance)) : 0;
+}
+function pitchBendOutline(samples, height, displayVoiceIndex) {
+  const width = samples[samples.length - 1].x;
+  const [topLeft, topRight, bottomRight, bottomLeft] = voiceCornerRadii(displayVoiceIndex);
+  const limit = (length, sum) => sum > 0 ? length / sum : 1;
+  const scale = Math.min(
+    1,
+    limit(width, topLeft + topRight),
+    limit(width, bottomLeft + bottomRight),
+    limit(height, topLeft + bottomLeft),
+    limit(height, topRight + bottomRight)
+  );
+  function edge(left, right, bottom2) {
+    const cornerXs = [
+      ...left ? cornerSamples.map((fraction) => fraction * left) : [],
+      ...right ? reversedCornerSamples.map((fraction) => width - fraction * right) : []
+    ];
+    const points = [samples[0]];
+    let nextCorner = 0;
+    for (let i = 1; i < samples.length; i++) {
+      const previous = samples[i - 1];
+      const current = samples[i];
+      while (nextCorner < cornerXs.length && cornerXs[nextCorner] < current.x) {
+        const x = cornerXs[nextCorner++];
+        if (x > points[points.length - 1].x) {
+          const fraction = (x - previous.x) / (current.x - previous.x);
+          points.push({ x, y: previous.y + fraction * (current.y - previous.y) });
+        }
+      }
+      points.push(current);
+    }
+    if (bottom2) points.reverse();
+    return points.map(({ x, y }) => {
+      const inset = cornerInset(x, left) + cornerInset(width - x, right);
+      return `${x} ${y + (bottom2 ? height - inset : inset)}`;
+    }).join(" L ");
+  }
+  const top = edge(topLeft * scale, topRight * scale, false);
+  const bottom = edge(bottomLeft * scale, bottomRight * scale, true);
+  return `M ${top} L ${bottom} Z`;
+}
+
 // src/rawlnative/getNoteRectangles.tsx
 import * as React from "react";
 
@@ -479,6 +536,7 @@ var PitchBendNote = ({
   span,
   height,
   width,
+  displayVoiceIndex,
   secondsToX,
   pitchToOffset,
   colorPitchClass,
@@ -495,8 +553,11 @@ var PitchBendNote = ({
     bend: point.bend
   }));
   if (!samples.length || width <= 0) return null;
-  const edge = (sample, bottom) => `${sample.x} ${pitchToOffset(sample.bend) + (bottom ? height : 0)}`;
-  const path = `M ${samples.map((sample) => edge(sample, false)).join(" L ")} L ${[...samples].reverse().map((sample) => edge(sample, true)).join(" L ")} Z`;
+  const path = pitchBendOutline(
+    samples.map(({ x, bend }) => ({ x, y: pitchToOffset(bend) })),
+    height,
+    displayVoiceIndex
+  );
   const stops = [];
   const basePitch = typeof colorPitchClass === "number" ? colorPitchClass : 0;
   samples.forEach((sample, index) => {
@@ -815,6 +876,7 @@ var NoteRectangle = React.memo(({
         span: note.span,
         height,
         width,
+        displayVoiceIndex,
         secondsToX,
         pitchToOffset: (bend) => midiNumberToY(number + bend) - midiNumberToY(number),
         colorPitchClass: note.colorPitchClass,

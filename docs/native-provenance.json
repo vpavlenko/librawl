@@ -77,8 +77,9 @@
   "voiceStyles": {
     "source": "src/index.css",
     "sourceSha256": "3bd852c81fdb479935042901866ea6b5a5d81ecea9b6d149ea95846cbc77a3ae",
-    "excerpt": "src/rawlnative/voice-shapes.css",
-    "excerptSha256": "84fd2408c40d394a998e93fed8c0c3a4aa104e37cf987146f2efd43dd4629f8f",
+    "originalExcerptSha256": "84fd2408c40d394a998e93fed8c0c3a4aa104e37cf987146f2efd43dd4629f8f",
+    "generator": "src/rawlnative/voice-shapes.mjs",
+    "compiled": "dist/voice-shapes.css",
     "selectors": "voiceShape-0 through voiceShape-15, unchanged"
   },
   "noteTooltips": {

@@ -3,6 +3,7 @@ import { applyTonalPitchStops } from "./tonalPitchStops";
 import { MODULATION_SNAP_CURSOR } from "./note-cursors.mjs";
 import { interpolatedPitchColor, noteColorClass, notePitchDotClass } from "./colors";
 import { getNotePitchAtTime, getPitchBendSamples, getStaticPitchBend, getQuarterToneMarkerPosition, QUARTER_TONE_MARKER_SIZE, QUARTER_TONE_MARKER_OFFSET } from "./pitchBend";
+import { pitchBendOutline } from "./pitch-bend-outline.mjs";
 import * as React from "react";
 import { SecondsConverter, SecondsSpan } from "./types";
 import { ColoredNote, Note, PitchBendPoint } from "./types";
@@ -195,6 +196,7 @@ const PitchBendNote: React.FC<{
   span: SecondsSpan;
   height: number;
   width: number;
+  displayVoiceIndex: number;
   secondsToX: SecondsConverter;
   pitchToOffset: (semitones: number) => number;
   colorPitchClass: ColoredNote["colorPitchClass"];
@@ -206,6 +208,7 @@ const PitchBendNote: React.FC<{
   span,
   height,
   width,
+  displayVoiceIndex,
   secondsToX,
   pitchToOffset,
   colorPitchClass,
@@ -224,14 +227,11 @@ const PitchBendNote: React.FC<{
     }));
   if (!samples.length || width <= 0) return null;
 
-  const edge = (sample: (typeof samples)[number], bottom: boolean) =>
-    `${sample.x} ${pitchToOffset(sample.bend) + (bottom ? height : 0)}`;
-  const path = `M ${samples
-    .map((sample) => edge(sample, false))
-    .join(" L ")} L ${[...samples]
-    .reverse()
-    .map((sample) => edge(sample, true))
-    .join(" L ")} Z`;
+  const path = pitchBendOutline(
+    samples.map(({ x, bend }) => ({ x, y: pitchToOffset(bend) })),
+    height,
+    displayVoiceIndex,
+  );
 
   // Add a stop at every crossed semitone so large bends visit all palette anchors.
   const stops: { x: number; pitch: number }[] = [];
@@ -695,6 +695,7 @@ const NoteRectangle = React.memo(({
           span={note.span}
           height={height}
           width={width}
+          displayVoiceIndex={displayVoiceIndex}
           secondsToX={secondsToX}
           pitchToOffset={(bend) =>
             midiNumberToY(number + bend) - midiNumberToY(number)

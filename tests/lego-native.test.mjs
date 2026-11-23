@@ -6,13 +6,14 @@ import {fileURLToPath} from 'node:url';
 import {build} from 'esbuild';
 import {JSDOM} from 'jsdom';
 import {nativeColorStyles} from '../src/rawlnative/native-style.mjs';
+import {voiceShapeStyles} from '../src/rawlnative/voice-shapes.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const bundle=await build({stdin:{contents:"export {RawlNotation} from './src/notation/RawlNotation.jsx';export {createSectionPlaybackClock} from './src/rawlnative/index.ts';export {createElement,createRef} from 'react';export {createRoot} from 'react-dom/client';export {flushSync} from 'react-dom';",resolveDir:root,loader:'jsx'},bundle:true,write:false,format:'esm',platform:'browser',jsx:'automatic',minify:true,define:{'process.env.NODE_ENV':'"production"'},plugins:[{name:'native-public-subpath-source',setup(b){b.onResolve({filter:/^librawl\/native$/},()=>({path:path.join(root,'src/rawlnative/index.ts')}));}}]});
 const api=await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'));
 function setup(){
  const dom=new JSDOM('<!doctype html><body><div id="mount"></div></body>',{url:'http://localhost/',pretendToBeVisual:true}),w=dom.window,saved=Object.getOwnPropertyDescriptors(globalThis),keys=['window','document','navigator','HTMLElement','requestAnimationFrame','cancelAnimationFrame'];
  Object.assign(globalThis,{window:w,document:w.document,HTMLElement:w.HTMLElement,requestAnimationFrame:w.requestAnimationFrame.bind(w),cancelAnimationFrame:w.cancelAnimationFrame.bind(w)});Object.defineProperty(globalThis,'navigator',{value:w.navigator,configurable:true});
- const css=w.document.createElement('style');css.textContent=fs.readFileSync(path.join(root,'src/notation/style.css'),'utf8')+nativeColorStyles()+fs.readFileSync(path.join(root,'src/rawlnative/voice-shapes.css'),'utf8');w.document.head.append(css);
+ const css=w.document.createElement('style');css.textContent=fs.readFileSync(path.join(root,'src/notation/style.css'),'utf8')+nativeColorStyles()+voiceShapeStyles();w.document.head.append(css);
  let width=800;w.HTMLElement.prototype.getBoundingClientRect=function(){return {width,height:200,left:0,right:width,top:0,bottom:200,x:0,y:0};};
  const host=w.document.querySelector('#mount'),view=api.createRoot(host),ref=api.createRef();
  return {w,host,ref,setWidth(next){width=next;},render(props){api.flushSync(()=>view.render(api.createElement(api.RawlNotation,{ref,...props})));},async close(){api.flushSync(()=>view.unmount());await new Promise(resolve=>setTimeout(resolve,25));dom.window.close();for(const key of keys){if(saved[key])Object.defineProperty(globalThis,key,saved[key]);else delete globalThis[key];}}};
@@ -43,7 +44,7 @@ test('Lego hover and mute behavior survive native rendering, source-preserving r
  }finally{await env.close();}
 });
 
-test('Lego adapter carries the original native moving-bend implementation and scales its ribbon with row width',async()=>{
+test('Lego uses the shared moving-bend renderer and scales its ribbon with row width',async()=>{
  const env=setup(),{host,ref,w}=env,note={id:'bend',pitch:60,start:0,duration:2,voice:0,pitchBend:[{time:0,value:8192},{time:1,value:10240}]};
  try{
   env.render({notes:[note],beats:4,rows:[{start:0,end:4}]});const element=host.querySelector('[data-note="bend"]');await wait(()=>element.querySelector('svg')?.getAttribute('width')==='400');assert.equal(element.style.width,'50%');assert.ok(element.classList.contains('pitch-bend-note'));assert.equal(element.style.background,'');
