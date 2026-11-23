@@ -10,6 +10,7 @@
 .rawln-measure-menu{position:relative;grid-column:2;grid-row:1;justify-self:end;width:0;z-index:16;pointer-events:none}
 /* Keep the selected action clear of the interval as it previews. */
 .rawln-section-command{position:absolute;top:0;left:18px;border:0;background:none;color:#fff;padding:3px;cursor:pointer;pointer-events:auto}
+.rawln-measure-grid[data-modulation-tonics] .rawln-section-command{left:40px}
 .rawln-section-command svg{display:block}
 .rawln-section-command:focus-visible{outline:1px solid #ddd;outline-offset:2px}
 .rawln-measure-number:focus-visible{outline:1px solid #ddd;outline-offset:2px}

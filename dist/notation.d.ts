@@ -32,6 +32,8 @@ export interface RawlNotationProps {
  ref?:React.Ref<RawlNotationHandle>;
  notes:MidiNote[]; beats:number; rows?:ScoreRow[]; tonic?:number; changes?:TonicChange[];
  barBeats?:number; beatBeats?:number; phraseStarts?:number[]; measureMap?:SourceMeasure[]; hideInitialTonic?:boolean; modulationMarkerPlacement?:ModulationMarkerPlacement; position?:number|null; mutedVoices?:number[]; className?:string; style?:React.CSSProperties;
+ /** Name the destination tonic on each modulation flag. Defaults to false. */
+ showModulationTonics?:boolean;
  /** An externally advanced clock. When position is omitted, its lifecycle belongs to the host. */
  playbackClock?:NotePlaybackClock & {seek?:(beat:number)=>void};
  showTonalGuides?:boolean; noteScale?:number;
@@ -89,6 +91,8 @@ export type RawlMeasureHeaderProps = ({
  phraseStarts?:number[]; measureMap?:SourceMeasure[]; hideInitialTonic?:boolean; modulationMarkerPlacement?:ModulationMarkerPlacement;
 } | {layout:MeasureHeaderLayout; row?:never}) & {
  height?:number|string; selectedMeasure?:number|null; onMeasureSelect?:(beat:number,measure:PositionedMeasure,element?:HTMLDivElement)=>void;
+ /** Name the destination tonic on each modulation flag. Defaults to false. */
+ showModulationTonics?:boolean;
  showHeader?:boolean; transpose?:number; sectionEditing?:MeasureSectionEditing; renderMeasureExtras?:RenderMeasureExtras;
 };
 export const RawlMeasureHeader:React.FC<RawlMeasureHeaderProps>;

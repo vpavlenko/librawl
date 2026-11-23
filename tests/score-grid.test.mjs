@@ -4,6 +4,7 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {JSDOM} from 'jsdom';
 import {TonalGrid, RawlMeasureHeader} from 'librawl/components';
+import {RawlNotation} from 'librawl';
 import {tonicMarkers, markersForRow, visibleBeatLines, measureSubdivisionBeats} from 'librawl/geometry';
 import * as browserGrid from '../src/notation/score-grid-browser.mjs';
 
@@ -27,6 +28,25 @@ test('React and standalone score guides share pitch, placement and tonic regions
   assert.equal(browserGrid.tonicAtBeat(options, 4, true), 7);
   mounted.destroy();
   assert.equal(score.childElementCount, 0);
+  const named = browserGrid.mount(score, {...options, showModulationTonics:true});
+  assert.deepEqual([...score.querySelectorAll('.tonal-grid-key')].map(label => label.textContent), ['C', '5 G']);
+  named.destroy();
+});
+
+test('scores can opt into naming modulation destinations independently of the opening tonic', () => {
+  const props = {
+    notes: [], beats: 12, tonic: 0,
+    changes: [{beat:4,tonic:7}, {beat:7.9,tonic:1,measureBeat:8,onsetOverride:true}],
+    rows: [{start:0,end:8}, {start:8,end:12}],
+  };
+  const labels = options => {
+    const markup = renderToStaticMarkup(React.createElement(RawlNotation, {...props, ...options}));
+    const {document} = new JSDOM(markup).window;
+    return [...document.querySelectorAll('.rawln-modulation-label')].map(label => label.textContent);
+  };
+  assert.deepEqual(labels({}), ['C', '5', '6']);
+  assert.deepEqual(labels({showModulationTonics:true}), ['C', '5 G', '6 D♭']);
+  assert.deepEqual(labels({showModulationTonics:true, hideInitialTonic:true}), ['5 G', '6 D♭']);
 });
 
 test('an editor layout keeps positioned bars and controls without repeating the carried tonic', () => {

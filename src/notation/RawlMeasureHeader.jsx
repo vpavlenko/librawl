@@ -99,7 +99,7 @@ function releaseMeasureFocus(element) {
 export function RawlMeasureHeader({
   row, layout: positioned, height = '100%', tonic = 0, changes = EMPTY_CHANGES,
   barBeats = 4, beatBeats = 1, phraseStarts, measureMap, selectedMeasure = null,
-  onMeasureSelect, hideInitialTonic = false, showHeader = true, transpose = 0,
+  onMeasureSelect, hideInitialTonic = false, showModulationTonics = false, showHeader = true, transpose = 0,
   renderMeasureExtras, modulationMarkerPlacement, sectionEditing,
 }) {
   const element = useRef(null);
@@ -160,7 +160,8 @@ export function RawlMeasureHeader({
     event.stopPropagation();
     if (action && action.glue === event.shiftKey) applySection(event, measure, action);
   };
-  return <div ref={element} className="rawln-measure-grid" style={{height}}>
+  return <div ref={element} className="rawln-measure-grid"
+    data-modulation-tonics={showModulationTonics || undefined} style={{height}}>
     {measures.map(measure => <div
       className={'rawln-bar' + (measure.isPhraseStart ? ' rawln-phrase-bar' : '')}
       key={measure.beat} data-beat={measure.beat}
@@ -172,7 +173,8 @@ export function RawlMeasureHeader({
       <div className="rawln-modulations">
         {markers.map(marker => {
           const interval = marker.delta == null ? null : mod(marker.delta);
-          const showTonicName = !marker.continued && (marker.initial ?? marker.previousTonic === null);
+          const initial = marker.initial ?? marker.previousTonic === null;
+          const showTonicName = !marker.continued && (initial || (showModulationTonics && interval != null));
           return <div key={marker.beat} className="rawln-modulation"
             data-beat={marker.beat} data-tonic={marker.tonic} data-join={marker.join ? marker.name : undefined}
             data-onset-override={marker.onsetOverride || undefined} data-origin-beat={marker.originBeat}

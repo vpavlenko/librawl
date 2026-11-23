@@ -201,7 +201,16 @@ var TonalGrid = (() => {
     if (!options.reuse) {
       score.querySelectorAll(":scope > .tonal-grid,:scope > .tonal-grid-markers").forEach((element) => element.remove());
     }
-    const { low, high, pitchToY, beats, top = 16, height = score.clientHeight, showTonicMarkers = true } = options;
+    const {
+      low,
+      high,
+      pitchToY,
+      beats,
+      top = 16,
+      height = score.clientHeight,
+      showTonicMarkers = true,
+      showModulationTonics = false
+    } = options;
     const start = (_a = options.startBeat) != null ? _a : 0, end = (_b = options.endBeat) != null ? _b : beats;
     const regions = tonicRegions(timeline(options), start, end).map(({ start: start2, ...region }) => ({ ...region, beat: start2 }));
     if (options.boundaryTonic != null) regions.push({ beat: end, end, tonic: options.boundaryTonic, boundary: true });
@@ -232,8 +241,8 @@ var TonalGrid = (() => {
     for (const region of (_c = options.markerEvents) != null ? _c : keyMarkers(options)) {
       if (region.continued) continue;
       const { tonic, delta } = tonicMarkers([{ tonic: (_d = region.previousTonic) != null ? _d : null }, region]).at(-1);
-      const showTonicName = (_e = region.initial) != null ? _e : delta == null;
-      if (!showTonicMarkers || tonic == null || !showTonicName && (delta == null || delta === 0) || region.beat < start || region.beat >= end) continue;
+      const initial = (_e = region.initial) != null ? _e : delta == null;
+      if (!showTonicMarkers || tonic == null || delta === 0 || !initial && delta == null || region.beat < start || region.beat >= end) continue;
       const left = percent(region.beat), offset = delta == null ? 18 : 30;
       if (delta != null) {
         const badge = document.createElement("div");
@@ -252,7 +261,10 @@ var TonalGrid = (() => {
         label.innerHTML = arrow(delta < 0 ? "down" : "up");
         label.append(document.createTextNode(String(Math.abs(delta))));
       }
-      if (showTonicName) label.append(document.createTextNode((_f = region.label) != null ? _f : TONIC_NAMES[tonic]));
+      if (initial || showModulationTonics) {
+        if (delta != null) label.append(document.createTextNode(" "));
+        label.append(document.createTextNode((_f = region.label) != null ? _f : TONIC_NAMES[tonic]));
+      }
       label.style.cssText = `position:absolute;top:-2px;left:calc(${left} + ${offset}px);font:700 12px/16px sans-serif;color:#fff;white-space:nowrap;user-select:none;pointer-events:none;z-index:1`;
       markers.append(label);
     }

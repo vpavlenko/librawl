@@ -610,6 +610,7 @@ function RawlMeasureHeader({
   selectedMeasure = null,
   onMeasureSelect,
   hideInitialTonic = false,
+  showModulationTonics = false,
   showHeader = true,
   transpose = 0,
   renderMeasureExtras,
@@ -689,122 +690,134 @@ function RawlMeasureHeader({
     event.stopPropagation();
     if (action && action.glue === event.shiftKey) applySection(event, measure, action);
   };
-  return /* @__PURE__ */ import_react3.default.createElement("div", { ref: element, className: "rawln-measure-grid", style: { height } }, measures.map((measure) => {
-    var _a;
-    return /* @__PURE__ */ import_react3.default.createElement(
-      "div",
-      {
-        className: "rawln-bar" + (measure.isPhraseStart ? " rawln-phrase-bar" : ""),
-        key: measure.beat,
-        "data-beat": measure.beat,
-        "data-phrase-boundary": measure.isPhraseStart || void 0,
-        "data-terminal": measure.terminal || void 0,
-        style: { left: (_a = measure.barLeft) != null ? _a : measure.left }
-      }
-    );
-  }), beats.map(({ beat, left }) => /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-beat-bar", key: beat, "data-beat": beat, style: { left } })), showHeader && /* @__PURE__ */ import_react3.default.createElement(import_react3.default.Fragment, null, /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-modulations" }, markers.map((marker) => {
-    var _a, _b;
-    const interval = marker.delta == null ? null : mod(marker.delta);
-    const showTonicName = !marker.continued && ((_a = marker.initial) != null ? _a : marker.previousTonic === null);
-    return /* @__PURE__ */ import_react3.default.createElement(
-      "div",
-      {
-        key: marker.beat,
-        className: "rawln-modulation",
-        "data-beat": marker.beat,
-        "data-tonic": marker.tonic,
-        "data-join": marker.join ? marker.name : void 0,
-        "data-onset-override": marker.onsetOverride || void 0,
-        "data-origin-beat": marker.originBeat,
-        "data-continued": marker.continued || void 0,
-        style: { left: marker.left },
-        title: marker.name
-      },
-      /* @__PURE__ */ import_react3.default.createElement(
-        TonicSymbol,
-        {
-          left: 0,
-          number: marker.number,
-          previousTonic: marker.previousTonic,
-          modulationDiff: interval,
-          tonicStart: marker.tonic,
-          transpose,
-          alignToOnset: marker.onsetOverride && !marker.continued,
-          labelClassName: "rawln-modulation-label",
-          flagClassName: "rawln-modulation-flag",
-          showLabel: !marker.continued && (showTonicName || interval != null),
-          showTonicName,
-          labelAttributes: { style: { left: 0, top: 0, lineHeight: MODULATION_BADGE_HEIGHT + "px" } },
-          flagAttributes: { "data-degree": interval != null ? interval : void 0, style: { background: (_b = RAWL_COLORS[interval]) == null ? void 0 : _b.background } },
-          renderArrow: arrow
-        }
-      )
-    );
-  })), /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-measure-labels", "aria-hidden": !(onMeasureSelect || sectionEditing) || void 0 }, measures.filter((measure) => !measure.terminal && measure.showLabel !== false).map((measure) => {
-    var _a;
-    const labelLeft = offsetLeft(measure.left, (_a = measure.labelOffset) != null ? _a : 6);
-    const isSelected = selectedMeasure === measure.beat;
-    const action = isSelected ? measureSectionAction(sectionEditing, measure) : void 0;
-    const CommandIcon = (action == null ? void 0 : action.glue) ? CornerRightUp : CornerDownLeft;
-    const commandName = (action == null ? void 0 : action.glue) ? "Glue" : "Split";
-    const menu = action && /* @__PURE__ */ import_react3.default.createElement(
-      "button",
-      {
-        type: "button",
-        className: "rawln-section-command",
-        "aria-label": commandName,
-        title: commandName,
-        onMouseDown: (event) => event.preventDefault(),
-        onClick: (event) => {
-          event.stopPropagation();
-          applySection(event, measure, action);
-        },
-        onKeyDown: (event) => {
-          if (event.key === "Enter" || event.key === " ") event.stopPropagation();
-        }
-      },
-      /* @__PURE__ */ import_react3.default.createElement(CommandIcon, { size: 14, "aria-hidden": "true", focusable: false })
-    );
-    return /* @__PURE__ */ import_react3.default.createElement(
-      "div",
-      {
-        className: "rawln-measure-position",
-        key: measure.beat,
-        style: { gridTemplateColumns: `minmax(0, ${cssLength(labelLeft)}) max-content` }
-      },
-      /* @__PURE__ */ import_react3.default.createElement(
+  return /* @__PURE__ */ import_react3.default.createElement(
+    "div",
+    {
+      ref: element,
+      className: "rawln-measure-grid",
+      "data-modulation-tonics": showModulationTonics || void 0,
+      style: { height }
+    },
+    measures.map((measure) => {
+      var _a;
+      return /* @__PURE__ */ import_react3.default.createElement(
         "div",
         {
-          className: "rawln-measure-number",
-          role: onMeasureSelect ? "button" : void 0,
-          tabIndex: onMeasureSelect ? 0 : void 0,
-          "aria-pressed": onMeasureSelect ? isSelected : void 0,
-          onClick: onMeasureSelect ? (event) => select(event, measure) : void 0,
-          onKeyDown: onMeasureSelect ? (event) => {
-            if (event.target !== event.currentTarget) return;
-            if (isSelected && sectionEditing && event.key === "Enter") {
-              editSection(event, measure, action);
-            } else if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              select(event, measure);
-            }
-          } : void 0,
+          className: "rawln-bar" + (measure.isPhraseStart ? " rawln-phrase-bar" : ""),
+          key: measure.beat,
           "data-beat": measure.beat,
-          "data-modulation": measure.hasModulation || void 0,
-          "data-score-measure": measure.number,
-          style: {
-            color: measure.color,
-            top: measureNumberTop,
-            pointerEvents: onMeasureSelect ? "auto" : void 0,
-            cursor: onMeasureSelect ? "pointer" : void 0
+          "data-phrase-boundary": measure.isPhraseStart || void 0,
+          "data-terminal": measure.terminal || void 0,
+          style: { left: (_a = measure.barLeft) != null ? _a : measure.left }
+        }
+      );
+    }),
+    beats.map(({ beat, left }) => /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-beat-bar", key: beat, "data-beat": beat, style: { left } })),
+    showHeader && /* @__PURE__ */ import_react3.default.createElement(import_react3.default.Fragment, null, /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-modulations" }, markers.map((marker) => {
+      var _a, _b;
+      const interval = marker.delta == null ? null : mod(marker.delta);
+      const initial2 = (_a = marker.initial) != null ? _a : marker.previousTonic === null;
+      const showTonicName = !marker.continued && (initial2 || showModulationTonics && interval != null);
+      return /* @__PURE__ */ import_react3.default.createElement(
+        "div",
+        {
+          key: marker.beat,
+          className: "rawln-modulation",
+          "data-beat": marker.beat,
+          "data-tonic": marker.tonic,
+          "data-join": marker.join ? marker.name : void 0,
+          "data-onset-override": marker.onsetOverride || void 0,
+          "data-origin-beat": marker.originBeat,
+          "data-continued": marker.continued || void 0,
+          style: { left: marker.left },
+          title: marker.name
+        },
+        /* @__PURE__ */ import_react3.default.createElement(
+          TonicSymbol,
+          {
+            left: 0,
+            number: marker.number,
+            previousTonic: marker.previousTonic,
+            modulationDiff: interval,
+            tonicStart: marker.tonic,
+            transpose,
+            alignToOnset: marker.onsetOverride && !marker.continued,
+            labelClassName: "rawln-modulation-label",
+            flagClassName: "rawln-modulation-flag",
+            showLabel: !marker.continued && (showTonicName || interval != null),
+            showTonicName,
+            labelAttributes: { style: { left: 0, top: 0, lineHeight: MODULATION_BADGE_HEIGHT + "px" } },
+            flagAttributes: { "data-degree": interval != null ? interval : void 0, style: { background: (_b = RAWL_COLORS[interval]) == null ? void 0 : _b.background } },
+            renderArrow: arrow
+          }
+        )
+      );
+    })), /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-measure-labels", "aria-hidden": !(onMeasureSelect || sectionEditing) || void 0 }, measures.filter((measure) => !measure.terminal && measure.showLabel !== false).map((measure) => {
+      var _a;
+      const labelLeft = offsetLeft(measure.left, (_a = measure.labelOffset) != null ? _a : 6);
+      const isSelected = selectedMeasure === measure.beat;
+      const action = isSelected ? measureSectionAction(sectionEditing, measure) : void 0;
+      const CommandIcon = (action == null ? void 0 : action.glue) ? CornerRightUp : CornerDownLeft;
+      const commandName = (action == null ? void 0 : action.glue) ? "Glue" : "Split";
+      const menu = action && /* @__PURE__ */ import_react3.default.createElement(
+        "button",
+        {
+          type: "button",
+          className: "rawln-section-command",
+          "aria-label": commandName,
+          title: commandName,
+          onMouseDown: (event) => event.preventDefault(),
+          onClick: (event) => {
+            event.stopPropagation();
+            applySection(event, measure, action);
+          },
+          onKeyDown: (event) => {
+            if (event.key === "Enter" || event.key === " ") event.stopPropagation();
           }
         },
-        renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && isSelected ? (event) => editSection(event, measure, action) : void 0),
-        /* @__PURE__ */ import_react3.default.createElement("span", { className: "rawln-measure-digits", style: measureDigits }, measure.number)
-      ),
-      menu != null && /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-measure-menu" }, menu)
-    );
-  }))));
+        /* @__PURE__ */ import_react3.default.createElement(CommandIcon, { size: 14, "aria-hidden": "true", focusable: false })
+      );
+      return /* @__PURE__ */ import_react3.default.createElement(
+        "div",
+        {
+          className: "rawln-measure-position",
+          key: measure.beat,
+          style: { gridTemplateColumns: `minmax(0, ${cssLength(labelLeft)}) max-content` }
+        },
+        /* @__PURE__ */ import_react3.default.createElement(
+          "div",
+          {
+            className: "rawln-measure-number",
+            role: onMeasureSelect ? "button" : void 0,
+            tabIndex: onMeasureSelect ? 0 : void 0,
+            "aria-pressed": onMeasureSelect ? isSelected : void 0,
+            onClick: onMeasureSelect ? (event) => select(event, measure) : void 0,
+            onKeyDown: onMeasureSelect ? (event) => {
+              if (event.target !== event.currentTarget) return;
+              if (isSelected && sectionEditing && event.key === "Enter") {
+                editSection(event, measure, action);
+              } else if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                select(event, measure);
+              }
+            } : void 0,
+            "data-beat": measure.beat,
+            "data-modulation": measure.hasModulation || void 0,
+            "data-score-measure": measure.number,
+            style: {
+              color: measure.color,
+              top: measureNumberTop,
+              pointerEvents: onMeasureSelect ? "auto" : void 0,
+              cursor: onMeasureSelect ? "pointer" : void 0
+            }
+          },
+          renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && isSelected ? (event) => editSection(event, measure, action) : void 0),
+          /* @__PURE__ */ import_react3.default.createElement("span", { className: "rawln-measure-digits", style: measureDigits }, measure.number)
+        ),
+        menu != null && /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-measure-menu" }, menu)
+      );
+    })))
+  );
 }
 
 // src/notation/TonalGrid.jsx
@@ -1143,7 +1156,7 @@ function useSectionRows({ notes, rows, beats, sectionEditing, onSectionRowsChang
   }
   return { spans, editingForRow };
 }
-function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, modulationMarkerPlacement, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = EMPTY_MUTED_VOICES, onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, recoloring, sectionEditing, onSectionRowsChange, renderMeasureExtras, renderHeader, renderUnderlay, renderFooter, className = "", style, ref }) {
+function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, showModulationTonics = false, modulationMarkerPlacement, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = EMPTY_MUTED_VOICES, onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, recoloring, sectionEditing, onSectionRowsChange, renderMeasureExtras, renderHeader, renderUnderlay, renderFooter, className = "", style, ref }) {
   var _a;
   const root = (0, import_react8.useRef)(null), ownClock = (0, import_react8.useMemo)(import_native.createSectionPlaybackClock, []), clock = playbackClock != null ? playbackClock : ownClock;
   const audition = onNoteAudition != null ? onNoteAudition : onNote;
@@ -1187,7 +1200,7 @@ function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2,
         pitchToY: (pitch) => axis.pitchToY(pitch) + axis.pitchStep,
         regions: regions.map((region) => ({ ...region, left: x(region.start) + "%", width: (region.end - region.start) / span * 100 + "%" }))
       }
-    ), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ import_react8.default.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic, modulationMarkerPlacement, sectionEditing: editingForRow(index), renderMeasureExtras }), /* @__PURE__ */ import_react8.default.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, onNote: (note, event) => {
+    ), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ import_react8.default.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic, showModulationTonics, modulationMarkerPlacement, sectionEditing: editingForRow(index), renderMeasureExtras }), /* @__PURE__ */ import_react8.default.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, onNote: (note, event) => {
       if (editor == null ? void 0 : editor.chooseNote(note, event)) return;
       if (onNote) onNote(note, event);
       else if (selectedMeasure === null) seek(Math.max(row.start, note.start));

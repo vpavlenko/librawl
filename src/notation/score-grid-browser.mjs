@@ -93,7 +93,10 @@ export function mount(score, options) {
   if (!options.reuse) {
     score.querySelectorAll(':scope > .tonal-grid,:scope > .tonal-grid-markers').forEach(element => element.remove());
   }
-  const {low, high, pitchToY, beats, top = 16, height = score.clientHeight, showTonicMarkers = true} = options;
+  const {
+    low, high, pitchToY, beats, top = 16, height = score.clientHeight,
+    showTonicMarkers = true, showModulationTonics = false,
+  } = options;
   const start = options.startBeat ?? 0, end = options.endBeat ?? beats;
   const regions = tonicRegions(timeline(options), start, end)
     .map(({start, ...region}) => ({...region, beat: start}));
@@ -125,8 +128,8 @@ export function mount(score, options) {
   for (const region of options.markerEvents ?? keyMarkers(options)) {
     if (region.continued) continue;
     const {tonic, delta} = tonicMarkers([{tonic: region.previousTonic ?? null}, region]).at(-1);
-    const showTonicName = region.initial ?? delta == null;
-    if (!showTonicMarkers || tonic == null || (!showTonicName && (delta == null || delta === 0)) ||
+    const initial = region.initial ?? delta == null;
+    if (!showTonicMarkers || tonic == null || delta === 0 || (!initial && delta == null) ||
         region.beat < start || region.beat >= end) continue;
     const left = percent(region.beat), offset = delta == null ? 18 : 30;
     if (delta != null) {
@@ -146,7 +149,10 @@ export function mount(score, options) {
       label.innerHTML = arrow(delta < 0 ? 'down' : 'up');
       label.append(document.createTextNode(String(Math.abs(delta))));
     }
-    if (showTonicName) label.append(document.createTextNode(region.label ?? TONIC_NAMES[tonic]));
+    if (initial || showModulationTonics) {
+      if (delta != null) label.append(document.createTextNode(' '));
+      label.append(document.createTextNode(region.label ?? TONIC_NAMES[tonic]));
+    }
     label.style.cssText = `position:absolute;top:-2px;left:calc(${left} + ${offset}px);font:700 12px/16px sans-serif;color:#fff;white-space:nowrap;user-select:none;pointer-events:none;z-index:1`;
     markers.append(label);
   }

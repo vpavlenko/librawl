@@ -205,3 +205,8 @@ Plain DOM hosts load `librawl/browser/score-grid.js`. Its `TonalGrid` global
 mounts horizontal guides and key labels and provides `appendMeasureGuides`
 for positioned bars and beats. The React and plain DOM paths use the same
 pitch guides and tonic timeline. Hosts own score source data and playback.
+
+Modulation flags name the opening tonic by default. Pass
+`showModulationTonics={true}` to `RawlNotation` or `RawlMeasureHeader` to add
+the destination tonic beside the interval at each change. Plain DOM hosts can
+pass `showModulationTonics: true` to `TonalGrid.mount`.
