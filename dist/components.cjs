@@ -829,6 +829,14 @@ function PlaybackMeasureBorders({ left, width, top = true, bottom = true, hidden
 
 // src/notation/RawlNotation.jsx
 var import_native = require("librawl/native");
+function iconCursor(shape) {
+  const outline = `<g fill="none" stroke="black" color="black" stroke-width="4">${shape}</g>`;
+  const icon = `<g fill="none" stroke="white" color="white" stroke-width="2">${shape}</g>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="-1 -1 26 26" stroke-linecap="round" stroke-linejoin="round">${outline}${icon}</svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 12 12, pointer`;
+}
+var AUDITION_CURSOR = iconCursor('<path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/>');
+var TONIC_CURSOR = iconCursor('<path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><g fill="currentColor"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/></g>');
 var atRowStart = (beat, start) => Math.abs(beat - start) < 1e-7;
 function PlaybackMeasureLayer({ row, clock, measureMap, barBeats = 4 }) {
   const border = (0, import_react6.useRef)(null), { start, end } = row;

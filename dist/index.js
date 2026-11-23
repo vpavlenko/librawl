@@ -976,6 +976,14 @@ function useTonicRecoloring({ changes, barBeats = 4, measureMap, onChange }) {
 var EMPTY_CHANGES2 = [];
 var EMPTY_MUTED_VOICES = [];
 var NO_ONSET_EDITING = { active: false, isAllowed: () => false };
+function iconCursor(shape) {
+  const outline = `<g fill="none" stroke="black" color="black" stroke-width="4">${shape}</g>`;
+  const icon = `<g fill="none" stroke="white" color="white" stroke-width="2">${shape}</g>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="-1 -1 26 26" stroke-linecap="round" stroke-linejoin="round">${outline}${icon}</svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 12 12, pointer`;
+}
+var AUDITION_CURSOR = iconCursor('<path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/>');
+var TONIC_CURSOR = iconCursor('<path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><g fill="currentColor"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/></g>');
 var atRowStart = (beat, start) => Math.abs(beat - start) < 1e-7;
 var noteName = (p) => TONIC_NAMES[mod(p)] + (Math.floor(p / 12) - 1);
 function PlaybackMeasureLayer({ row, clock, measureMap, barBeats = 4 }) {
@@ -1036,7 +1044,7 @@ function notePlaybackSpan(note, row, independentPlayback) {
   const scale = (end - start) / note.duration;
   return [start + Math.max(0, row.start - note.start) * scale, end - Math.max(0, note.start + note.duration - row.end) * scale];
 }
-function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, onNote, onNoteAudition, auditionEnabled, onNoteHover, clock, onsetEditing }) {
+function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, onNote, onNoteAudition, auditionEnabled, onNoteHover, clock, onsetEditing, noteCursor }) {
   const host = useRef2(null), [pixelWidth, setPixelWidth] = useState4(100), span = row.end - row.start, section = useMemo3(() => [row.start, row.end], [row.start, row.end]);
   const hoveredRef = useRef2(null), [hoveredId, setHoveredId] = useState4(null);
   const independentPlayback = useMemo3(() => visible.some((note) => note.playbackSpan !== void 0), [visible]), playbackSection = independentPlayback ? null : section;
@@ -1089,7 +1097,8 @@ function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, onNote
   return /* @__PURE__ */ React5.createElement("div", { ref: host, style: { display: "contents" } }, /* @__PURE__ */ React5.createElement(ModulationOnsetEditingContext.Provider, { value: onsetContext }, /* @__PURE__ */ React5.createElement(PlaybackSectionContext.Provider, { value: playbackSection }, /* @__PURE__ */ React5.createElement(NoteLayer, { notes: renderedNotes, midiNumberToY: (pitch) => axis.pitchToY(pitch) + axis.glyphHeight / 2, noteHeight: axis.glyphHeight / 2, secondsToX: (beat) => (beat - row.start) / span * pixelWidth, handleNoteClick: (note, event) => onNote == null ? void 0 : onNote(sourceById.get(note.id), event), handleMouseEnter: hover, handleMouseLeave: leave, onNoteAudition: onNoteAudition ? (note) => onNoteAudition(sourceById.get(note.id)) : void 0, auditionEnabled, getNoteAttributes: (note) => {
     var _a;
     const original = sourceById.get(note.id), start = note.displaySpan[0], end = note.displaySpan[1], degree = note.colorPitchClass, muted = mutedVoices.includes(original.voice);
-    return { role: "button", tabIndex: -1, "aria-label": noteName(original.pitch), "data-note": original.id, "data-pitch": original.pitch, "data-degree": degree, "data-voice": original.voice, className: `rawln-note rawln-voice-${original.voice}${muted ? " rawln-muted" : ""}`, style: { left: (start - row.start) / span * 100 + "%", width: (end - start) / span * 100 + "%", ...!((_a = note.pitchBend) == null ? void 0 : _a.length) && RAWL_COLORS[degree] ? { background: RAWL_COLORS[degree].background } : {}, zIndex: 100 + (84 - original.pitch) + (original.voice === 1 ? 128 : 0) } };
+    const cursor = onsetEditing.active ? onsetEditing.isAllowed(original) ? "e-resize" : "not-allowed" : noteCursor;
+    return { role: "button", tabIndex: -1, "aria-label": noteName(original.pitch), "data-note": original.id, "data-pitch": original.pitch, "data-degree": degree, "data-voice": original.voice, className: `rawln-note rawln-voice-${original.voice}${muted ? " rawln-muted" : ""}`, style: { cursor, left: (start - row.start) / span * 100 + "%", width: (end - start) / span * 100 + "%", ...!((_a = note.pitchBend) == null ? void 0 : _a.length) && RAWL_COLORS[degree] ? { background: RAWL_COLORS[degree].background } : {}, zIndex: 100 + (84 - original.pitch) + (original.voice === 1 ? 128 : 0) } };
   } }))));
 }
 function useSectionRows({ notes, rows, beats, sectionStarts, phraseStarts, barBeats, sectionEditing, onSectionRowsChange, onEdit }) {
@@ -1203,7 +1212,7 @@ function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2,
       if (editor == null ? void 0 : editor.chooseNote(note, event)) return;
       if (onNote) onNote(note, event);
       else if (selectedMeasure === null) seek(Math.max(row.start, note.start));
-    }, onNoteAudition: audition, auditionEnabled: selectedMeasure == null, onNoteHover, clock, onsetEditing })), renderFooter && /* @__PURE__ */ React5.createElement("div", { className: "rawln-footer" }, renderFooter(row, { changes, selectedMeasure })));
+    }, onNoteAudition: audition, auditionEnabled: selectedMeasure == null, onNoteHover, clock, onsetEditing, noteCursor: selectedMeasure == null ? AUDITION_CURSOR : TONIC_CURSOR })), renderFooter && /* @__PURE__ */ React5.createElement("div", { className: "rawln-footer" }, renderFooter(row, { changes, selectedMeasure })));
   })));
 }
 

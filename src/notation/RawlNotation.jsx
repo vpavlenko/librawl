@@ -11,6 +11,15 @@ import {useTonicRecoloring} from './recolor.jsx';
 const EMPTY_CHANGES=[];
 const EMPTY_MUTED_VOICES=[];
 const NO_ONSET_EDITING={active:false,isAllowed:()=>false};
+// Lucide volume-2 and palette geometry with a contrasting outline.
+function iconCursor(shape){
+ const outline=`<g fill="none" stroke="black" color="black" stroke-width="4">${shape}</g>`;
+ const icon=`<g fill="none" stroke="white" color="white" stroke-width="2">${shape}</g>`;
+ const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="-1 -1 26 26" stroke-linecap="round" stroke-linejoin="round">${outline}${icon}</svg>`;
+ return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 12 12, pointer`;
+}
+const AUDITION_CURSOR=iconCursor('<path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/>');
+const TONIC_CURSOR=iconCursor('<path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><g fill="currentColor"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/></g>');
 const atRowStart=(beat,start)=>Math.abs(beat-start)<1e-7;
 const noteName=p=>TONIC_NAMES[mod(p)]+(Math.floor(p/12)-1);
 
@@ -75,7 +84,7 @@ function notePlaybackSpan(note,row,independentPlayback){
 }
 
 /** Adapt authored quarter beats to the native renderer without changing source data. */
-function BeatNoteLayer({visible,row,axis,tonic,changes,mutedVoices,onNote,onNoteAudition,auditionEnabled,onNoteHover,clock,onsetEditing}){
+function BeatNoteLayer({visible,row,axis,tonic,changes,mutedVoices,onNote,onNoteAudition,auditionEnabled,onNoteHover,clock,onsetEditing,noteCursor}){
  const host=useRef(null),[pixelWidth,setPixelWidth]=useState(100),span=row.end-row.start,section=useMemo(()=>[row.start,row.end],[row.start,row.end]);
  const hoveredRef=useRef(null),[hoveredId,setHoveredId]=useState(null);
  const independentPlayback=useMemo(()=>visible.some(note=>note.playbackSpan!==undefined),[visible]),playbackSection=independentPlayback?null:section;
@@ -112,7 +121,10 @@ function BeatNoteLayer({visible,row,axis,tonic,changes,mutedVoices,onNote,onNote
  const leave=()=>{if(hoveredRef.current===null)return;hoveredRef.current=null;setHoveredId(null);onNoteHover?.(null);};
  return <div ref={host} style={{display:'contents'}}><ModulationOnsetEditingContext.Provider value={onsetContext}><PlaybackSectionContext.Provider value={playbackSection}><NoteLayer notes={renderedNotes} midiNumberToY={pitch=>axis.pitchToY(pitch)+axis.glyphHeight/2} noteHeight={axis.glyphHeight/2} secondsToX={beat=>(beat-row.start)/span*pixelWidth} handleNoteClick={(note,event)=>onNote?.(sourceById.get(note.id),event)} handleMouseEnter={hover} handleMouseLeave={leave} onNoteAudition={onNoteAudition?note=>onNoteAudition(sourceById.get(note.id)):undefined} auditionEnabled={auditionEnabled} getNoteAttributes={note=>{
   const original=sourceById.get(note.id),start=note.displaySpan[0],end=note.displaySpan[1],degree=note.colorPitchClass,muted=mutedVoices.includes(original.voice);
-  return {role:'button',tabIndex:-1,'aria-label':noteName(original.pitch),'data-note':original.id,'data-pitch':original.pitch,'data-degree':degree,'data-voice':original.voice,className:`rawln-note rawln-voice-${original.voice}${muted?' rawln-muted':''}`,style:{left:(start-row.start)/span*100+'%',width:(end-start)/span*100+'%',...(!note.pitchBend?.length&&RAWL_COLORS[degree]?{background:RAWL_COLORS[degree].background}:{}),zIndex:100+(84-original.pitch)+(original.voice===1?128:0)}};
+  const cursor=onsetEditing.active
+   ? (onsetEditing.isAllowed(original)?'e-resize':'not-allowed')
+   : noteCursor;
+  return {role:'button',tabIndex:-1,'aria-label':noteName(original.pitch),'data-note':original.id,'data-pitch':original.pitch,'data-degree':degree,'data-voice':original.voice,className:`rawln-note rawln-voice-${original.voice}${muted?' rawln-muted':''}`,style:{cursor,left:(start-row.start)/span*100+'%',width:(end-start)/span*100+'%',...(!note.pitchBend?.length&&RAWL_COLORS[degree]?{background:RAWL_COLORS[degree].background}:{}),zIndex:100+(84-original.pitch)+(original.voice===1?128:0)}};
  }}/></PlaybackSectionContext.Provider></ModulationOnsetEditingContext.Provider></div>;
 }
 
@@ -210,7 +222,7 @@ export function RawlNotation({notes,beats,rows,tonic=0,changes=EMPTY_CHANGES,bar
      />
      {renderUnderlay?.(row,axis)}
      <RawlMeasureHeader row={row} height={axis.notesBottom} tonic={tonic} changes={changes} barBeats={barBeats} beatBeats={beatBeats} phraseStarts={phraseStarts} measureMap={measureMap} selectedMeasure={selectedMeasure} onMeasureSelect={onMeasureSelect} hideInitialTonic={hideInitialTonic} showModulationTonics={showModulationTonics} showContinuedTonic={showContinuedTonic} modulationMarkerPlacement={modulationMarkerPlacement} sectionEditing={editing} renderMeasureExtras={renderMeasureExtras}/>
-     <BeatNoteLayer visible={visible} row={row} axis={axis} tonic={tonic} changes={changes} mutedVoices={mutedVoices} onNote={(note,event)=>{if(editor?.chooseNote(note,event))return;if(onNote)onNote(note,event);else if(selectedMeasure===null)seek(Math.max(row.start,note.start));}} onNoteAudition={audition} auditionEnabled={selectedMeasure==null} onNoteHover={onNoteHover} clock={clock} onsetEditing={onsetEditing}/>
+     <BeatNoteLayer visible={visible} row={row} axis={axis} tonic={tonic} changes={changes} mutedVoices={mutedVoices} onNote={(note,event)=>{if(editor?.chooseNote(note,event))return;if(onNote)onNote(note,event);else if(selectedMeasure===null)seek(Math.max(row.start,note.start));}} onNoteAudition={audition} auditionEnabled={selectedMeasure==null} onNoteHover={onNoteHover} clock={clock} onsetEditing={onsetEditing} noteCursor={selectedMeasure==null?AUDITION_CURSOR:TONIC_CURSOR}/>
     </div>
     {renderFooter&&<div className="rawln-footer">{renderFooter(row,{changes,selectedMeasure})}</div>}
    </div>;

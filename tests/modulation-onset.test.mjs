@@ -52,9 +52,11 @@ test('default notation previews and moves a modulation across a row boundary', a
       beats: 12, rows: [{start: 0, end: 5}, {start: 5, end: 12}], notes, measureMap, changes,
       onChangesChange: value => saved.push(value), onSeek: beat => seeks.push(beat),
     })));
+    assert.match(decodeURIComponent(note('across').style.cursor), /M16 9a5 5/);
     click(marker(5).querySelector('.rawln-modulation-flag'));
     assert.equal(measure(5).getAttribute('aria-pressed'), 'true');
     assert.equal(document.activeElement, measure(5));
+    assert.match(decodeURIComponent(note('across').style.cursor), /M12 22a1 1/);
     await hover(note('across'));
     assert.equal(marker(5).dataset.tonic, '4');
     shift(true);
@@ -64,18 +66,23 @@ test('default notation previews and moves a modulation across a row boundary', a
     assert.equal(note('before').dataset.modulationOnsetAllowed, undefined);
     assert.equal(note('start').dataset.modulationOnsetAllowed, 'true');
     assert.equal(note('after').dataset.modulationOnsetAllowed, undefined);
+    assert.equal(note('across').style.cursor, 'e-resize');
+    assert.equal(note('across', 1).style.cursor, 'e-resize');
+    assert.equal(note('after').style.cursor, 'not-allowed');
     assert.equal(click(container.querySelector('.rawln-score'), true), true);
     click(note('after'), true);
     assert.deepEqual(saved, []);
     assert.deepEqual(seeks, []);
     assert.equal(measure(5).getAttribute('aria-pressed'), 'true');
     shift(false);
+    assert.match(decodeURIComponent(note('across').style.cursor), /M12 22a1 1/);
     assert.equal(marker(5).dataset.tonic, '4');
 
     shift(true);
     click(note('across', 1), true);
     assert.deepEqual(saved.at(-1), [{beat: 4.75, tonic: 7, name: 'G', measureBeat: 5, onsetOverride: true}]);
     assert.equal(isEditing(), false);
+    assert.match(decodeURIComponent(note('across').style.cursor), /M16 9a5 5/);
     shift(false);
     click(measure(1));
     shift(true);
