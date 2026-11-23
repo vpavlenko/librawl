@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import React from 'react';
 import {flushSync} from 'react-dom';
@@ -12,6 +13,9 @@ test('default notation previews and moves a modulation across a row boundary', a
   const globals = {window: globalThis.window, document: globalThis.document};
   const {document} = window;
   Object.assign(globalThis, {window, document});
+  const style = document.createElement('style');
+  style.textContent = readFileSync(new URL('../dist/native.css', import.meta.url), 'utf8');
+  document.head.append(style);
   const container = document.querySelector('main');
   const root = createRoot(container);
   const measureMap = [
@@ -56,7 +60,7 @@ test('default notation previews and moves a modulation across a row boundary', a
     click(marker(5).querySelector('.rawln-modulation-flag'));
     assert.equal(measure(5).getAttribute('aria-pressed'), 'true');
     assert.equal(document.activeElement, measure(5));
-    assert.match(decodeURIComponent(note('across').style.cursor), /M12 22a1 1/);
+    assert.match(decodeURIComponent(note('across').style.cursor), /m2 22 .* 3 21, pointer$/);
     await hover(note('across'));
     assert.equal(marker(5).dataset.tonic, '4');
     shift(true);
@@ -66,16 +70,16 @@ test('default notation previews and moves a modulation across a row boundary', a
     assert.equal(note('before').dataset.modulationOnsetAllowed, undefined);
     assert.equal(note('start').dataset.modulationOnsetAllowed, 'true');
     assert.equal(note('after').dataset.modulationOnsetAllowed, undefined);
-    assert.equal(note('across').style.cursor, 'e-resize');
-    assert.equal(note('across', 1).style.cursor, 'e-resize');
-    assert.equal(note('after').style.cursor, 'not-allowed');
+    assert.equal(window.getComputedStyle(note('across')).cursor, 'e-resize');
+    assert.equal(window.getComputedStyle(note('across', 1)).cursor, 'e-resize');
+    assert.equal(window.getComputedStyle(note('after')).cursor, 'not-allowed');
     assert.equal(click(container.querySelector('.rawln-score'), true), true);
     click(note('after'), true);
     assert.deepEqual(saved, []);
     assert.deepEqual(seeks, []);
     assert.equal(measure(5).getAttribute('aria-pressed'), 'true');
     shift(false);
-    assert.match(decodeURIComponent(note('across').style.cursor), /M12 22a1 1/);
+    assert.match(decodeURIComponent(note('across').style.cursor), /m2 22 .* 3 21, pointer$/);
     assert.equal(marker(5).dataset.tonic, '4');
 
     shift(true);

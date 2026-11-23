@@ -621,7 +621,7 @@ var NoteRectangle = React.memo(({
 }) => {
   var _a, _b, _c, _d;
   const onsetEditing = React.useContext(ModulationOnsetEditingContext);
-  const onsetCursor = onsetEditing.active && handleNoteClick ? onsetEditing.isAllowed(note) ? "crosshair" : "not-allowed" : void 0;
+  const onsetCursor = onsetEditing.active && handleNoteClick ? onsetEditing.isAllowed(note) ? "e-resize" : "not-allowed" : void 0;
   const registerNote = React.useContext(NotePlaybackContext);
   const section = React.useContext(PlaybackSectionContext);
   const voiceZIndices = React.useContext(VoiceZIndicesContext);
@@ -958,7 +958,7 @@ var modulationOnsetStyles = `
 
   .modulation-onset-editing [data-modulation-onset-allowed="true"],
   .modulation-onset-editing [data-modulation-onset-allowed="true"] * {
-    cursor: crosshair !important;
+    cursor: e-resize !important;
   }
 `;
 

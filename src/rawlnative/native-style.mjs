@@ -48,6 +48,6 @@ export const modulationOnsetStyles = `
 
   .modulation-onset-editing [data-modulation-onset-allowed="true"],
   .modulation-onset-editing [data-modulation-onset-allowed="true"] * {
-    cursor: crosshair !important;
+    cursor: e-resize !important;
   }
 `;

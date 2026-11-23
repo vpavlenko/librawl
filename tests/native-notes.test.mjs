@@ -69,13 +69,17 @@ test('native source fixtures retain every recorded upstream source byte and comp
   .replace('  tonalPitchStops,\n','')
   .replace('  const colorStops = tonalPitchStops?.length ? applyTonalPitchStops(stops, tonalPitchStops, basePitch, width) : stops;\n','')
   .replace('colorStops.map((stop, index) => (','stops.map((stop, index) => (')
-  .replace('          tonalPitchStops={note.tonalPitchStops}\n','');
+  .replace('          tonalPitchStops={note.tonalPitchStops}\n','')
+  .replace('onsetEditing.isAllowed(note) ? "e-resize"', 'onsetEditing.isAllowed(note) ? "crosshair"');
  assert.equal(extracted,fs.readFileSync(path.join(root,'tests/fixtures/native/getNoteRectangles.tsx'),'utf8'));
  for(const filename of ['playbackIndex.ts','notePlayback.ts','drumPlayback.ts','strumContext.ts'])assert.equal(fs.readFileSync(path.join(root,'src/rawlnative',filename),'utf8'),fs.readFileSync(path.join(root,'tests/fixtures/native',filename),'utf8'));
 });
 test('React 19 complete native rendering equals original Rawl across pitches, bends, voices, drums, strums and source metadata',()=>{
  const actual=load(nativeCode),original=load(referenceCode),all=cases();
- for(const [i,entry]of all.entries())assert.equal(staticMarkup(actual,entry.notes,entry.options),staticMarkup(original,entry.notes,entry.options),`case ${i}`);
+ for(const [i,entry]of all.entries()){
+  const expected=staticMarkup(original,entry.notes,entry.options).replaceAll('cursor:crosshair','cursor:e-resize');
+  assert.equal(staticMarkup(actual,entry.notes,entry.options),expected,`case ${i}`);
+ }
  const zero=staticMarkup(actual,[note('zero',{span:[0,0],displaySpan:[0,8]}),note('drumzero',{span:[1,1],isDrum:true})]);assert.equal(zero,'');
  assert.ok(all.length>=100);
 });

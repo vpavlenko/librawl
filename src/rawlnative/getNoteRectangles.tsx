@@ -415,7 +415,7 @@ const NoteRectangle = React.memo(({
 }) => {
   const onsetEditing = React.useContext(ModulationOnsetEditingContext);
   const onsetCursor = onsetEditing.active && handleNoteClick
-    ? (onsetEditing.isAllowed(note) ? "crosshair" : "not-allowed") : undefined;
+    ? (onsetEditing.isAllowed(note) ? "e-resize" : "not-allowed") : undefined;
   const registerNote = React.useContext(NotePlaybackContext);
   const section = React.useContext(PlaybackSectionContext);
   const voiceZIndices = React.useContext(VoiceZIndicesContext);

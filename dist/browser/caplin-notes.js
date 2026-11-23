@@ -15010,7 +15010,7 @@ var LibrawlCaplinNotes = (() => {
   }) => {
     var _a, _b, _c, _d;
     const onsetEditing = React.useContext(ModulationOnsetEditingContext);
-    const onsetCursor = onsetEditing.active && handleNoteClick ? onsetEditing.isAllowed(note) ? "crosshair" : "not-allowed" : void 0;
+    const onsetCursor = onsetEditing.active && handleNoteClick ? onsetEditing.isAllowed(note) ? "e-resize" : "not-allowed" : void 0;
     const registerNote = React.useContext(NotePlaybackContext);
     const section = React.useContext(PlaybackSectionContext);
     const voiceZIndices = React.useContext(VoiceZIndicesContext);
