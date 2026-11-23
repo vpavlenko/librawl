@@ -27,7 +27,7 @@
     "index.cjs": "a8731d5503cf1fc16032fbfbb0a3c99e0c49866db149a1963ddfb54b3a51c48f",
     "index.d.ts": "dff38773c0e171bac021ca9a726de1cd90e06070bdda5d9b65ff62bd3991cbd6",
     "index.js": "e6151934b520d0f5f39b55c58f5c781aefa1b9b6c4dc87bd8cb40203462f8d9f",
-    "legacy-style.css": "2560fc9e1d8ce4b04d3d3767a61fe3948ee4a32c10d8922c78629da3a64eb2d2",
+    "legacy-style.css": "70c07d9ee728017da1f528cb266ac21f60de4eafa80ccec91d1d386abaed3607",
     "native-audio.cjs": "6a0f631fc7ed571f79b3647ada86cb5a5a00118fc882ec016dfc5887a11c0eb3",
     "native-audio.d.ts": "19da0d0bb1b0c4cd9b7e5cc5b41999039a23d3e2fd24a6a0d5705a2400b87633",
     "native-audio.js": "799650f80447d1f91d1d2433b9067d11495f22980028a4984f876cc32608b6ac",
@@ -47,7 +47,7 @@
     "roman-numerals.d.ts": "a6786cfe46a5dcd19f98f67e6091c484143cf7e9588fd85e6ed035cdcae940cc",
     "roman-numerals.js": "79f551db647ae6e24e7b75eccbe4908231fb983739f7ab8871727e88a5e226e1",
     "score-size-sliders.css": "18014f05416bb4d1a73b4211a8d1fc5fc79367dbeb7611ca851cff889fc1a7e5",
-    "style.css": "a72779e3a453ed57ff7d27b9acf3e55a57315aaf6a1f1a86afdf56a9c6f05837",
+    "style.css": "0ee465c70e847536996f39f681e5d03e4fee9ed0d9b5cd4f8153ec6ab46bae5c",
     "voice-shapes.css": "84fd2408c40d394a998e93fed8c0c3a4aa104e37cf987146f2efd43dd4629f8f"
   }
 }
