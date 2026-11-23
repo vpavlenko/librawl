@@ -32,6 +32,7 @@ var index_exports = {};
 __export(index_exports, {
   FoldablePianoLegend: () => FoldablePianoLegend,
   InlinePianoLegend: () => InlinePianoLegend,
+  PHRASE_SHIFT_KEYS: () => PHRASE_SHIFT_KEYS,
   PianoLegend: () => PianoLegend,
   PlaybackFooter: () => PlaybackFooter,
   PlaybackMeasureBorders: () => PlaybackMeasureBorders,
@@ -48,6 +49,7 @@ __export(index_exports, {
   createShiftHoverAudition: () => createShiftHoverAudition,
   createSoundFontPlayback: () => createSoundFontPlayback,
   createTransport: () => createTransport,
+  handlePhraseShiftKey: () => handlePhraseShiftKey,
   modulationLabelOffset: () => modulationLabelOffset,
   pitchRange: () => pitchRange,
   recolorBoundary: () => recolorBoundary,
@@ -517,6 +519,28 @@ function TonicSymbol({ left, number, previousTonic, modulationDiff, tonicStart, 
   ));
 }
 
+// src/notation/phrase-keys.mjs
+var PHRASE_SHIFT_KEYS = Object.freeze({
+  z: -4,
+  x: -3,
+  c: -2,
+  v: -1,
+  b: 1,
+  n: 2,
+  m: 3,
+  ",": 4
+});
+function handlePhraseShiftKey(event, onShift) {
+  var _a;
+  if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || ((_a = event.nativeEvent) != null ? _a : event).isComposing) return false;
+  const offset = PHRASE_SHIFT_KEYS[event.key];
+  if (!Number.isInteger(offset)) return false;
+  event.preventDefault();
+  event.stopPropagation();
+  onShift(offset);
+  return true;
+}
+
 // src/notation/RawlMeasureHeader.jsx
 var EMPTY_CHANGES = [];
 var measureNumberTop = -4;
@@ -648,7 +672,8 @@ function RawlMeasureHeader({
   transpose = 0,
   renderMeasureExtras,
   modulationMarkerPlacement,
-  sectionEditing
+  sectionEditing,
+  onPhraseShift
 }) {
   const element = (0, import_react3.useRef)(null);
   const previousSelection = (0, import_react3.useRef)(selectedMeasure);
@@ -840,6 +865,7 @@ function RawlMeasureHeader({
             } : void 0,
             onKeyDown: onMeasureSelect ? (event) => {
               if (event.target !== event.currentTarget) return;
+              if (isSelected && onPhraseShift && handlePhraseShiftKey(event, (offset) => onPhraseShift(measure, offset))) return;
               if (isSelected && sectionEditing && event.key === "Enter") {
                 editSection(event, measure, action);
               } else if (event.key === "Enter" || event.key === " ") {
@@ -1251,7 +1277,46 @@ function useSectionRows({ notes, rows, beats, sectionStarts, phraseStarts, barBe
   }
   return { spans, editing: editingForRow(), hasEditedRows: !!editedRows };
 }
-function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, showModulationTonics = false, showContinuedTonic = false, modulationMarkerPlacement, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = EMPTY_MUTED_VOICES, onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, recoloring, sectionEditing, sectionStarts, onSectionRowsChange, onSectionEdit, renderMeasureExtras, renderHeader, renderUnderlay, renderFooter, className = "", style, ref }) {
+function usePhraseStarts({ phraseStarts, measureMap, notes, beats, rows, barBeats, onPhraseStartsChange }) {
+  var _a, _b, _c, _d;
+  const from = (_b = (_a = rows == null ? void 0 : rows[0]) == null ? void 0 : _a.start) != null ? _b : 0, to = (_d = (_c = rows == null ? void 0 : rows.at(-1)) == null ? void 0 : _c.end) != null ? _d : beats;
+  const [edit, setEdit] = (0, import_react8.useState)(null);
+  const current = (edit == null ? void 0 : edit.notes) === notes && edit.source === phraseStarts ? edit.starts : phraseStarts;
+  const grid = (0, import_react8.useMemo)(() => {
+    var _a2;
+    return (_a2 = measureMap == null ? void 0 : measureMap.map((measure) => measure.start)) != null ? _a2 : Array.from(
+      { length: Math.ceil(beats / barBeats) },
+      (_, index) => index * barBeats
+    );
+  }, [measureMap, beats, barBeats]);
+  function shift(beat, offset, navigate) {
+    const index = grid.findIndex((start) => sameBeat(start, beat));
+    const destination = grid[index + offset];
+    if (index < 0 || destination === void 0 || destination < from - 1e-7 || destination >= to - 1e-7) return false;
+    const starts = current != null ? current : grid.filter((start) => sameBeat(start, Math.round(start / (4 * barBeats)) * 4 * barBeats));
+    const phrase = starts.findIndex((start) => sameBeat(start, beat));
+    if (phrase < 0) {
+      navigate(destination);
+      return false;
+    }
+    const previous = starts[phrase - 1];
+    if (previous !== void 0 && destination <= previous + 1e-7) return false;
+    const next = starts.flatMap((start, i) => {
+      if (i < phrase || start >= to - 1e-7) return [start];
+      const measure = grid.findIndex((position) => sameBeat(position, start));
+      if (measure < 0) return [start];
+      const moved = grid[measure + offset];
+      return moved !== void 0 && moved < to - 1e-7 ? [moved] : [];
+    });
+    if (sameBeat(beat, from)) next.push(beat);
+    const updated = [...new Set(next)].sort((a, b) => a - b);
+    if (onPhraseStartsChange) onPhraseStartsChange(updated);
+    else setEdit({ notes, source: phraseStarts, starts: updated });
+    return true;
+  }
+  return { phraseStarts: current, shift };
+}
+function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, showModulationTonics = false, showContinuedTonic = false, modulationMarkerPlacement, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = EMPTY_MUTED_VOICES, onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, recoloring, sectionEditing, sectionStarts, onSectionRowsChange, onSectionEdit, onPhraseStartsChange, renderMeasureExtras, renderHeader, renderUnderlay, renderFooter, className = "", style, ref }) {
   var _a;
   const root = (0, import_react8.useRef)(null), ownClock = (0, import_react8.useMemo)(import_native.createSectionPlaybackClock, []), clock = playbackClock != null ? playbackClock : ownClock;
   const audition = onNoteAudition != null ? onNoteAudition : onNote;
@@ -1272,6 +1337,17 @@ function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2,
     };
   }
   const onsetEditing = (_a = editor == null ? void 0 : editor.onsetEditing) != null ? _a : NO_ONSET_EDITING;
+  const phrasing = usePhraseStarts({ phraseStarts, measureMap, notes, beats, rows, barBeats, onPhraseStartsChange });
+  phraseStarts = phrasing.phraseStarts;
+  const onPhraseShift = sectionEditing === false ? void 0 : ({ beat }, offset) => {
+    const changed = phrasing.shift(beat, offset, (destination) => {
+      var _a2;
+      const control = (_a2 = root.current) == null ? void 0 : _a2.querySelector(`.rawln-measure-number[data-beat="${destination}"]`);
+      control == null ? void 0 : control.focus({ preventScroll: true });
+      control == null ? void 0 : control.click();
+    });
+    if (changed) ownsSelection == null ? void 0 : ownsSelection.cancel();
+  };
   const { spans, editing, hasEditedRows } = useSectionRows({ notes, rows, beats, sectionStarts, phraseStarts, barBeats, sectionEditing, onSectionRowsChange, onEdit: () => {
     ownsSelection == null ? void 0 : ownsSelection.cancel();
     onSectionEdit == null ? void 0 : onSectionEdit();
@@ -1299,7 +1375,7 @@ function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2,
         pitchToY: (pitch) => axis.pitchToY(pitch) + axis.pitchStep,
         regions: showTonalGuides ? regions.map((region) => ({ ...region, left: x(region.start) + "%", width: (region.end - region.start) / span * 100 + "%" })) : []
       }
-    ), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ import_react8.default.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic, showModulationTonics, showContinuedTonic, modulationMarkerPlacement, sectionEditing: editing, renderMeasureExtras }), /* @__PURE__ */ import_react8.default.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, regions, mutedVoices, onNote: (note, event) => {
+    ), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ import_react8.default.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic, showModulationTonics, showContinuedTonic, modulationMarkerPlacement, sectionEditing: editing, onPhraseShift, renderMeasureExtras }), /* @__PURE__ */ import_react8.default.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, regions, mutedVoices, onNote: (note, event) => {
       if (editor == null ? void 0 : editor.chooseNote(note, event)) return;
       if (onNote) onNote(note, event);
       else if (selectedMeasure === null) seek(Math.max(row.start, note.start));

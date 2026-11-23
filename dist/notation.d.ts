@@ -50,6 +50,8 @@ export interface RawlNotationProps {
  sectionStarts?:readonly number[];
  /** Called after the viewer applies a temporary section edit. */
  onSectionEdit?:()=>void;
+ /** Supply to persist phrase edits in the host through the phraseStarts prop. */
+ onPhraseStartsChange?:(starts:number[])=>void;
  /** Observe the edited layout, or null when the original rows are shown. */
  onSectionRowsChange?:(rows:ScoreRow[]|null)=>void;
  renderMeasureExtras?:RenderMeasureExtras;
@@ -107,6 +109,7 @@ export type RawlMeasureHeaderProps = ({
  /** Name the active tonic when a flag continues from the previous row. */
  showContinuedTonic?:boolean;
  showHeader?:boolean; transpose?:number; sectionEditing?:MeasureSectionEditing; renderMeasureExtras?:RenderMeasureExtras;
+ onPhraseShift?:(measure:PositionedMeasure,offset:number)=>void;
 };
 export const RawlMeasureHeader:React.FC<RawlMeasureHeaderProps>;
 export interface TonalGridProps {
@@ -124,3 +127,6 @@ export const RAWL_COLORS:ReadonlyArray<{background:string;foreground:string;dot?
 export function recolorModulation(changes:TonicChange[],beat:number,pitch:number):TonicChange[];
 export function recolorBoundary(changes:TonicChange[],measureBeat:number,barBeats:number,measureMap?:SourceMeasure[]):number;
 export function useTonicRecoloring(options:{changes:TonicChange[];barBeats?:number;measureMap?:SourceMeasure[];onChange?:(changes:TonicChange[])=>void}):{changes:TonicChange[];selectedMeasure:number|null;onsetEditing:ReturnType<typeof import('./native').useModulationOnsetEditing<MidiNote>>;selectMeasure(beat:number,measure?:PositionedMeasure,element?:HTMLDivElement):void;hoverNote(note:MidiNote|null):void;chooseNote(note:MidiNote,event?:{shiftKey:boolean}):boolean;cancel():void};
+
+export const PHRASE_SHIFT_KEYS: Readonly<Record<string,number>>;
+export function handlePhraseShiftKey(event:React.KeyboardEvent|KeyboardEvent,onShift:(offset:number)=>void):boolean;

@@ -3,6 +3,7 @@ import {CornerDownLeft, CornerRightUp} from 'lucide-react';
 import {MODULATION_BADGE_HEIGHT, TonicSymbol} from '../components/TonicSymbol.jsx';
 import {measureHeaderLayout, mod, sameBeat} from './geometry.mjs';
 import {RAWL_COLORS} from './palette.mjs';
+import {handlePhraseShiftKey} from './phrase-keys.mjs';
 
 const EMPTY_CHANGES = [];
 const measureNumberTop = -4;
@@ -134,7 +135,7 @@ export function RawlMeasureHeader({
   row, layout: positioned, height = '100%', tonic = 0, changes = EMPTY_CHANGES,
   barBeats = 4, beatBeats = 1, phraseStarts, measureMap, selectedMeasure = null,
   onMeasureSelect, hideInitialTonic = false, showModulationTonics = false, showContinuedTonic = false, showHeader = true, transpose = 0,
-  renderMeasureExtras, modulationMarkerPlacement, sectionEditing,
+  renderMeasureExtras, modulationMarkerPlacement, sectionEditing, onPhraseShift,
 }) {
   const element = useRef(null);
   const previousSelection = useRef(selectedMeasure);
@@ -265,6 +266,7 @@ export function RawlMeasureHeader({
               } : undefined}
               onKeyDown={onMeasureSelect ? event => {
                 if (event.target !== event.currentTarget) return;
+                if (isSelected && onPhraseShift && handlePhraseShiftKey(event, offset => onPhraseShift(measure, offset))) return;
                 if (isSelected && sectionEditing && event.key === 'Enter') {
                   editSection(event, measure, action);
                 } else if (event.key === 'Enter' || event.key === ' ') {

@@ -411,6 +411,28 @@ var __iconNode6 = [
 ];
 var Guitar = createLucideIcon("guitar", __iconNode6);
 
+// src/notation/phrase-keys.mjs
+var PHRASE_SHIFT_KEYS = Object.freeze({
+  z: -4,
+  x: -3,
+  c: -2,
+  v: -1,
+  b: 1,
+  n: 2,
+  m: 3,
+  ",": 4
+});
+function handlePhraseShiftKey(event, onShift) {
+  var _a;
+  if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || ((_a = event.nativeEvent) != null ? _a : event).isComposing) return false;
+  const offset = PHRASE_SHIFT_KEYS[event.key];
+  if (!Number.isInteger(offset)) return false;
+  event.preventDefault();
+  event.stopPropagation();
+  onShift(offset);
+  return true;
+}
+
 // src/notation/RawlMeasureHeader.jsx
 var EMPTY_CHANGES = [];
 var measureNumberTop = -4;
@@ -542,7 +564,8 @@ function RawlMeasureHeader({
   transpose = 0,
   renderMeasureExtras,
   modulationMarkerPlacement,
-  sectionEditing
+  sectionEditing,
+  onPhraseShift
 }) {
   const element = useRef(null);
   const previousSelection = useRef(selectedMeasure);
@@ -734,6 +757,7 @@ function RawlMeasureHeader({
             } : void 0,
             onKeyDown: onMeasureSelect ? (event) => {
               if (event.target !== event.currentTarget) return;
+              if (isSelected && onPhraseShift && handlePhraseShiftKey(event, (offset) => onPhraseShift(measure, offset))) return;
               if (isSelected && sectionEditing && event.key === "Enter") {
                 editSection(event, measure, action);
               } else if (event.key === "Enter" || event.key === " ") {
@@ -2397,6 +2421,7 @@ function useScorePinch(containerRef, noteHeight, secondWidth, setNoteHeight, set
 export {
   FoldablePianoLegend,
   InlinePianoLegend,
+  PHRASE_SHIFT_KEYS,
   PianoLegend,
   PlaybackFooter,
   PlaybackMeasureBorders,
@@ -2407,6 +2432,7 @@ export {
   ScoreSizeSliders,
   TonalGrid,
   TonicSymbol,
+  handlePhraseShiftKey,
   observePlaybackPosition,
   useScorePinch
 };

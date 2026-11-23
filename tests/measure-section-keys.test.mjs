@@ -255,3 +255,62 @@ test('RawlNotation edits its own rows without a section editor or persistence', 
     dom.window.close();
   }
 });
+
+test('selected-measure phrase shortcuts count measures and keep fixed boundaries', async () => {
+  const dom = new JSDOM('<div id="root"></div>', {pretendToBeVisual: true});
+  const {window} = dom;
+  const old = {window: globalThis.window, document: globalThis.document};
+  Object.assign(globalThis, {window, document: window.document});
+  const element = window.document.querySelector('#root');
+  const root = createRoot(element);
+  const grid = [0, 3, 8, 11, 15, 21, 24, 28, 31, 37, 39, 44, 48];
+  const measureMap = grid.slice(0, -1).map((start, index) => ({
+    start, duration: grid[index + 1] - start, sourceNumber: index + 1,
+  }));
+  const initial = [0, 15, 28, 48];
+  const rows = [{start: 0, end: 24}, {start: 24, end: 48}];
+  const edits = [];
+  const press = (target, key, extra = {}) => {
+    const event = new window.KeyboardEvent('keydown', {key, bubbles: true, cancelable: true, ...extra});
+    flushSync(() => target.dispatchEvent(event));
+    return event.defaultPrevented;
+  };
+  const control = beat => element.querySelector(`.rawln-measure-number[data-beat="${beat}"]`);
+  const notes = [];
+
+  function Score() {
+    const [starts, setStarts] = useState(initial);
+    return React.createElement(RawlNotation, {
+      beats: 48, rows, notes, measureMap, phraseStarts: starts,
+      onPhraseStartsChange(updated) {
+        edits.push(updated);
+        setStarts(updated);
+      },
+    });
+  }
+  try {
+    flushSync(() => root.render(React.createElement(Score)));
+    assert.equal(press(control(15), ','), false);
+    assert.ok(press(control(15), 'Enter'));
+    assert.equal(press(control(15), ',', {ctrlKey: true}), false);
+    assert.equal(press(control(15), ',', {isComposing: true}), false);
+    assert.ok(press(control(15), ','));
+    assert.deepEqual(edits, [[0, 31, 44, 48]]);
+    assert.equal(control(15).getAttribute('aria-pressed'), 'false');
+    assert.ok(element.querySelector('.rawln-phrase-bar[data-beat="31"]'));
+    assert.ok(element.querySelector('.rawln-phrase-bar[data-beat="48"][data-terminal]'));
+
+    assert.ok(press(control(31), 'Enter'));
+    assert.ok(press(control(31), 'v'));
+    assert.deepEqual(edits.at(-1), [0, 28, 39, 48]);
+    assert.ok(press(control(37), 'Enter'));
+    assert.ok(press(control(37), 'v'));
+    assert.equal(control(31).getAttribute('aria-pressed'), 'true', 'a nonphrase selection moves by one measure');
+    assert.equal(edits.length, 2);
+  } finally {
+    flushSync(() => root.unmount());
+    await new Promise(setImmediate);
+    dom.window.close();
+    Object.assign(globalThis, old);
+  }
+});

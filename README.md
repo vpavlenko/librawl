@@ -182,8 +182,14 @@ changes to the header, or position them against the host clock and pass a
 phrase start for Split (Enter), or the first measure of a later section for Merge
 (Shift+Enter). The score keeps its notes, measures, and playback times. Edited rows
 belong to the mounted viewer and are available through `onSectionRowsChange`
-for hosts rendering their own overlays. Pass `sectionEditing={false}` to turn off
-section editing.
+for hosts rendering their own overlays.
+
+With a measure selected, `z`, `x`, `c`, and `v` step back four to one
+measures. `b`, `n`, `m`, and comma step forward one to four. At a
+phrase start these keys shift that phrase and the following phrase starts in
+the displayed score group. Hosts can persist the edits with
+`onPhraseStartsChange` and return the result through `phraseStarts`. Pass
+`sectionEditing={false}` to disable structural editing.
 
 Hosts that render their own rows can pass `sectionEditing` with `sectionStarts`,
 `onSplit`, and `onGlue` to `RawlMeasureHeader` or `RawlNotation`. Attach the second
