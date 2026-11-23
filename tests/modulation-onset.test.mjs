@@ -56,7 +56,7 @@ test('default notation previews and moves a modulation across a row boundary', a
       beats: 12, rows: [{start: 0, end: 5}, {start: 5, end: 12}], notes, measureMap, changes,
       onChangesChange: value => saved.push(value), onSeek: beat => seeks.push(beat),
     })));
-    assert.match(decodeURIComponent(note('across').style.cursor), /M16 9a5 5/);
+    assert.equal(window.getComputedStyle(note('across')).cursor, 'pointer');
     click(marker(5).querySelector('.rawln-modulation-flag'));
     assert.equal(measure(5).getAttribute('aria-pressed'), 'true');
     assert.equal(document.activeElement, measure(5));
@@ -86,7 +86,7 @@ test('default notation previews and moves a modulation across a row boundary', a
     click(note('across', 1), true);
     assert.deepEqual(saved.at(-1), [{beat: 4.75, tonic: 7, name: 'G', measureBeat: 5, onsetOverride: true}]);
     assert.equal(isEditing(), false);
-    assert.match(decodeURIComponent(note('across').style.cursor), /M16 9a5 5/);
+    assert.equal(window.getComputedStyle(note('across')).cursor, 'pointer');
     shift(false);
     click(measure(1));
     shift(true);
