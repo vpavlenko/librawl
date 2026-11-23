@@ -191,13 +191,24 @@ Hosts that render their own rows can pass `sectionEditing` with `sectionStarts`,
 `renderMeasureExtras` argument to a rhythm input to support the shortcuts when the
 field is empty.
 
-Select a measure with a tonic change and hold Shift while hovering a note to
-preview moving the change to its onset. Shift-click commits the move. Eligible
-note onsets are in the selected measure or its predecessor. The edit follows
-the score's time coordinates and retains the original measure association in
-`TonicChange.measureBeat`. Hosts rendering parts of the same score in separate
-`RawlNotation` instances can pass a shared `useTonicRecoloring` controller as
-`recoloring`.
+### Modulation onsets and pickups
+
+When a mid-measure tonic change acts as a pickup into the following measure,
+associate it with that following measure. Set `TonicChange.beat` to the sounding
+onset, `measureBeat` to the following downbeat, and `onsetOverride` to `true`.
+For example, `{ beat: 3.5, measureBeat: 4, tonic: 9, onsetOverride: true }`
+starts the new tonic in the pickup and makes the change editable from beat 4.
+If the change belongs to the sounding measure, use that measure's downbeat.
+
+To author a pickup in the viewer, select the destination measure and hold Shift
+while hovering a note to preview moving the change to its onset. Shift-click
+commits the move. Eligible note onsets are in the selected measure or its
+predecessor. Hosts rendering parts of the same score in separate `RawlNotation`
+instances can pass a shared `useTonicRecoloring` controller as `recoloring`.
+
+With a measure map, `modulationMarkerPlacement="following-measure"` can display
+an unpinned mid-measure flag at the following barline. Explicit onset overrides
+keep the flag at the sounding onset.
 
 `TonalGrid` takes positioned key regions and the host pitch axis.
 
