@@ -503,6 +503,7 @@ function TonicSymbol({ left, number, previousTonic, modulationDiff, tonicStart, 
     "div",
     {
       ...flagRest,
+      "data-modulation-flag": "",
       className: flagClass,
       style: {
         width: MODULATION_BADGE_WIDTH,

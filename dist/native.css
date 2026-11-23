@@ -29,7 +29,7 @@
       background-color: var(--pitch-color-1);
     }
     
-      [data-pitch-class="1"]::after, .noteColor_1_colors:where(:not([data-pitch-class]))::after, .pitchDot_1:where(:not([data-pitch-class]))::after {
+      [data-pitch-class="1"]:where(:not([data-modulation-flag]))::after, .noteColor_1_colors:where(:not([data-pitch-class])):where(:not([data-modulation-flag]))::after, .pitchDot_1:where(:not([data-pitch-class])):where(:not([data-modulation-flag]))::after {
         content: "";
         position: absolute;
         top: calc(50% + var(--pitch-dot-offset, 0px));
@@ -72,7 +72,7 @@
       background-color: var(--pitch-color-6);
     }
     
-      [data-pitch-class="6"]::after, .noteColor_6_colors:where(:not([data-pitch-class]))::after, .pitchDot_6:where(:not([data-pitch-class]))::after {
+      [data-pitch-class="6"]:where(:not([data-modulation-flag]))::after, .noteColor_6_colors:where(:not([data-pitch-class])):where(:not([data-modulation-flag]))::after, .pitchDot_6:where(:not([data-pitch-class])):where(:not([data-modulation-flag]))::after {
         content: "";
         position: absolute;
         top: calc(50% + var(--pitch-dot-offset, 0px));

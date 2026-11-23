@@ -15784,6 +15784,7 @@ var LibrawlCaplinNotes = (() => {
       "div",
       {
         ...flagRest,
+        "data-modulation-flag": "",
         className: flagClass,
         style: {
           width: MODULATION_BADGE_WIDTH,

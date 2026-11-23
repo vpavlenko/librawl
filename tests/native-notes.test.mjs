@@ -102,7 +102,7 @@ test('native playback indexes equal the original trace for half-open boundaries,
 
 test('native pitch-bend samples, sounding pitch, color interpolation and quartertone windows match the source',()=>{
  const api=load(nativeCode),original=load(referenceCode);
- const css=api.nativeColorStyles();
+ const css=api.nativeColorStyles().replaceAll(':where(:not([data-modulation-flag]))','');
  assert.doesNotMatch(css,/!important/);
  assert.match(css,/\[data-pitch-class="1"\]::after/);
  assert.match(css,/\[data-pitch-class="6"\]::after/);

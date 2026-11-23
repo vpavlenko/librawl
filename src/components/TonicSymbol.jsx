@@ -1,5 +1,5 @@
 // Extracted from Rawl AnalysisGrid.NewTonicSymbol, GPL-3.0-only.
-// The defaults intentionally retain Rawl's markup, classes and inline styles.
+// The defaults retain Rawl's classes and geometry.
 import * as React from 'react';
 import {MODULATION_BADGE_WIDTH, TONIC_NAMES} from '../notation/score-grid.mjs';
 
@@ -35,6 +35,7 @@ export function TonicSymbol({left,number,previousTonic,modulationDiff,tonicStart
   </span>}
   <div
    {...flagRest}
+   data-modulation-flag=""
    className={flagClass}
    style={{
     width:MODULATION_BADGE_WIDTH,

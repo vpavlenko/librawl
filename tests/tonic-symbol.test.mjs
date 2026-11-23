@@ -7,6 +7,8 @@ import path from 'node:path';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {transformSync} from 'esbuild';
+import {JSDOM} from 'jsdom';
+import {nativeColorStyles} from '../src/rawlnative/native-style.mjs';
 import * as scoreGrid from '../src/notation/score-grid.mjs';
 
 const require=createRequire(import.meta.url),base=fileURLToPath(new URL('.',import.meta.url));
@@ -38,13 +40,14 @@ test('the portable reference fixture retains the recorded upstream source excerp
  assert.equal(provenance.commit,'c5c9bb0407534d9b7eb9a8267078c006fa340ee6');assert.equal(provenance.license,'GPL-3.0-only');
 });
 
-test('React 19 defaults match Rawl byte-for-byte across initial, shifts, digits, onset and transpose',()=>{
+test('React 19 defaults retain Rawl markup and geometry with a modulation flag attribute',()=>{
  const {TonicSymbol}=compile(source,'jsx'),{NewTonicSymbol,AnalysisTransposeContext}=compile(reference,'tsx');
  for(const props of cases()){
   const {transpose,...originalProps}=props;
   const expected=renderToStaticMarkup(React.createElement(AnalysisTransposeContext.Provider,{value:transpose},React.createElement(NewTonicSymbol,originalProps)));
   const actual=renderToStaticMarkup(React.createElement(TonicSymbol,props));
-  assert.equal(actual,expected,JSON.stringify(props));
+  assert.ok(actual.includes('data-modulation-flag=""'));
+  assert.equal(actual.replace(' data-modulation-flag=""',''),expected,JSON.stringify(props));
   const styles=[...actual.matchAll(/style="([^"]*)"/g)].map(match=>match[1]);assert.equal(styles.length,2);
   const labelLeft=props.alignToOnset?props.left:props.left+(props.previousTonic===null?String(props.number).length*8+10:30);
   assert.ok(styles[0].includes('left:'+labelLeft+'px;'));assert.ok(styles[0].includes('top:-2px;'));assert.ok(styles[0].includes('z-index:100;'));
@@ -60,4 +63,26 @@ test('arrow and host attribute slots preserve the default geometry and Rawl colo
  assert.ok(markup.includes('<svg data-direction="down" aria-hidden="true"></svg>2 B♭'));assert.ok(!markup.includes('↓'));
  assert.ok(markup.includes('width:80px;height:12px;'));assert.ok(markup.includes('left:43px;'));assert.ok(markup.includes('background:orange'));
  const initial=renderToStaticMarkup(React.createElement(TonicSymbol,{left:0,number:1,previousTonic:null,modulationDiff:null,tonicStart:0,renderArrow:()=>{throw Error('Initial tonic has no arrow');}}));assert.ok(initial.includes('>C</span>'));
+});
+
+test('flat-second and sharp-fourth flags omit the dots that still mark notes',()=>{
+ const {TonicSymbol}=compile(source,'jsx');
+ const flags=[1,6].map(degree=>renderToStaticMarkup(React.createElement(TonicSymbol,{
+  left:0,number:2,previousTonic:0,modulationDiff:degree,tonicStart:degree,
+ }))).join('');
+ const notes=[1,6].map(degree=>`<div class="noteColor_${degree}_colors"></div><div data-pitch-class="${degree}"></div><div class="pitchDot_${degree}"></div>`).join('');
+ const dom=new JSDOM(`<style>${nativeColorStyles()}</style>${flags}<div id="notes">${notes}</div>`);
+ try {
+  const {document}=dom.window;
+  const dotSelectors=[...document.styleSheets[0].cssRules]
+   .filter(rule=>rule.style?.getPropertyValue('content')==='""')
+   .flatMap(rule=>rule.selectorText.split(',').map(selector=>selector.trim().replace(/::after$/,''))).join(',');
+  const renderedFlags=document.querySelectorAll('[data-modulation-flag]');
+  assert.equal(renderedFlags.length,2);
+  for(const flag of renderedFlags) assert.ok(!flag.matches(dotSelectors));
+  assert.equal(document.querySelectorAll('#notes > div').length,6);
+  for(const note of document.querySelectorAll('#notes > div')) assert.ok(note.matches(dotSelectors));
+ } finally {
+  dom.window.close();
+ }
 });

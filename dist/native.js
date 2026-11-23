@@ -925,6 +925,7 @@ function NoteLayer({ notes, midiNumberToY, noteHeight, handleNoteClick = null, h
 
 // src/rawlnative/native-style.mjs
 var nativeFallback = ":where(:not([data-pitch-class]))";
+var pitchDot = ":where(:not([data-modulation-flag]))::after";
 var nativeColorStyles = () => `
   :root {
     ${RAWL_COLORS.map(
@@ -944,7 +945,7 @@ var nativeColorStyles = () => `
       background-color: ${pitchColor(pitch)};
     }
     ${dot ? `
-      ${attribute}::after, ${colorClass}::after, .pitchDot_${pitch}${nativeFallback}::after {
+      ${attribute}${pitchDot}, ${colorClass}${pitchDot}, .pitchDot_${pitch}${nativeFallback}${pitchDot} {
         content: "";
         position: absolute;
         top: calc(50% + var(--pitch-dot-offset, 0px));

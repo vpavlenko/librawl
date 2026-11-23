@@ -4,6 +4,7 @@ import {MODULATION_SNAP_CURSOR} from "./note-cursors.mjs";
 // The native renderer keeps its pitch classes for bends and fractional notes.
 // A host-owned semitone note can update its current degree without rerendering.
 const nativeFallback = ':where(:not([data-pitch-class]))';
+const pitchDot = ':where(:not([data-modulation-flag]))::after';
 
 export const nativeColorStyles=()=>`
   :root {
@@ -24,7 +25,7 @@ export const nativeColorStyles=()=>`
       background-color: ${pitchColor(pitch)};
     }
     ${dot ? `
-      ${attribute}::after, ${colorClass}::after, .pitchDot_${pitch}${nativeFallback}::after {
+      ${attribute}${pitchDot}, ${colorClass}${pitchDot}, .pitchDot_${pitch}${nativeFallback}${pitchDot} {
         content: "";
         position: absolute;
         top: calc(50% + var(--pitch-dot-offset, 0px));
