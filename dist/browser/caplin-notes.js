@@ -15945,7 +15945,6 @@ var LibrawlCaplinNotes = (() => {
         onChange: handleChange,
         onKeyDown: handleKeyDown,
         onClick: (event) => event.stopPropagation(),
-        style: { fontSize: "10px", width: "7em" },
         "aria-label": "Rhythm",
         "aria-invalid": value !== "" && parsed === null,
         placeholder: "3 or 3+2"
@@ -15989,7 +15988,7 @@ var LibrawlCaplinNotes = (() => {
     const right = Math.max(bounds.right, ...occupied.map((item) => item.right));
     return Math.abs(left - anchor) <= Math.abs(right - anchor) ? left : right;
   }
-  function fitModulationLabels(header, digits, labels, commands) {
+  function fitModulationLabels(header, digits, labels, controls) {
     const bounds = header.getBoundingClientRect();
     const width = parseFloat(header.ownerDocument.defaultView.getComputedStyle(header).width);
     if (!width || !bounds.width) return;
@@ -15998,7 +15997,7 @@ var LibrawlCaplinNotes = (() => {
     const digitRects = new Map(digits.map((digit) => [digit.parentElement.dataset.beat, digit.getBoundingClientRect()]));
     const digitBoxes = [...digitRects.values()];
     const spacedDigitBoxes = digitBoxes.map(({ left, right }) => ({ left: left - gap, right: right + gap }));
-    const occupied = commands.map((command) => command.getBoundingClientRect());
+    const occupied = controls.map((control) => control.getBoundingClientRect());
     const positions = labels.map((label) => {
       const marker = label.parentElement;
       const anchor = marker.getBoundingClientRect().left;
@@ -16144,13 +16143,13 @@ var LibrawlCaplinNotes = (() => {
       const labels = [...header.querySelectorAll(".rawln-modulation-label")];
       if (!labels.length) return;
       const digits = [...header.querySelectorAll(".rawln-measure-digits")];
-      const commands = [...header.querySelectorAll(".rawln-section-command")];
+      const controls = [...header.querySelectorAll(".rawln-measure-menu .rawln-section-command, .rawln-rhythm-editor")];
       const view = header.ownerDocument.defaultView;
-      const fit = () => fitModulationLabels(header, digits, labels, commands);
+      const fit = () => fitModulationLabels(header, digits, labels, controls);
       fit();
       const Observer = (_a = view.ResizeObserver) != null ? _a : globalThis.ResizeObserver;
       const observer = Observer ? new Observer(fit) : null;
-      for (const node of [header, ...digits, ...labels, ...commands]) observer == null ? void 0 : observer.observe(node);
+      for (const node of [header, ...digits, ...labels, ...controls]) observer == null ? void 0 : observer.observe(node);
       view.addEventListener("resize", fit);
       return () => {
         observer == null ? void 0 : observer.disconnect();
@@ -16247,6 +16246,7 @@ var LibrawlCaplinNotes = (() => {
         var _a, _b;
         const labelLeft = offsetLeft(measure.left, (_a = measure.labelOffset) != null ? _a : 6);
         const isSelected = selectedMeasure === measure.beat;
+        const editRhythm = isSelected && rhythmEditing;
         const shiftKey = phraseShiftHints == null ? void 0 : phraseShiftHints.get(measure.beat);
         const action = isSelected ? measureSectionAction(sectionEditing, measure) : void 0;
         const CommandIcon = (action == null ? void 0 : action.kind) === "merge" ? CornerRightUp : CornerDownLeft;
@@ -16284,7 +16284,7 @@ var LibrawlCaplinNotes = (() => {
               role: onMeasureSelect ? "button" : void 0,
               tabIndex: onMeasureSelect ? 0 : void 0,
               "aria-pressed": onMeasureSelect ? isSelected : void 0,
-              "data-rhythm-editing": isSelected && !!rhythmEditing || void 0,
+              "data-rhythm-editing": !!editRhythm || void 0,
               onClick: onMeasureSelect ? (event) => select(event, measure) : void 0,
               onBlur: onMeasureSelect ? (event) => {
                 if (event.target === event.currentTarget) delete event.currentTarget.dataset.pointerFocused;
@@ -16312,7 +16312,7 @@ var LibrawlCaplinNotes = (() => {
             renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && isSelected ? (event) => editSection(event, measure, action) : void 0, action == null ? void 0 : action.kind),
             shiftKey && /* @__PURE__ */ import_react10.default.createElement("span", { className: "rawln-phrase-shift-key", "aria-hidden": "true" }, shiftKey),
             /* @__PURE__ */ import_react10.default.createElement("span", { className: "rawln-measure-digits", style: measureDigits }, measure.number),
-            isSelected && rhythmEditing && /* @__PURE__ */ import_react10.default.createElement("div", { className: "rawln-rhythm-editor" }, /* @__PURE__ */ import_react10.default.createElement(
+            editRhythm && /* @__PURE__ */ import_react10.default.createElement("div", { className: "rawln-rhythm-editor" }, /* @__PURE__ */ import_react10.default.createElement(
               MeasureRhythmInput,
               {
                 key: measure.beat,
@@ -16322,9 +16322,9 @@ var LibrawlCaplinNotes = (() => {
                 onPhraseShift: onPhraseShift && ((offset) => onPhraseShift(measure, offset)),
                 onSectionKeyDown: sectionEditing && ((event) => editSection(event, measure, action))
               }
-            ))
+            ), menu)
           ),
-          menu != null && /* @__PURE__ */ import_react10.default.createElement("div", { className: "rawln-measure-menu" }, menu)
+          menu != null && !editRhythm && /* @__PURE__ */ import_react10.default.createElement("div", { className: "rawln-measure-menu" }, menu)
         );
       })))
     );

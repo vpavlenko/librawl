@@ -35,11 +35,14 @@ test('a positioned header leaves a gap between measure digits and modulation arr
  const globals = {window:globalThis.window,document:globalThis.document};
  const {document} = window;
  Object.assign(globalThis, {window,document});
+ window.HTMLElement.prototype.attachEvent = () => {};
+ window.HTMLElement.prototype.detachEvent = () => {};
  const rectangle = (left,width) => ({left,right:left+width,width});
  window.HTMLElement.prototype.getBoundingClientRect = function() {
   if (this.classList.contains('rawln-measure-grid')) return rectangle(0,160);
   if (this.classList.contains('rawln-measure-digits')) return rectangle(Number(this.parentElement.dataset.beat) === 0 ? 6 : 66, 14);
   if (this.classList.contains('rawln-modulation-label')) return rectangle(0,16);
+  if (this.classList.contains('rawln-rhythm-editor')) return rectangle(84,54);
   return rectangle(parseFloat(this.style.left) || 0,0);
  };
  const module = {exports:{}};
@@ -49,7 +52,7 @@ test('a positioned header leaves a gap between measure digits and modulation arr
  const host = document.querySelector('main');
  const root = createRoot(host);
  const layout = {
-  measures: [{beat:0,number:25,left:0},{beat:4,number:26,left:60,hasModulation:true}],
+  measures: [{beat:0,number:25,left:0},{beat:4,number:26,left:60,hasModulation:true,isPhraseStart:true}],
   beats: [],
   markers: [
    {beat:0,left:0,tonic:1,previousTonic:null,delta:null,initial:true},
@@ -84,6 +87,19 @@ test('a positioned header leaves a gap between measure digits and modulation arr
   });
   assert.deepEqual(selected, Array(3).fill([4,layout.measures[1],control]));
   assert.equal(document.activeElement,control);
+
+  flushSync(() => root.render(React.createElement(RawlMeasureHeader,{
+   layout, onMeasureSelect, selectedMeasure:4,
+   rhythmEditing:{onBeatsPerMeasure() {}},
+   sectionEditing:{sectionStarts:[0],onSplit() {}},
+  })));
+  const editor = control.querySelector('.rawln-measure-digits + .rawln-rhythm-editor');
+  assert.equal(document.activeElement,editor.querySelector('input'));
+  assert.equal(editor.querySelector('input').placeholder,'3 or 3+2');
+  assert.equal(editor.querySelector('button').getAttribute('aria-label'),'Split');
+  assert.equal(marker(4).style.left,'59px');
+  const labelLeft = 59 + shift(4);
+  assert.ok(labelLeft + 16 <= 84 || labelLeft >= 138,'The selected rhythm editor leaves the arrow readable');
  } finally {
   flushSync(() => root.unmount());
   await new Promise(resolve => setTimeout(resolve, 20));

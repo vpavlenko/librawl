@@ -44,7 +44,7 @@ function nearestLabelLeft(anchor, width, bounds, occupied) {
 }
 
 // Place the text independently so the flag can still start exactly at the note.
-function fitModulationLabels(header, digits, labels, commands) {
+function fitModulationLabels(header, digits, labels, controls) {
   const bounds = header.getBoundingClientRect();
   const width = parseFloat(header.ownerDocument.defaultView.getComputedStyle(header).width);
   if (!width || !bounds.width) return;
@@ -53,7 +53,7 @@ function fitModulationLabels(header, digits, labels, commands) {
   const digitRects = new Map(digits.map(digit => [digit.parentElement.dataset.beat, digit.getBoundingClientRect()]));
   const digitBoxes = [...digitRects.values()];
   const spacedDigitBoxes = digitBoxes.map(({left, right}) => ({left: left - gap, right: right + gap}));
-  const occupied = commands.map(command => command.getBoundingClientRect());
+  const occupied = controls.map(control => control.getBoundingClientRect());
   const positions = labels.map(label => {
     const marker = label.parentElement;
     const anchor = marker.getBoundingClientRect().left;
@@ -175,13 +175,13 @@ export function RawlMeasureHeader({
     const labels = [...header.querySelectorAll('.rawln-modulation-label')];
     if (!labels.length) return;
     const digits = [...header.querySelectorAll('.rawln-measure-digits')];
-    const commands = [...header.querySelectorAll('.rawln-section-command')];
+    const controls = [...header.querySelectorAll('.rawln-measure-menu .rawln-section-command, .rawln-rhythm-editor')];
     const view = header.ownerDocument.defaultView;
-    const fit = () => fitModulationLabels(header, digits, labels, commands);
+    const fit = () => fitModulationLabels(header, digits, labels, controls);
     fit();
     const Observer = view.ResizeObserver ?? globalThis.ResizeObserver;
     const observer = Observer ? new Observer(fit) : null;
-    for (const node of [header, ...digits, ...labels, ...commands]) observer?.observe(node);
+    for (const node of [header, ...digits, ...labels, ...controls]) observer?.observe(node);
     view.addEventListener('resize', fit);
     return () => {
       observer?.disconnect();
@@ -247,6 +247,7 @@ export function RawlMeasureHeader({
         {measures.filter(measure => !measure.terminal && measure.showLabel !== false).map(measure => {
           const labelLeft = offsetLeft(measure.left, measure.labelOffset ?? 6);
           const isSelected = selectedMeasure === measure.beat;
+          const editRhythm = isSelected && rhythmEditing;
           const shiftKey = phraseShiftHints?.get(measure.beat);
           const action = isSelected ? measureSectionAction(sectionEditing, measure) : undefined;
           const CommandIcon = action?.kind === 'merge' ? CornerRightUp : CornerDownLeft;
@@ -269,7 +270,7 @@ export function RawlMeasureHeader({
             <div className="rawln-measure-number" role={onMeasureSelect ? 'button' : undefined}
               tabIndex={onMeasureSelect ? 0 : undefined}
               aria-pressed={onMeasureSelect ? isSelected : undefined}
-              data-rhythm-editing={isSelected && !!rhythmEditing || undefined}
+              data-rhythm-editing={!!editRhythm || undefined}
               onClick={onMeasureSelect ? event => select(event, measure) : undefined}
               onBlur={onMeasureSelect ? event => {
                 if (event.target === event.currentTarget) delete event.currentTarget.dataset.pointerFocused;
@@ -292,16 +293,17 @@ export function RawlMeasureHeader({
                 ? event => editSection(event, measure, action) : undefined, action?.kind)}
               {shiftKey && <span className="rawln-phrase-shift-key" aria-hidden="true">{shiftKey}</span>}
               <span className="rawln-measure-digits" style={measureDigits}>{measure.number}</span>
-              {isSelected && rhythmEditing && <div className="rawln-rhythm-editor">
+              {editRhythm && <div className="rawln-rhythm-editor">
                 <MeasureRhythmInput key={measure.beat}
                   rhythmGrouping={rhythmEditing.getGrouping?.(measure)}
                   onBeatsPerMeasure={beats => rhythmEditing.onBeatsPerMeasure(measure, beats)}
                   onRhythmGrouping={rhythmEditing.onRhythmGrouping && (groups => rhythmEditing.onRhythmGrouping(measure, groups))}
                   onPhraseShift={onPhraseShift && (offset => onPhraseShift(measure, offset))}
                   onSectionKeyDown={sectionEditing && (event => editSection(event, measure, action))}/>
+                {menu}
               </div>}
             </div>
-            {menu != null && <div className="rawln-measure-menu">{menu}</div>}
+            {menu != null && !editRhythm && <div className="rawln-measure-menu">{menu}</div>}
           </div>;
         })}
       </div>

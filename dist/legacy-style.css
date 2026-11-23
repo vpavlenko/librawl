@@ -17,10 +17,17 @@
 .rawln-measure-number[data-pointer-focused]{outline:none}
 
 .rawln-measure-number[data-rhythm-editing]{z-index:300}
-.rawln-score:has(.rawln-rhythm-editor){margin-top:24px}
-.rawln-rhythm-editor{position:absolute;bottom:calc(100% - 1px);left:0;display:flex;align-items:center;width:max-content}
-.rawln-rhythm-input:focus,.rawln-rhythm-reset:focus-visible{outline:1px solid #ddd;outline-offset:2px}
-.rawln-rhythm-reset{margin-left:5px}
+.rawln-rhythm-editor{position:absolute;top:3px;left:calc(100% + 4px);display:flex;align-items:center;gap:4px;width:max-content}
+.rawln-rhythm-editor .rawln-section-command{position:static;padding:0}
+.rawln-rhythm-input{
+  appearance:none;box-sizing:border-box;display:block;
+  inline-size:calc(8ch + 8px);padding:0 3px;
+  font:10px/12px monospace;color:#fff;background:#111;
+  border:1px solid #888;border-radius:2px;box-shadow:none;
+}
+.rawln-rhythm-input::placeholder{color:#fff;opacity:1}
+.rawln-rhythm-input:focus{border-color:#fff;outline:none}
+.rawln-rhythm-reset:focus-visible{outline:1px solid #ddd;outline-offset:2px}
 .rawln-measure-number>.rawln-phrase-shift-key{position:absolute;right:calc(100% + 1px);top:4px;color:orange;font:10px/12px sans-serif;pointer-events:none}
 
   :root {

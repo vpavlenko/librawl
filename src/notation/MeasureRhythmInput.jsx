@@ -49,7 +49,6 @@ export const MeasureRhythmInput = forwardRef(function MeasureRhythmInput({
     <input type="text" className="rawln-rhythm-input" ref={ref} autoFocus
       value={value} onChange={handleChange} onKeyDown={handleKeyDown}
       onClick={event => event.stopPropagation()}
-      style={{fontSize: '10px', width: '7em'}}
       aria-label="Rhythm" aria-invalid={value !== '' && parsed === null}
       placeholder="3 or 3+2" />
     {showReset && !!rhythmGrouping?.length && onRhythmGrouping && (
