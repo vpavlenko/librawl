@@ -788,7 +788,7 @@ var LibrawlCaplinNotes = (() => {
   var require_react_dom_production = __commonJS({
     "node_modules/react-dom/cjs/react-dom.production.js"(exports) {
       "use strict";
-      var React7 = require_react();
+      var React8 = require_react();
       function formatProdErrorMessage(code) {
         var url = "https://react.dev/errors/" + code;
         if (1 < arguments.length) {
@@ -830,7 +830,7 @@ var LibrawlCaplinNotes = (() => {
           implementation
         };
       }
-      var ReactSharedInternals = React7.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
+      var ReactSharedInternals = React8.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
       function getCrossOriginStringAs(as, input) {
         if ("font" === as) return "";
         if ("string" === typeof input)
@@ -972,7 +972,7 @@ var LibrawlCaplinNotes = (() => {
     "node_modules/react-dom/cjs/react-dom-client.production.js"(exports) {
       "use strict";
       var Scheduler = require_scheduler();
-      var React7 = require_react();
+      var React8 = require_react();
       var ReactDOM = require_react_dom();
       function formatProdErrorMessage(code) {
         var url = "https://react.dev/errors/" + code;
@@ -1263,7 +1263,7 @@ var LibrawlCaplinNotes = (() => {
         return null;
       }
       var isArrayImpl = Array.isArray;
-      var ReactSharedInternals = React7.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
+      var ReactSharedInternals = React8.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
       var ReactDOMSharedInternals = ReactDOM.__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
       var sharedNotPendingObject = {
         pending: false,
@@ -14412,7 +14412,7 @@ var LibrawlCaplinNotes = (() => {
           0 === i && attemptExplicitHydrationTarget(target);
         }
       };
-      var isomorphicReactPackageVersion$jscomp$inline_2043 = React7.version;
+      var isomorphicReactPackageVersion$jscomp$inline_2043 = React8.version;
       if ("19.3.1" !== isomorphicReactPackageVersion$jscomp$inline_2043)
         throw Error(
           formatProdErrorMessage(
@@ -14546,7 +14546,7 @@ var LibrawlCaplinNotes = (() => {
     mountMeasureHeaders: () => mountMeasureHeaders,
     setPlaybackMeasure: () => setPlaybackMeasure
   });
-  var React6 = __toESM(require_react(), 1);
+  var React7 = __toESM(require_react(), 1);
   var import_client2 = __toESM(require_client(), 1);
   var import_react_dom2 = __toESM(require_react_dom(), 1);
 
@@ -15639,12 +15639,12 @@ var LibrawlCaplinNotes = (() => {
   }
 
   // integrations/caplin/measure-headers.jsx
-  var import_react11 = __toESM(require_react(), 1);
+  var import_react12 = __toESM(require_react(), 1);
   var import_react_dom = __toESM(require_react_dom(), 1);
   var import_client = __toESM(require_client(), 1);
 
   // src/notation/RawlMeasureHeader.jsx
-  var import_react9 = __toESM(require_react(), 1);
+  var import_react10 = __toESM(require_react(), 1);
 
   // node_modules/lucide-react/dist/esm/createLucideIcon.js
   var import_react8 = __toESM(require_react());
@@ -15824,6 +15824,75 @@ var LibrawlCaplinNotes = (() => {
     return true;
   }
 
+  // src/notation/MeasureRhythmInput.jsx
+  var import_react9 = __toESM(require_react(), 1);
+  function parseRhythmGrouping(value) {
+    if (!/^\s*\d+\s*(\+\s*\d+\s*)*$/.test(value)) return null;
+    const groups = value.split("+").map(Number);
+    return groups.every((group) => Number.isSafeInteger(group) && group > 0) && Number.isSafeInteger(groups.reduce((sum, group) => sum + group, 0)) ? groups : null;
+  }
+  var MeasureRhythmInput = (0, import_react9.forwardRef)(function MeasureRhythmInput2({
+    onBeatsPerMeasure,
+    onRhythmGrouping,
+    rhythmGrouping,
+    onSectionKeyDown,
+    onPhraseShift,
+    onKeyDown,
+    onUnhandledCharacter,
+    value: draft,
+    onValueChange,
+    showReset = true
+  }, ref) {
+    const [localValue, setLocalValue] = (0, import_react9.useState)("");
+    const value = draft != null ? draft : localValue;
+    const parsed = parseRhythmGrouping(value);
+    const handleChange = (event) => {
+      const next = event.target.value;
+      if (draft === void 0) setLocalValue(next);
+      onValueChange == null ? void 0 : onValueChange(next);
+    };
+    const handleKeyDown = (event) => {
+      if (event.defaultPrevented || event.nativeEvent.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
+      onKeyDown == null ? void 0 : onKeyDown(event);
+      if (event.defaultPrevented) return;
+      if (onPhraseShift && handlePhraseShiftKey(event, onPhraseShift)) return;
+      if (event.key === "Enter") {
+        onSectionKeyDown == null ? void 0 : onSectionKeyDown(event);
+        if (event.defaultPrevented) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if ((parsed == null ? void 0 : parsed.length) === 1) onBeatsPerMeasure(parsed[0]);
+        else if (parsed) onRhythmGrouping == null ? void 0 : onRhythmGrouping(parsed);
+        return;
+      }
+      const rhythmCharacter = /^[0-9]$/.test(event.key) || onRhythmGrouping && (event.key === "+" || event.key === " " && value.length > 0);
+      if (event.key.length === 1 && !rhythmCharacter) {
+        if (onUnhandledCharacter) onUnhandledCharacter(event);
+        else event.preventDefault();
+      }
+    };
+    return /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement(
+      "input",
+      {
+        type: "text",
+        className: "rawln-rhythm-input",
+        ref,
+        autoFocus: true,
+        value,
+        onChange: handleChange,
+        onKeyDown: handleKeyDown,
+        onClick: (event) => event.stopPropagation(),
+        style: { fontSize: "10px", width: "7em" },
+        "aria-label": "Rhythm",
+        "aria-invalid": value !== "" && parsed === null,
+        placeholder: "3 or 3+2"
+      }
+    ), showReset && !!(rhythmGrouping == null ? void 0 : rhythmGrouping.length) && onRhythmGrouping && /* @__PURE__ */ import_react9.default.createElement("button", { type: "button", className: "rawln-rhythm-reset", onClick: (event) => {
+      event.stopPropagation();
+      onRhythmGrouping([]);
+    } }, "Reset"));
+  });
+
   // src/notation/RawlMeasureHeader.jsx
   var EMPTY_CHANGES = [];
   var measureNumberTop = -4;
@@ -15838,7 +15907,7 @@ var LibrawlCaplinNotes = (() => {
   var cssLength = (value) => typeof value === "number" ? value + "px" : value;
   var offsetLeft = (left, offset) => typeof left === "number" ? left + offset : offset < 0 ? `calc(${left} - ${-offset}px)` : offset > 0 ? `calc(${left} + ${offset}px)` : left;
   function arrow({ direction }) {
-    return /* @__PURE__ */ import_react9.default.createElement("svg", { viewBox: "4 4 16 16", "aria-hidden": "true" }, direction === "down" ? /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement("path", { d: "M12 5v14" }), /* @__PURE__ */ import_react9.default.createElement("path", { d: "m19 12-7 7-7-7" })) : /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement("path", { d: "m5 12 7-7 7 7" }), /* @__PURE__ */ import_react9.default.createElement("path", { d: "M12 19V5" })));
+    return /* @__PURE__ */ import_react10.default.createElement("svg", { viewBox: "4 4 16 16", "aria-hidden": "true" }, direction === "down" ? /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement("path", { d: "M12 5v14" }), /* @__PURE__ */ import_react10.default.createElement("path", { d: "m19 12-7 7-7-7" })) : /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement("path", { d: "m5 12 7-7 7 7" }), /* @__PURE__ */ import_react10.default.createElement("path", { d: "M12 19V5" })));
   }
   function nearestLabelLeft(anchor, width, bounds, occupied) {
     let start = bounds.left;
@@ -15956,13 +16025,14 @@ var LibrawlCaplinNotes = (() => {
     renderMeasureExtras,
     modulationMarkerPlacement,
     sectionEditing,
-    onPhraseShift
+    onPhraseShift,
+    rhythmEditing
   }) {
-    const element = (0, import_react9.useRef)(null);
-    const previousSelection = (0, import_react9.useRef)(selectedMeasure);
-    const [width, setWidth] = (0, import_react9.useState)(0);
+    const element = (0, import_react10.useRef)(null);
+    const previousSelection = (0, import_react10.useRef)(selectedMeasure);
+    const [width, setWidth] = (0, import_react10.useState)(0);
     const hasPositionedLayout = !!positioned;
-    (0, import_react9.useLayoutEffect)(() => {
+    (0, import_react10.useLayoutEffect)(() => {
       var _a;
       if (hasPositionedLayout) return;
       const el = element.current, view = el.ownerDocument.defaultView;
@@ -15977,13 +16047,13 @@ var LibrawlCaplinNotes = (() => {
         view == null ? void 0 : view.removeEventListener("resize", fit);
       };
     }, [hasPositionedLayout]);
-    (0, import_react9.useLayoutEffect)(() => {
+    (0, import_react10.useLayoutEffect)(() => {
       const previous = previousSelection.current;
       previousSelection.current = selectedMeasure;
       if (previous === null || previous === selectedMeasure) return;
       releaseMeasureFocus(element.current.querySelector(`.rawln-measure-number[data-beat="${previous}"]`));
     }, [selectedMeasure]);
-    const { measures, beats, markers } = (0, import_react9.useMemo)(() => positioned != null ? positioned : rowLayout({
+    const { measures, beats, markers } = (0, import_react10.useMemo)(() => positioned != null ? positioned : rowLayout({
       row,
       tonic,
       changes,
@@ -15996,7 +16066,7 @@ var LibrawlCaplinNotes = (() => {
       hideInitialTonic,
       modulationMarkerPlacement
     }), [positioned, row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic, modulationMarkerPlacement]);
-    (0, import_react9.useLayoutEffect)(() => {
+    (0, import_react10.useLayoutEffect)(() => {
       var _a;
       if (!showHeader) return;
       const header = element.current;
@@ -16035,7 +16105,7 @@ var LibrawlCaplinNotes = (() => {
       event.stopPropagation();
       if (action && action.kind === "merge" === event.shiftKey) applySection(event, measure, action);
     };
-    return /* @__PURE__ */ import_react9.default.createElement(
+    return /* @__PURE__ */ import_react10.default.createElement(
       "div",
       {
         ref: element,
@@ -16045,7 +16115,7 @@ var LibrawlCaplinNotes = (() => {
       },
       measures.map((measure) => {
         var _a;
-        return /* @__PURE__ */ import_react9.default.createElement(
+        return /* @__PURE__ */ import_react10.default.createElement(
           "div",
           {
             className: "rawln-bar" + (measure.isPhraseStart ? " rawln-phrase-bar" : ""),
@@ -16057,15 +16127,15 @@ var LibrawlCaplinNotes = (() => {
           }
         );
       }),
-      beats.map(({ beat, left }) => /* @__PURE__ */ import_react9.default.createElement("div", { className: "rawln-beat-bar", key: beat, "data-beat": beat, style: { left } })),
-      showHeader && /* @__PURE__ */ import_react9.default.createElement(import_react9.default.Fragment, null, /* @__PURE__ */ import_react9.default.createElement("div", { className: "rawln-modulations" }, markers.map((marker) => {
+      beats.map(({ beat, left }) => /* @__PURE__ */ import_react10.default.createElement("div", { className: "rawln-beat-bar", key: beat, "data-beat": beat, style: { left } })),
+      showHeader && /* @__PURE__ */ import_react10.default.createElement(import_react10.default.Fragment, null, /* @__PURE__ */ import_react10.default.createElement("div", { className: "rawln-modulations" }, markers.map((marker) => {
         var _a, _b, _c;
         const interval = marker.delta == null ? null : mod(marker.delta);
         const initial2 = (_a = marker.initial) != null ? _a : marker.previousTonic === null;
         const showTonicName = marker.continued ? showContinuedTonic : initial2 || showModulationTonics && interval != null;
         const clickable = onMeasureSelect && interval != null && !marker.continued && !marker.overflowCopy;
         const hitStyle = clickable ? clickableMarker : void 0;
-        return /* @__PURE__ */ import_react9.default.createElement(
+        return /* @__PURE__ */ import_react10.default.createElement(
           "div",
           {
             key: marker.beat,
@@ -16082,7 +16152,7 @@ var LibrawlCaplinNotes = (() => {
             title: marker.overflowCopy ? void 0 : marker.name,
             onClick: clickable ? (event) => forwardMarkerClick(event, marker, element.current) : void 0
           },
-          /* @__PURE__ */ import_react9.default.createElement(
+          /* @__PURE__ */ import_react10.default.createElement(
             TonicSymbol,
             {
               left: 0,
@@ -16102,14 +16172,14 @@ var LibrawlCaplinNotes = (() => {
             }
           )
         );
-      })), /* @__PURE__ */ import_react9.default.createElement("div", { className: "rawln-measure-labels", "aria-hidden": !(onMeasureSelect || sectionEditing) || void 0 }, measures.filter((measure) => !measure.terminal && measure.showLabel !== false).map((measure) => {
-        var _a;
+      })), /* @__PURE__ */ import_react10.default.createElement("div", { className: "rawln-measure-labels", "aria-hidden": !(onMeasureSelect || sectionEditing) || void 0 }, measures.filter((measure) => !measure.terminal && measure.showLabel !== false).map((measure) => {
+        var _a, _b;
         const labelLeft = offsetLeft(measure.left, (_a = measure.labelOffset) != null ? _a : 6);
         const isSelected = selectedMeasure === measure.beat;
         const action = isSelected ? measureSectionAction(sectionEditing, measure) : void 0;
         const CommandIcon = (action == null ? void 0 : action.kind) === "merge" ? CornerRightUp : CornerDownLeft;
         const commandName = (action == null ? void 0 : action.kind) === "merge" ? "Merge" : "Split";
-        const menu = action && /* @__PURE__ */ import_react9.default.createElement(
+        const menu = action && /* @__PURE__ */ import_react10.default.createElement(
           "button",
           {
             type: "button",
@@ -16126,22 +16196,23 @@ var LibrawlCaplinNotes = (() => {
               if (event.key === "Enter" || event.key === " ") event.stopPropagation();
             }
           },
-          /* @__PURE__ */ import_react9.default.createElement(CommandIcon, { size: 14, "aria-hidden": "true", focusable: false })
+          /* @__PURE__ */ import_react10.default.createElement(CommandIcon, { size: 14, "aria-hidden": "true", focusable: false })
         );
-        return /* @__PURE__ */ import_react9.default.createElement(
+        return /* @__PURE__ */ import_react10.default.createElement(
           "div",
           {
             className: "rawln-measure-position",
             key: measure.beat,
             style: { gridTemplateColumns: `minmax(0, ${cssLength(labelLeft)}) max-content` }
           },
-          /* @__PURE__ */ import_react9.default.createElement(
+          /* @__PURE__ */ import_react10.default.createElement(
             "div",
             {
               className: "rawln-measure-number",
               role: onMeasureSelect ? "button" : void 0,
               tabIndex: onMeasureSelect ? 0 : void 0,
               "aria-pressed": onMeasureSelect ? isSelected : void 0,
+              "data-rhythm-editing": isSelected && !!rhythmEditing || void 0,
               onClick: onMeasureSelect ? (event) => select(event, measure) : void 0,
               onBlur: onMeasureSelect ? (event) => {
                 if (event.target === event.currentTarget) delete event.currentTarget.dataset.pointerFocused;
@@ -16167,16 +16238,27 @@ var LibrawlCaplinNotes = (() => {
               }
             },
             renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && isSelected ? (event) => editSection(event, measure, action) : void 0, action == null ? void 0 : action.kind),
-            /* @__PURE__ */ import_react9.default.createElement("span", { className: "rawln-measure-digits", style: measureDigits }, measure.number)
+            /* @__PURE__ */ import_react10.default.createElement("span", { className: "rawln-measure-digits", style: measureDigits }, measure.number),
+            isSelected && rhythmEditing && /* @__PURE__ */ import_react10.default.createElement("div", { className: "rawln-rhythm-editor" }, /* @__PURE__ */ import_react10.default.createElement(
+              MeasureRhythmInput,
+              {
+                key: measure.beat,
+                rhythmGrouping: (_b = rhythmEditing.getGrouping) == null ? void 0 : _b.call(rhythmEditing, measure),
+                onBeatsPerMeasure: (beats2) => rhythmEditing.onBeatsPerMeasure(measure, beats2),
+                onRhythmGrouping: rhythmEditing.onRhythmGrouping && ((groups) => rhythmEditing.onRhythmGrouping(measure, groups)),
+                onPhraseShift: onPhraseShift && ((offset) => onPhraseShift(measure, offset)),
+                onSectionKeyDown: sectionEditing && ((event) => editSection(event, measure, action))
+              }
+            ))
           ),
-          menu != null && /* @__PURE__ */ import_react9.default.createElement("div", { className: "rawln-measure-menu" }, menu)
+          menu != null && /* @__PURE__ */ import_react10.default.createElement("div", { className: "rawln-measure-menu" }, menu)
         );
       })))
     );
   }
 
   // src/notation/recolor.jsx
-  var import_react10 = __toESM(require_react(), 1);
+  var import_react11 = __toESM(require_react(), 1);
   var ROOTS = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
   function orderChanges(changes) {
     return changes.sort((a, b) => {
@@ -16209,7 +16291,7 @@ var LibrawlCaplinNotes = (() => {
   var initial = (source) => ({ source, committed: source, ...clearedSelection });
   function useTonicRecoloring({ changes, barBeats = 4, measureMap, onChange }) {
     var _a;
-    const [stored, setStored] = (0, import_react10.useState)(() => initial(changes));
+    const [stored, setStored] = (0, import_react11.useState)(() => initial(changes));
     const state = stored.source === changes ? stored : initial(changes);
     const { committed, selectedMeasure, selectedElement, boundary, hoveredNote } = state;
     const selectedChange = selectedMeasure === null ? void 0 : (_a = committed.find((change) => sameBeat(change.measureBeat, selectedMeasure))) != null ? _a : committed.findLast((change) => change.measureBeat == null && sameBeat(change.beat, boundary));
@@ -16225,14 +16307,14 @@ var LibrawlCaplinNotes = (() => {
       onChoose: (note) => commit(snapOnset(committed, selectedChange, selectedMeasure, note.start))
     });
     const eligibleOnset = hoveredNote && onsetEditing.active && onsetEditing.isAllowed(hoveredNote);
-    const preview = (0, import_react10.useMemo)(() => {
+    const preview = (0, import_react11.useMemo)(() => {
       if (boundary === null || !hoveredNote) return committed;
       if (onsetEditing.active) {
         return eligibleOnset ? snapOnset(committed, selectedChange, selectedMeasure, hoveredNote.start) : committed;
       }
       return recolor(committed, boundary, hoveredNote.pitch, selectedChange);
     }, [committed, boundary, hoveredNote, onsetEditing.active, eligibleOnset, selectedChange, selectedMeasure]);
-    (0, import_react10.useEffect)(() => {
+    (0, import_react11.useEffect)(() => {
       var _a2;
       if (selectedMeasure === null) return;
       const ownerDocument = (_a2 = selectedElement == null ? void 0 : selectedElement.ownerDocument) != null ? _a2 : document;
@@ -16274,9 +16356,9 @@ var LibrawlCaplinNotes = (() => {
   var emptyChanges = [];
   function MeasureHeaders({ rows, tonic, changes, measureMap, beatBeats, barBeats, phraseStarts, modulationMarkerPlacement, showModulationTonics, publish }) {
     const editor = useTonicRecoloring({ changes, barBeats, measureMap });
-    (0, import_react11.useLayoutEffect)(() => publish(editor));
+    (0, import_react12.useLayoutEffect)(() => publish(editor));
     return rows.map(({ score, row, axis }) => (0, import_react_dom.createPortal)(
-      /* @__PURE__ */ import_react11.default.createElement("div", { className: "rawln", style: { position: "absolute", inset: `${axis.guideTop}px 0 0`, pointerEvents: "none" } }, /* @__PURE__ */ import_react11.default.createElement(
+      /* @__PURE__ */ import_react12.default.createElement("div", { className: "rawln", style: { position: "absolute", inset: `${axis.guideTop}px 0 0`, pointerEvents: "none" } }, /* @__PURE__ */ import_react12.default.createElement(
         RawlMeasureHeader,
         {
           row,
@@ -16329,7 +16411,7 @@ var LibrawlCaplinNotes = (() => {
         if (state.onsetEditing.active) paintTargets();
       });
     }
-    (0, import_react_dom.flushSync)(() => root.render(/* @__PURE__ */ import_react11.default.createElement(MeasureHeaders, { ...options, changes, publish })));
+    (0, import_react_dom.flushSync)(() => root.render(/* @__PURE__ */ import_react12.default.createElement(MeasureHeaders, { ...options, changes, publish })));
     panel.addEventListener("click", captureClick, true);
     return {
       get selectedMeasure() {
@@ -16357,14 +16439,14 @@ var LibrawlCaplinNotes = (() => {
   var noop = () => {
   };
   function CaplinNoteLayer({ model, axis, width, border }) {
-    return /* @__PURE__ */ React6.createElement(React6.Fragment, null, getNoteRectangles(model.notes, (pitch) => axis.pitchToY(pitch) + 2.5, 2.5, noop, noop, noop, (time) => model.toX(time, width), false, null, false, void 0, null, void 0, void 0, model.getAttributes), /* @__PURE__ */ React6.createElement("div", { "aria-hidden": "true", style: {
+    return /* @__PURE__ */ React7.createElement(React7.Fragment, null, getNoteRectangles(model.notes, (pitch) => axis.pitchToY(pitch) + 2.5, 2.5, noop, noop, noop, (time) => model.toX(time, width), false, null, false, void 0, null, void 0, void 0, model.getAttributes), /* @__PURE__ */ React7.createElement("div", { "aria-hidden": "true", style: {
       position: "absolute",
       left: 0,
       right: 0,
       pointerEvents: "none",
       top: "max(1px, var(--rawl-notes-top, 1px))",
       bottom: "max(1px, var(--rawl-notes-bottom, 1px))"
-    } }, /* @__PURE__ */ React6.createElement(PlaybackMeasureBorders, { ref: border, hidden: true })));
+    } }, /* @__PURE__ */ React7.createElement(PlaybackMeasureBorders, { ref: border, hidden: true })));
   }
   function mount(score, options) {
     var _a;
@@ -16374,7 +16456,7 @@ var LibrawlCaplinNotes = (() => {
     element.style.display = "contents";
     score.append(element);
     const root = (0, import_client2.createRoot)(element), view = score.ownerDocument.defaultView;
-    const border = React6.createRef(), playbackMeasure = mountPlaybackMeasure(score);
+    const border = React7.createRef(), playbackMeasure = mountPlaybackMeasure(score);
     let props = options, model, destroyed = false, lastWidth = null;
     function render() {
       var _a2;
@@ -16384,7 +16466,7 @@ var LibrawlCaplinNotes = (() => {
       model = caplinNoteModel(props);
       const width = score.clientWidth || score.getBoundingClientRect().width || 600;
       lastWidth = width;
-      (0, import_react_dom2.flushSync)(() => root.render(/* @__PURE__ */ React6.createElement(CaplinNoteLayer, { model, axis: props.axis, width, border })));
+      (0, import_react_dom2.flushSync)(() => root.render(/* @__PURE__ */ React7.createElement(CaplinNoteLayer, { model, axis: props.axis, width, border })));
       playbackMeasure.update(border.current, caplinPlaybackMeasures(model, props.data));
       for (const node of element.querySelectorAll(".rawl-note[data-note-id]")) {
         const prior = retained.get(node.dataset.noteId);

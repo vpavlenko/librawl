@@ -52,6 +52,8 @@ export interface RawlNotationProps {
  onSectionEdit?:()=>void;
  /** Supply to persist phrase edits in the host through the phraseStarts prop. */
  onPhraseStartsChange?:(starts:number[])=>void;
+ /** Enable the rhythm field for a selected measure with host-owned edits. */
+ rhythmEditing?:MeasureRhythmEditing;
  /** Observe the edited layout, or null when the original rows are shown. */
  onSectionRowsChange?:(rows:ScoreRow[]|null)=>void;
  renderMeasureExtras?:RenderMeasureExtras;
@@ -110,6 +112,7 @@ export type RawlMeasureHeaderProps = ({
  showContinuedTonic?:boolean;
  showHeader?:boolean; transpose?:number; sectionEditing?:MeasureSectionEditing; renderMeasureExtras?:RenderMeasureExtras;
  onPhraseShift?:(measure:PositionedMeasure,offset:number)=>void;
+ rhythmEditing?:MeasureRhythmEditing;
 };
 export const RawlMeasureHeader:React.FC<RawlMeasureHeaderProps>;
 export interface TonalGridProps {
@@ -130,3 +133,23 @@ export function useTonicRecoloring(options:{changes:TonicChange[];barBeats?:numb
 
 export const PHRASE_SHIFT_KEYS: Readonly<Record<string,number>>;
 export function handlePhraseShiftKey(event:React.KeyboardEvent|KeyboardEvent,onShift:(offset:number)=>void):boolean;
+
+export interface MeasureRhythmEditing {
+ getGrouping?:(measure:PositionedMeasure)=>number[]|undefined;
+ onBeatsPerMeasure:(measure:PositionedMeasure,beats:number)=>void;
+ onRhythmGrouping?:(measure:PositionedMeasure,groups:number[])=>void;
+}
+export interface MeasureRhythmInputProps {
+ onBeatsPerMeasure:(beats:number)=>void;
+ onRhythmGrouping?:(groups:number[])=>void;
+ rhythmGrouping?:number[];
+ onSectionKeyDown?:React.KeyboardEventHandler<HTMLInputElement>;
+ onPhraseShift?:(offset:number)=>void;
+ onKeyDown?:React.KeyboardEventHandler<HTMLInputElement>;
+ onUnhandledCharacter?:React.KeyboardEventHandler<HTMLInputElement>;
+ value?:string;
+ onValueChange?:(value:string)=>void;
+ showReset?:boolean;
+}
+export const MeasureRhythmInput:React.ForwardRefExoticComponent<MeasureRhythmInputProps&React.RefAttributes<HTMLInputElement>>;
+export function parseRhythmGrouping(value:string):number[]|null;

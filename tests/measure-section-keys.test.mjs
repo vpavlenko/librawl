@@ -5,7 +5,7 @@ import {flushSync} from 'react-dom';
 import {createRoot} from 'react-dom/client';
 import {JSDOM} from 'jsdom';
 import {RawlNotation} from 'librawl';
-import {RawlMeasureHeader} from 'librawl/components';
+import {MeasureRhythmInput, RawlMeasureHeader} from 'librawl/components';
 
 const measures = [0, 4, 8, 12].map((beat, index) => ({
   beat, number: index + 1, left: index * 100, isPhraseStart: beat !== 12,
@@ -307,6 +307,59 @@ test('selected-measure phrase shortcuts count measures and keep fixed boundaries
     assert.ok(press(control(37), 'v'));
     assert.equal(control(31).getAttribute('aria-pressed'), 'true', 'a nonphrase selection moves by one measure');
     assert.equal(edits.length, 2);
+  } finally {
+    flushSync(() => root.unmount());
+    await new Promise(setImmediate);
+    dom.window.close();
+    Object.assign(globalThis, old);
+  }
+});
+
+test('the shared rhythm input commits meters and groups without taking the editing shortcuts', async () => {
+  const dom = new JSDOM('<div id="root"></div>', {pretendToBeVisual: true});
+  const {window} = dom;
+  const old = {window: globalThis.window, document: globalThis.document};
+  Object.assign(globalThis, {window, document: window.document});
+  window.HTMLElement.prototype.attachEvent = () => {};
+  window.HTMLElement.prototype.detachEvent = () => {};
+  const host = window.document.querySelector('#root');
+  const root = createRoot(host);
+  const edits = [];
+  const render = value => flushSync(() => root.render(React.createElement(MeasureRhythmInput, {
+    value, rhythmGrouping: [3, 2],
+    onBeatsPerMeasure: beats => edits.push(beats),
+    onRhythmGrouping: groups => edits.push(groups),
+    onPhraseShift: offset => edits.push(['shift', offset]),
+    onSectionKeyDown: event => {
+      if (!event.currentTarget.value.trim()) {
+        event.preventDefault();
+        edits.push(event.shiftKey ? 'merge' : 'split');
+      }
+    },
+  })));
+  const press = (key, extra = {}) => {
+    const event = new window.KeyboardEvent('keydown', {key, bubbles: true, cancelable: true, ...extra});
+    flushSync(() => host.querySelector('input').dispatchEvent(event));
+    return event.defaultPrevented;
+  };
+
+  try {
+    render('');
+    assert.equal(window.document.activeElement, host.querySelector('input'));
+    assert.ok(press('Enter'));
+    assert.ok(press('Enter', {shiftKey: true}));
+    render('7');
+    assert.ok(press('Enter'));
+    render('3 + 2');
+    assert.ok(press('Enter'));
+    assert.ok(press(','));
+    assert.equal(press(',', {metaKey: true}), false);
+    assert.equal(press('Enter', {isComposing: true}), false);
+    render('0+5');
+    assert.equal(host.querySelector('input').getAttribute('aria-invalid'), 'true');
+    assert.ok(press('Enter'));
+    flushSync(() => host.querySelector('button').click());
+    assert.deepEqual(edits, ['split', 'merge', 7, [3, 2], ['shift', 4], []]);
   } finally {
     flushSync(() => root.unmount());
     await new Promise(setImmediate);

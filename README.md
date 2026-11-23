@@ -196,6 +196,11 @@ Hosts that render their own rows can pass `sectionEditing` with `sectionStarts`,
 `renderMeasureExtras` argument to a rhythm input to support the shortcuts when the
 field is empty. Its third argument identifies the available section action.
 
+A selected measure can also display the shared rhythm field. Supply
+`rhythmEditing` to receive edits for an authored measure. A positive integer
+sets beats per measure, while sums such as `3+2` set beat groups. Hosts with their
+own layouts can use `MeasureRhythmInput` and apply the edit to their ruler.
+
 ### Modulation onsets and pickups
 
 When a mid-measure tonic change acts as a pickup into the following measure,

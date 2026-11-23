@@ -16,3 +16,8 @@
 .rawln-section-command:focus-visible{outline:1px solid #ddd;outline-offset:2px}
 .rawln-measure-number:focus-visible{outline:1px solid #ddd;outline-offset:2px}
 .rawln-measure-number[data-pointer-focused]{outline:none}
+
+.rawln-measure-number[data-rhythm-editing]{z-index:300}
+.rawln-rhythm-editor{position:absolute;top:calc(100% + 4px);left:0;display:flex;align-items:center;width:max-content}
+.rawln-rhythm-input:focus,.rawln-rhythm-reset:focus-visible{outline:1px solid #ddd;outline-offset:2px}
+.rawln-rhythm-reset{margin-left:5px}

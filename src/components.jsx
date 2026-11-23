@@ -9,3 +9,4 @@ export {PianoLegend,InlinePianoLegend,FoldablePianoLegend} from './components/Pi
 export {ScorePinchContent,useScorePinch} from './components/score-pinch.ts';
 
 export {PHRASE_SHIFT_KEYS,handlePhraseShiftKey} from './notation/phrase-keys.mjs';
+export {MeasureRhythmInput,parseRhythmGrouping} from './notation/MeasureRhythmInput.jsx';

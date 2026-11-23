@@ -4,6 +4,7 @@ import {MODULATION_BADGE_HEIGHT, TonicSymbol} from '../components/TonicSymbol.js
 import {measureHeaderLayout, mod, sameBeat} from './geometry.mjs';
 import {RAWL_COLORS} from './palette.mjs';
 import {handlePhraseShiftKey} from './phrase-keys.mjs';
+import {MeasureRhythmInput} from './MeasureRhythmInput.jsx';
 
 const EMPTY_CHANGES = [];
 const measureNumberTop = -4;
@@ -135,7 +136,7 @@ export function RawlMeasureHeader({
   row, layout: positioned, height = '100%', tonic = 0, changes = EMPTY_CHANGES,
   barBeats = 4, beatBeats = 1, phraseStarts, measureMap, selectedMeasure = null,
   onMeasureSelect, hideInitialTonic = false, showModulationTonics = false, showContinuedTonic = false, showHeader = true, transpose = 0,
-  renderMeasureExtras, modulationMarkerPlacement, sectionEditing, onPhraseShift,
+  renderMeasureExtras, modulationMarkerPlacement, sectionEditing, onPhraseShift, rhythmEditing,
 }) {
   const element = useRef(null);
   const previousSelection = useRef(selectedMeasure);
@@ -260,6 +261,7 @@ export function RawlMeasureHeader({
             <div className="rawln-measure-number" role={onMeasureSelect ? 'button' : undefined}
               tabIndex={onMeasureSelect ? 0 : undefined}
               aria-pressed={onMeasureSelect ? isSelected : undefined}
+              data-rhythm-editing={isSelected && !!rhythmEditing || undefined}
               onClick={onMeasureSelect ? event => select(event, measure) : undefined}
               onBlur={onMeasureSelect ? event => {
                 if (event.target === event.currentTarget) delete event.currentTarget.dataset.pointerFocused;
@@ -281,6 +283,14 @@ export function RawlMeasureHeader({
               {renderMeasureExtras?.(measure, sectionEditing && isSelected
                 ? event => editSection(event, measure, action) : undefined, action?.kind)}
               <span className="rawln-measure-digits" style={measureDigits}>{measure.number}</span>
+              {isSelected && rhythmEditing && <div className="rawln-rhythm-editor">
+                <MeasureRhythmInput key={measure.beat}
+                  rhythmGrouping={rhythmEditing.getGrouping?.(measure)}
+                  onBeatsPerMeasure={beats => rhythmEditing.onBeatsPerMeasure(measure, beats)}
+                  onRhythmGrouping={rhythmEditing.onRhythmGrouping && (groups => rhythmEditing.onRhythmGrouping(measure, groups))}
+                  onPhraseShift={onPhraseShift && (offset => onPhraseShift(measure, offset))}
+                  onSectionKeyDown={sectionEditing && (event => editSection(event, measure, action))}/>
+              </div>}
             </div>
             {menu != null && <div className="rawln-measure-menu">{menu}</div>}
           </div>;
