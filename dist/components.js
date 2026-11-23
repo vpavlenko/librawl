@@ -793,7 +793,7 @@ function PlaybackMeasureBorders({ left, width, top = true, bottom = true, hidden
 }
 
 // src/notation/RawlNotation.jsx
-import { NoteLayer, NotePlaybackContext, PlaybackSectionContext, createSectionPlaybackClock, ModulationOnsetEditingContext } from "librawl/native";
+import { NoteLayer, NotePlaybackContext, PlaybackSectionContext, createSectionPlaybackClock, ModulationOnsetEditingContext, getStaticPitchBend, interpolatedPitchColor } from "librawl/native";
 function iconCursor(shape) {
   const outline = `<g fill="none" stroke="black" color="black" stroke-width="4">${shape}</g>`;
   const icon = `<g fill="none" stroke="white" color="white" stroke-width="2">${shape}</g>`;

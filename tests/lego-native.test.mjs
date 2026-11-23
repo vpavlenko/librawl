@@ -26,7 +26,7 @@ test('Lego delegates note elements and geometry to the public native renderer in
 test('Lego native adapter preserves authored geometry, melody layering, colors, source IDs and section-scoped upward playback doubling',async()=>{
  const env=setup(),{host,ref}=env,notes=[{id:'held',pitch:48,start:0,duration:8,voice:0,velocity:74},{id:'sax',pitch:65,start:1,duration:2,voice:1,velocity:80}],rows=[{start:0,end:4},{start:4,end:8}],before=JSON.stringify(notes),props={notes,beats:8,rows,changes:[{beat:0,tonic:0},{beat:4,tonic:5}],barBeats:4};
  try{
-  env.render(props);const [left,right]=host.querySelectorAll('[data-note="held"]'),sax=host.querySelector('[data-note="sax"]');assert.equal(left.dataset.noteId,'held');assert.equal(left.style.left,'0%');assert.equal(left.style.width,'100%');assert.equal(right.style.left,'0%');assert.equal(right.style.width,'100%');assert.equal(sax.style.left,'25%');assert.equal(sax.style.width,'50%');assert.equal(sax.getAttribute('aria-label'),'F4');assert.equal(host.querySelector('[data-note][title], [data-note] [title], [data-note] svg title'),null);assert.equal(left.style.height,'5px');assert.equal(left.style.background,'white');assert.equal(sax.style.background,'rgb(149, 0, 179)');assert.ok(Number(sax.style.zIndex)>Number(left.style.zIndex));assert.equal(left.dataset.pitch,'48');assert.equal(left.dataset.voice,'0');assert.equal(sax.dataset.voice,'1');
+  env.render(props);const [left,right]=host.querySelectorAll('[data-note="held"]'),sax=host.querySelector('[data-note="sax"]');assert.equal(left.dataset.noteId,'held');assert.equal(left.style.left,'0%');assert.equal(left.style.width,'100%');assert.equal(right.style.left,'0%');assert.equal(right.style.width,'100%');assert.equal(sax.style.left,'25%');assert.equal(sax.style.width,'50%');assert.equal(sax.getAttribute('aria-label'),'F4');assert.equal(host.querySelector('[data-note][title], [data-note] [title], [data-note] svg title'),null);assert.equal(left.style.height,'5px');assert.equal(left.style.background,'white');assert.equal(right.style.background,'rgb(120, 120, 120)');assert.equal(sax.style.background,'rgb(149, 0, 179)');assert.ok(Number(sax.style.zIndex)>Number(left.style.zIndex));assert.equal(left.dataset.pitch,'48');assert.equal(left.dataset.voice,'0');assert.equal(sax.dataset.voice,'1');
   const bottom=parseFloat(left.style.top)+5;ref.current.setPosition(2);assert.equal(left.style.height,'10px');assert.equal(parseFloat(left.style.top)+10,bottom);assert.equal(right.style.height,'5px');assert.equal(sax.style.height,'10px');assert.ok(left.classList.contains('rawln-sounding'));assert.ok(!right.classList.contains('rawln-sounding'));
   ref.current.setPosition(4);assert.equal(left.style.height,'5px');assert.equal(right.style.height,'10px');assert.equal(sax.style.height,'5px');assert.ok(!left.classList.contains('rawln-sounding'));assert.ok(right.classList.contains('rawln-sounding'));ref.current.setPosition(null);assert.equal(right.style.height,'5px');assert.equal(host.querySelector('.rawln-sounding'),null);
   assert.equal(ref.current.element,host.firstElementChild);assert.equal(host.querySelector('.rawln-playhead'),null);assert.equal(JSON.stringify(notes),before);
@@ -104,4 +104,29 @@ test('standalone score recolors from a measure number with hover, commit, escape
   assert.equal(w.document.activeElement,w.document.body);assert.equal(measure(0).tabIndex,0);note('C').click();assert.equal(auditions[0],notes[0]);
   env.render({...props,changes:[{beat:0,tonic:0,root:'C'}]});assert.equal(note('F').dataset.degree,'5');assert.equal(JSON.stringify({notes,changes}),source);
  }finally{await env.close();}
+});
+
+test('held notes paint sharp tonal changes at the sounding beat with one playback and click target',async()=>{
+ const env=setup(),{host,ref}=env;
+ const held={id:'held',pitch:60,start:1,duration:4,voice:0,playbackSpan:[10,14]};
+ const bend={...held,id:'bend',voice:1,pitchBend:[{time:1,value:8192},{time:5-0.25,value:12288}]};
+ const notes=[held,{...bend,playbackSpan:undefined}];
+ const changes=[{beat:2,measureBeat:4,tonic:1,onsetOverride:true},{beat:4,tonic:3}];
+ const clicks=[];
+ try {
+  env.render({notes,changes,beats:8,showTonalGuides:false,rows:[{start:0,end:8}],onNote:note=>clicks.push(note)});
+  const element=host.querySelector('[data-note="held"]');
+  assert.equal(element.style.backgroundImage,'linear-gradient(to right, white 0%, white 25%, #ffff00 25%, #ffff00 75%, #03b9d5 75%, #03b9d5 100%)');
+  assert.equal(host.querySelectorAll('[data-note="held"]').length,1);
+  element.click();
+  assert.equal(clicks[0],held);
+  ref.current.setPosition(13.5);
+  assert.ok(element.classList.contains('rawln-sounding'));
+  const gradient=host.querySelector('[data-note="bend"] linearGradient');
+  for (const offset of ['0.25','0.75']) {
+   const stops=[...gradient.querySelectorAll('stop')].filter(s=>s.getAttribute('offset')===offset);
+   assert.equal(stops.length,2);
+   assert.notEqual(stops[0].getAttribute('stop-color'),stops[1].getAttribute('stop-color'));
+  }
+ } finally {await env.close();}
 });

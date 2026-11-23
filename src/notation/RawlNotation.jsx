@@ -4,7 +4,7 @@ import {RAWL_COLORS} from './palette.mjs';
 import {RawlMeasureHeader} from './RawlMeasureHeader.jsx';
 import {TonalGrid} from './TonalGrid.jsx';
 import {PlaybackMeasureBorders} from './PlaybackMeasureBorders.jsx';
-import {NoteLayer,NotePlaybackContext,PlaybackSectionContext,createSectionPlaybackClock,ModulationOnsetEditingContext} from 'librawl/native';
+import {NoteLayer,NotePlaybackContext,PlaybackSectionContext,createSectionPlaybackClock,ModulationOnsetEditingContext,getStaticPitchBend,interpolatedPitchColor} from 'librawl/native';
 
 import {useTonicRecoloring} from './recolor.jsx';
 
@@ -83,8 +83,22 @@ function notePlaybackSpan(note,row,independentPlayback){
  return [start+Math.max(0,row.start-note.start)*scale,end-Math.max(0,note.start+note.duration-row.end)*scale];
 }
 
+// Coincident stops keep one note shape and place the color change on the sounding beat.
+function noteBackground(note){
+ const {tonalPitchStops}=note;
+ if(!tonalPitchStops)return note.pitchBend?.length?undefined:RAWL_COLORS[note.colorPitchClass]?.background;
+ const bend=getStaticPitchBend(note);
+ if(bend===null)return undefined;
+ const stops=tonalPitchStops.flatMap(({offset,pitchClass},index)=>{
+  const degree=mod(pitchClass+bend);
+  const color=RAWL_COLORS[degree]?.background??interpolatedPitchColor(degree);
+  return [color+' '+offset*100+'%',color+' '+(tonalPitchStops[index+1]?.offset??1)*100+'%'];
+ });
+ return 'linear-gradient(to right, '+stops.join(', ')+')';
+}
+
 /** Adapt authored quarter beats to the native renderer without changing source data. */
-function BeatNoteLayer({visible,row,axis,tonic,changes,mutedVoices,onNote,onNoteAudition,auditionEnabled,onNoteHover,clock,onsetEditing,noteCursor}){
+function BeatNoteLayer({visible,row,axis,tonic,changes,regions,mutedVoices,onNote,onNoteAudition,auditionEnabled,onNoteHover,clock,onsetEditing,noteCursor}){
  const host=useRef(null),[pixelWidth,setPixelWidth]=useState(100),span=row.end-row.start,section=useMemo(()=>[row.start,row.end],[row.start,row.end]);
  const hoveredRef=useRef(null),[hoveredId,setHoveredId]=useState(null);
  const independentPlayback=useMemo(()=>visible.some(note=>note.playbackSpan!==undefined),[visible]),playbackSection=independentPlayback?null:section;
@@ -99,9 +113,15 @@ function BeatNoteLayer({visible,row,axis,tonic,changes,mutedVoices,onNote,onNote
   isAllowed:note=>onsetEditing.isAllowed(sourceById.get(note.id)),
  }),[onsetEditing,sourceById]);
  const nativeNotes=useMemo(()=>visible.map(note=>{
-  const degree=mod(note.pitch-tonicAt(tonic,changes,note.start+note.duration/2)),muted=mutedVoices.includes(note.voice);
-  return {id:String(note.id),note:{midiNumber:note.pitch},span:notePlaybackSpan(note,row,independentPlayback),displaySpan:[Math.max(row.start,note.start),Math.min(row.end,note.start+note.duration)],voiceIndex:note.voice??0,displayVoiceIndex:note.voice??0,isDrum:false,isActive:!muted,color:`noteColor_${degree}_colors`,colorPitchClass:degree,noteUnderCursor:false,velocity:note.velocity,...(note.pitchBend?{pitchBend:note.pitchBend}:{}),...(note.sourceLocation?{sourceLocation:note.sourceLocation}:{})};
- }),[visible,row.start,row.end,independentPlayback,tonic,changes,mutedVoices]);
+  const start=Math.max(row.start,note.start),end=Math.min(row.end,note.start+note.duration);
+  const degree=mod(note.pitch-tonicAt(tonic,changes,(start+end)/2)),muted=mutedVoices.includes(note.voice);
+  const overlapping=regions.filter(region=>region.start<end&&region.end>start);
+  const tonalPitchStops=overlapping.length>1?overlapping.map((region,index)=>({
+   offset:index===0?0:(region.start-start)/(end-start),pitchClass:mod(note.pitch-region.tonic),
+  })):undefined;
+  const rendered={tonalPitchStops,id:String(note.id),note:{midiNumber:note.pitch},span:notePlaybackSpan(note,row,independentPlayback),displaySpan:[start,end],voiceIndex:note.voice??0,displayVoiceIndex:note.voice??0,isDrum:false,isActive:!muted,color:`noteColor_${degree}_colors`,colorPitchClass:degree,noteUnderCursor:false,velocity:note.velocity,...(note.pitchBend?{pitchBend:note.pitchBend}:{}),...(note.sourceLocation?{sourceLocation:note.sourceLocation}:{})};
+  return {...rendered,background:noteBackground(rendered)};
+ }),[visible,row.start,row.end,independentPlayback,tonic,changes,regions,mutedVoices]);
  const renderedNotes=useMemo(()=>hoveredId===null?nativeNotes:nativeNotes.map(note=>
   note.id===hoveredId?{...note,noteUnderCursor:true}:note),[nativeNotes,hoveredId]);
  // Preserve the host's compatibility class without duplicating note geometry.
@@ -124,7 +144,7 @@ function BeatNoteLayer({visible,row,axis,tonic,changes,mutedVoices,onNote,onNote
   const cursor=onsetEditing.active
    ? (onsetEditing.isAllowed(original)?'e-resize':'not-allowed')
    : noteCursor;
-  return {role:'button',tabIndex:-1,'aria-label':noteName(original.pitch),'data-note':original.id,'data-pitch':original.pitch,'data-degree':degree,'data-voice':original.voice,className:`rawln-note rawln-voice-${original.voice}${muted?' rawln-muted':''}`,style:{cursor,left:(start-row.start)/span*100+'%',width:(end-start)/span*100+'%',...(!note.pitchBend?.length&&RAWL_COLORS[degree]?{background:RAWL_COLORS[degree].background}:{}),zIndex:100+(84-original.pitch)+(original.voice===1?128:0)}};
+  return {role:'button',tabIndex:-1,'aria-label':noteName(original.pitch),'data-note':original.id,'data-pitch':original.pitch,'data-degree':degree,'data-voice':original.voice,className:`rawln-note rawln-voice-${original.voice}${muted?' rawln-muted':''}`,style:{cursor,left:(start-row.start)/span*100+'%',width:(end-start)/span*100+'%',background:note.background,zIndex:100+(84-original.pitch)+(original.voice===1?128:0)}};
  }}/></PlaybackSectionContext.Provider></ModulationOnsetEditingContext.Provider></div>;
 }
 
@@ -203,8 +223,8 @@ export function RawlNotation({notes,beats,rows,tonic=0,changes=EMPTY_CHANGES,bar
  }});
  const prepared=useMemo(()=>spans.map(row=>{
   const visible=notes.filter(n=>n.start<row.end-1e-6&&n.start+n.duration>row.start+1e-6),range=pitchRange(visible),axis=staveGeometry(range,{noteScale});
-  return {row,visible,range,axis,regions:showTonalGuides?tonalSegments(tonic,changes,row.start,row.end):[]};
- }),[notes,spans,tonic,changes,noteScale,showTonalGuides]);
+  return {row,visible,range,axis,regions:tonalSegments(tonic,changes,row.start,row.end)};
+ }),[notes,spans,tonic,changes,noteScale]);
  const setPosition=beat=>Number.isFinite(beat)?clock.advance(beat):clock.reset();
  useImperativeHandle(ref,()=>({setPosition,element:root.current}),[clock]);
  useLayoutEffect(()=>{if(position!==undefined||!playbackClock)setPosition(position);},[position,clock,playbackClock]);
@@ -218,11 +238,11 @@ export function RawlNotation({notes,beats,rows,tonic=0,changes=EMPTY_CHANGES,bar
     <div className="rawln-score" data-seekable={selectedMeasure===null||undefined} role="group" aria-label="Rawl notation" style={{height:axis.notesBottom}} onClick={e=>{if(selectedMeasure!==null)return;const box=e.currentTarget.getBoundingClientRect();if(box.width>0)seek(row.start+Math.max(0,Math.min(1,(e.clientX-box.left)/box.width))*span);}}>
      <PlaybackMeasureLayer row={row} clock={clock} measureMap={measureMap} barBeats={barBeats}/>
      <TonalGrid range={range} pitchToY={pitch=>axis.pitchToY(pitch)+axis.pitchStep}
-      regions={regions.map(region=>({...region,left:x(region.start)+'%',width:(region.end-region.start)/span*100+'%'}))}
+      regions={showTonalGuides?regions.map(region=>({...region,left:x(region.start)+'%',width:(region.end-region.start)/span*100+'%'})):[]}
      />
      {renderUnderlay?.(row,axis)}
      <RawlMeasureHeader row={row} height={axis.notesBottom} tonic={tonic} changes={changes} barBeats={barBeats} beatBeats={beatBeats} phraseStarts={phraseStarts} measureMap={measureMap} selectedMeasure={selectedMeasure} onMeasureSelect={onMeasureSelect} hideInitialTonic={hideInitialTonic} showModulationTonics={showModulationTonics} showContinuedTonic={showContinuedTonic} modulationMarkerPlacement={modulationMarkerPlacement} sectionEditing={editing} renderMeasureExtras={renderMeasureExtras}/>
-     <BeatNoteLayer visible={visible} row={row} axis={axis} tonic={tonic} changes={changes} mutedVoices={mutedVoices} onNote={(note,event)=>{if(editor?.chooseNote(note,event))return;if(onNote)onNote(note,event);else if(selectedMeasure===null)seek(Math.max(row.start,note.start));}} onNoteAudition={audition} auditionEnabled={selectedMeasure==null} onNoteHover={onNoteHover} clock={clock} onsetEditing={onsetEditing} noteCursor={selectedMeasure==null?AUDITION_CURSOR:TONIC_CURSOR}/>
+     <BeatNoteLayer visible={visible} row={row} axis={axis} tonic={tonic} changes={changes} regions={regions} mutedVoices={mutedVoices} onNote={(note,event)=>{if(editor?.chooseNote(note,event))return;if(onNote)onNote(note,event);else if(selectedMeasure===null)seek(Math.max(row.start,note.start));}} onNoteAudition={audition} auditionEnabled={selectedMeasure==null} onNoteHover={onNoteHover} clock={clock} onsetEditing={onsetEditing} noteCursor={selectedMeasure==null?AUDITION_CURSOR:TONIC_CURSOR}/>
     </div>
     {renderFooter&&<div className="rawln-footer">{renderFooter(row,{changes,selectedMeasure})}</div>}
    </div>;

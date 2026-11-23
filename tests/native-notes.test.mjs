@@ -55,8 +55,21 @@ function cases(){
 
 test('native source fixtures retain every recorded upstream source byte and complete renderer body',()=>{
  for(const source of provenance.sources){const filename=path.join(root,'tests/fixtures/native',path.basename(source.path));assert.equal(hash(fs.readFileSync(filename)),source.sha256,source.path);}
- const model=fs.readFileSync(path.join(root,provenance.typeModel.excerpt),'utf8');assert.equal(hash(model),provenance.typeModel.excerptSha256);assert.ok(fs.readFileSync(path.join(root,'src/rawlnative/types.ts'),'utf8').includes(model));
+ const model=fs.readFileSync(path.join(root,provenance.typeModel.excerpt),'utf8');
+ assert.equal(hash(model),provenance.typeModel.excerptSha256);
+ const sourceTypes=fs.readFileSync(path.join(root,'src/rawlnative/types.ts'),'utf8')
+  .replace('export type TonalPitchStop = {\n  offset: number;\n  pitchClass: number;\n};\n\n','')
+  .replace('  /** Rendering only. Ordered tonal pitch classes starting at fractions of the visible note width. */\n  tonalPitchStops?: readonly TonalPitchStop[];\n','');
+ assert.ok(sourceTypes.includes(model));
  let extracted=fs.readFileSync(path.join(root,'src/rawlnative/getNoteRectangles.tsx'),'utf8').replace('from "./voiceHover"','from "./instrumentVoiceGroups"').replaceAll('from "./types"','from "./Rawl"').replace('import { ColoredNote, Note, PitchBendPoint } from "./Rawl";','import { ColoredNote, Note, PitchBendPoint } from "./parseMidi";').replace('from "./voiceOrderContext"','from "./voiceOrder"').replace('      title={undefined}\n','').replace('}${attributes?.className ? ` ${attributes.className}` : ""}`}','}`}');
+ // The opt-in tonal stops leave the original rectangle and pitch-bend behavior intact.
+ extracted=extracted
+  .replace('import { applyTonalPitchStops } from "./tonalPitchStops";\n','')
+  .replace('  tonalPitchStops?: ColoredNote["tonalPitchStops"];\n','')
+  .replace('  tonalPitchStops,\n','')
+  .replace('  const colorStops = tonalPitchStops?.length ? applyTonalPitchStops(stops, tonalPitchStops, basePitch, width) : stops;\n','')
+  .replace('colorStops.map((stop, index) => (','stops.map((stop, index) => (')
+  .replace('          tonalPitchStops={note.tonalPitchStops}\n','');
  assert.equal(extracted,fs.readFileSync(path.join(root,'tests/fixtures/native/getNoteRectangles.tsx'),'utf8'));
  for(const filename of ['playbackIndex.ts','notePlayback.ts','drumPlayback.ts','strumContext.ts'])assert.equal(fs.readFileSync(path.join(root,'src/rawlnative',filename),'utf8'),fs.readFileSync(path.join(root,'tests/fixtures/native',filename),'utf8'));
 });

@@ -1113,7 +1113,21 @@ function notePlaybackSpan(note, row, independentPlayback) {
   const scale = (end - start) / note.duration;
   return [start + Math.max(0, row.start - note.start) * scale, end - Math.max(0, note.start + note.duration - row.end) * scale];
 }
-function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, onNote, onNoteAudition, auditionEnabled, onNoteHover, clock, onsetEditing, noteCursor }) {
+function noteBackground(note) {
+  var _a, _b;
+  const { tonalPitchStops } = note;
+  if (!tonalPitchStops) return ((_a = note.pitchBend) == null ? void 0 : _a.length) ? void 0 : (_b = RAWL_COLORS[note.colorPitchClass]) == null ? void 0 : _b.background;
+  const bend = (0, import_native.getStaticPitchBend)(note);
+  if (bend === null) return void 0;
+  const stops = tonalPitchStops.flatMap(({ offset, pitchClass: pitchClass2 }, index) => {
+    var _a2, _b2, _c, _d;
+    const degree = mod(pitchClass2 + bend);
+    const color2 = (_b2 = (_a2 = RAWL_COLORS[degree]) == null ? void 0 : _a2.background) != null ? _b2 : (0, import_native.interpolatedPitchColor)(degree);
+    return [color2 + " " + offset * 100 + "%", color2 + " " + ((_d = (_c = tonalPitchStops[index + 1]) == null ? void 0 : _c.offset) != null ? _d : 1) * 100 + "%"];
+  });
+  return "linear-gradient(to right, " + stops.join(", ") + ")";
+}
+function BeatNoteLayer({ visible, row, axis, tonic, changes, regions, mutedVoices, onNote, onNoteAudition, auditionEnabled, onNoteHover, clock, onsetEditing, noteCursor }) {
   const host = (0, import_react8.useRef)(null), [pixelWidth, setPixelWidth] = (0, import_react8.useState)(100), span = row.end - row.start, section = (0, import_react8.useMemo)(() => [row.start, row.end], [row.start, row.end]);
   const hoveredRef = (0, import_react8.useRef)(null), [hoveredId, setHoveredId] = (0, import_react8.useState)(null);
   const independentPlayback = (0, import_react8.useMemo)(() => visible.some((note) => note.playbackSpan !== void 0), [visible]), playbackSection = independentPlayback ? null : section;
@@ -1139,9 +1153,16 @@ function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, onNote
   }), [onsetEditing, sourceById]);
   const nativeNotes = (0, import_react8.useMemo)(() => visible.map((note) => {
     var _a, _b;
-    const degree = mod(note.pitch - tonicAt(tonic, changes, note.start + note.duration / 2)), muted = mutedVoices.includes(note.voice);
-    return { id: String(note.id), note: { midiNumber: note.pitch }, span: notePlaybackSpan(note, row, independentPlayback), displaySpan: [Math.max(row.start, note.start), Math.min(row.end, note.start + note.duration)], voiceIndex: (_a = note.voice) != null ? _a : 0, displayVoiceIndex: (_b = note.voice) != null ? _b : 0, isDrum: false, isActive: !muted, color: `noteColor_${degree}_colors`, colorPitchClass: degree, noteUnderCursor: false, velocity: note.velocity, ...note.pitchBend ? { pitchBend: note.pitchBend } : {}, ...note.sourceLocation ? { sourceLocation: note.sourceLocation } : {} };
-  }), [visible, row.start, row.end, independentPlayback, tonic, changes, mutedVoices]);
+    const start = Math.max(row.start, note.start), end = Math.min(row.end, note.start + note.duration);
+    const degree = mod(note.pitch - tonicAt(tonic, changes, (start + end) / 2)), muted = mutedVoices.includes(note.voice);
+    const overlapping = regions.filter((region) => region.start < end && region.end > start);
+    const tonalPitchStops = overlapping.length > 1 ? overlapping.map((region, index) => ({
+      offset: index === 0 ? 0 : (region.start - start) / (end - start),
+      pitchClass: mod(note.pitch - region.tonic)
+    })) : void 0;
+    const rendered = { tonalPitchStops, id: String(note.id), note: { midiNumber: note.pitch }, span: notePlaybackSpan(note, row, independentPlayback), displaySpan: [start, end], voiceIndex: (_a = note.voice) != null ? _a : 0, displayVoiceIndex: (_b = note.voice) != null ? _b : 0, isDrum: false, isActive: !muted, color: `noteColor_${degree}_colors`, colorPitchClass: degree, noteUnderCursor: false, velocity: note.velocity, ...note.pitchBend ? { pitchBend: note.pitchBend } : {}, ...note.sourceLocation ? { sourceLocation: note.sourceLocation } : {} };
+    return { ...rendered, background: noteBackground(rendered) };
+  }), [visible, row.start, row.end, independentPlayback, tonic, changes, regions, mutedVoices]);
   const renderedNotes = (0, import_react8.useMemo)(() => hoveredId === null ? nativeNotes : nativeNotes.map((note) => note.id === hoveredId ? { ...note, noteUnderCursor: true } : note), [nativeNotes, hoveredId]);
   (0, import_react8.useLayoutEffect)(() => {
     const nativeById = new Map(nativeNotes.map((note) => [note.id, note]));
@@ -1164,10 +1185,9 @@ function BeatNoteLayer({ visible, row, axis, tonic, changes, mutedVoices, onNote
     onNoteHover == null ? void 0 : onNoteHover(null);
   };
   return /* @__PURE__ */ import_react8.default.createElement("div", { ref: host, style: { display: "contents" } }, /* @__PURE__ */ import_react8.default.createElement(import_native.ModulationOnsetEditingContext.Provider, { value: onsetContext }, /* @__PURE__ */ import_react8.default.createElement(import_native.PlaybackSectionContext.Provider, { value: playbackSection }, /* @__PURE__ */ import_react8.default.createElement(import_native.NoteLayer, { notes: renderedNotes, midiNumberToY: (pitch) => axis.pitchToY(pitch) + axis.glyphHeight / 2, noteHeight: axis.glyphHeight / 2, secondsToX: (beat) => (beat - row.start) / span * pixelWidth, handleNoteClick: (note, event) => onNote == null ? void 0 : onNote(sourceById.get(note.id), event), handleMouseEnter: hover, handleMouseLeave: leave, onNoteAudition: onNoteAudition ? (note) => onNoteAudition(sourceById.get(note.id)) : void 0, auditionEnabled, getNoteAttributes: (note) => {
-    var _a;
     const original = sourceById.get(note.id), start = note.displaySpan[0], end = note.displaySpan[1], degree = note.colorPitchClass, muted = mutedVoices.includes(original.voice);
     const cursor = onsetEditing.active ? onsetEditing.isAllowed(original) ? "e-resize" : "not-allowed" : noteCursor;
-    return { role: "button", tabIndex: -1, "aria-label": noteName(original.pitch), "data-note": original.id, "data-pitch": original.pitch, "data-degree": degree, "data-voice": original.voice, className: `rawln-note rawln-voice-${original.voice}${muted ? " rawln-muted" : ""}`, style: { cursor, left: (start - row.start) / span * 100 + "%", width: (end - start) / span * 100 + "%", ...!((_a = note.pitchBend) == null ? void 0 : _a.length) && RAWL_COLORS[degree] ? { background: RAWL_COLORS[degree].background } : {}, zIndex: 100 + (84 - original.pitch) + (original.voice === 1 ? 128 : 0) } };
+    return { role: "button", tabIndex: -1, "aria-label": noteName(original.pitch), "data-note": original.id, "data-pitch": original.pitch, "data-degree": degree, "data-voice": original.voice, className: `rawln-note rawln-voice-${original.voice}${muted ? " rawln-muted" : ""}`, style: { cursor, left: (start - row.start) / span * 100 + "%", width: (end - start) / span * 100 + "%", background: note.background, zIndex: 100 + (84 - original.pitch) + (original.voice === 1 ? 128 : 0) } };
   } }))));
 }
 function useSectionRows({ notes, rows, beats, sectionStarts, phraseStarts, barBeats, sectionEditing, onSectionRowsChange, onEdit }) {
@@ -1256,8 +1276,8 @@ function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2,
   } });
   const prepared = (0, import_react8.useMemo)(() => spans.map((row) => {
     const visible = notes.filter((n) => n.start < row.end - 1e-6 && n.start + n.duration > row.start + 1e-6), range = pitchRange(visible), axis = staveGeometry(range, { noteScale });
-    return { row, visible, range, axis, regions: showTonalGuides ? tonalSegments(tonic, changes, row.start, row.end) : [] };
-  }), [notes, spans, tonic, changes, noteScale, showTonalGuides]);
+    return { row, visible, range, axis, regions: tonalSegments(tonic, changes, row.start, row.end) };
+  }), [notes, spans, tonic, changes, noteScale]);
   const setPosition = (beat) => Number.isFinite(beat) ? clock.advance(beat) : clock.reset();
   (0, import_react8.useImperativeHandle)(ref, () => ({ setPosition, element: root.current }), [clock]);
   (0, import_react8.useLayoutEffect)(() => {
@@ -1275,9 +1295,9 @@ function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2,
       {
         range,
         pitchToY: (pitch) => axis.pitchToY(pitch) + axis.pitchStep,
-        regions: regions.map((region) => ({ ...region, left: x(region.start) + "%", width: (region.end - region.start) / span * 100 + "%" }))
+        regions: showTonalGuides ? regions.map((region) => ({ ...region, left: x(region.start) + "%", width: (region.end - region.start) / span * 100 + "%" })) : []
       }
-    ), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ import_react8.default.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic, showModulationTonics, showContinuedTonic, modulationMarkerPlacement, sectionEditing: editing, renderMeasureExtras }), /* @__PURE__ */ import_react8.default.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, onNote: (note, event) => {
+    ), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ import_react8.default.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic, showModulationTonics, showContinuedTonic, modulationMarkerPlacement, sectionEditing: editing, renderMeasureExtras }), /* @__PURE__ */ import_react8.default.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, regions, mutedVoices, onNote: (note, event) => {
       if (editor == null ? void 0 : editor.chooseNote(note, event)) return;
       if (onNote) onNote(note, event);
       else if (selectedMeasure === null) seek(Math.max(row.start, note.start));

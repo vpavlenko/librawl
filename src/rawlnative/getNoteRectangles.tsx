@@ -1,4 +1,5 @@
 import { voiceHoverContains } from "./voiceHover";
+import { applyTonalPitchStops } from "./tonalPitchStops";
 import { interpolatedPitchColor, noteColorClass, notePitchDotClass } from "./colors";
 import { getNotePitchAtTime, getPitchBendSamples, getStaticPitchBend, getQuarterToneMarkerPosition, QUARTER_TONE_MARKER_SIZE, QUARTER_TONE_MARKER_OFFSET } from "./pitchBend";
 import * as React from "react";
@@ -196,6 +197,7 @@ const PitchBendNote: React.FC<{
   secondsToX: SecondsConverter;
   pitchToOffset: (semitones: number) => number;
   colorPitchClass: ColoredNote["colorPitchClass"];
+  tonalPitchStops?: ColoredNote["tonalPitchStops"];
   outlined: boolean;
   interactive: boolean;
 }> = ({
@@ -206,6 +208,7 @@ const PitchBendNote: React.FC<{
   secondsToX,
   pitchToOffset,
   colorPitchClass,
+  tonalPitchStops,
   outlined,
   interactive,
 }) => {
@@ -256,6 +259,7 @@ const PitchBendNote: React.FC<{
     }
     stops.push({ x: sample.x, pitch });
   });
+  const colorStops = tonalPitchStops?.length ? applyTonalPitchStops(stops, tonalPitchStops, basePitch, width) : stops;
 
   return (
     <svg
@@ -278,7 +282,7 @@ const PitchBendNote: React.FC<{
           y2={0}
           colorInterpolation="sRGB"
         >
-          {stops.map((stop, index) => (
+          {colorStops.map((stop, index) => (
             <stop
               key={index}
               offset={stop.x / width}
@@ -695,6 +699,7 @@ const NoteRectangle = React.memo(({
             midiNumberToY(number + bend) - midiNumberToY(number)
           }
           colorPitchClass={note.colorPitchClass}
+          tonalPitchStops={note.tonalPitchStops}
           outlined={showFullNote}
           interactive={!!handleNoteClick}
         />

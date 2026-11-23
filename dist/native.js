@@ -5,6 +5,29 @@ function voiceHoverContains(hover, index) {
   return Array.isArray(hover) ? hover.includes(index) : hover === index;
 }
 
+// src/rawlnative/tonalPitchStops.ts
+function applyTonalPitchStops(curve, tonalStops, basePitch, width) {
+  var _a;
+  let shift = tonalStops[0].pitchClass - basePitch;
+  let next = 1;
+  const result = [];
+  for (const [index, point] of curve.entries()) {
+    while (next < tonalStops.length && tonalStops[next].offset * width <= point.x) {
+      const { offset, pitchClass } = tonalStops[next++];
+      const x = offset * width;
+      const previous = (_a = curve[index - 1]) != null ? _a : point;
+      const pitch2 = point.x === previous.x ? point.pitch : previous.pitch + (point.pitch - previous.pitch) * (x - previous.x) / (point.x - previous.x);
+      result.push({ x, pitch: pitch2 + shift });
+      shift = pitchClass - basePitch;
+      result.push({ x, pitch: pitch2 + shift });
+    }
+    const pitch = point.pitch + shift;
+    const last = result.at(-1);
+    if ((last == null ? void 0 : last.x) !== point.x || last.pitch !== pitch) result.push({ x: point.x, pitch });
+  }
+  return result;
+}
+
 // src/notation/palette.mjs
 var RAWL_COLORS = [
   { background: "white", foreground: "black" },
@@ -449,6 +472,7 @@ var PitchBendNote = ({
   secondsToX,
   pitchToOffset,
   colorPitchClass,
+  tonalPitchStops,
   outlined,
   interactive
 }) => {
@@ -482,6 +506,7 @@ var PitchBendNote = ({
     }
     stops.push({ x: sample.x, pitch });
   });
+  const colorStops = (tonalPitchStops == null ? void 0 : tonalPitchStops.length) ? applyTonalPitchStops(stops, tonalPitchStops, basePitch, width) : stops;
   return /* @__PURE__ */ React.createElement(
     "svg",
     {
@@ -505,7 +530,7 @@ var PitchBendNote = ({
         y2: 0,
         colorInterpolation: "sRGB"
       },
-      stops.map((stop, index) => /* @__PURE__ */ React.createElement(
+      colorStops.map((stop, index) => /* @__PURE__ */ React.createElement(
         "stop",
         {
           key: index,
@@ -783,6 +808,7 @@ var NoteRectangle = React.memo(({
         secondsToX,
         pitchToOffset: (bend) => midiNumberToY(number + bend) - midiNumberToY(number),
         colorPitchClass: note.colorPitchClass,
+        tonalPitchStops: note.tonalPitchStops,
         outlined: showFullNote,
         interactive: !!handleNoteClick
       }

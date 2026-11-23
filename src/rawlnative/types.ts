@@ -28,12 +28,19 @@ export type Note = {
   isPlayingNow?: boolean;
 };
 
+export type TonalPitchStop = {
+  offset: number;
+  pitchClass: number;
+};
+
 export type ColoredNote = Note & {
   // Presentation identity; voiceIndex remains the original MIDI/source index.
   displayVoiceIndex?: number;
   color: string;
   isActive: boolean;
   colorPitchClass: number | "default" | "drum";
+  /** Rendering only. Ordered tonal pitch classes starting at fractions of the visible note width. */
+  tonalPitchStops?: readonly TonalPitchStop[];
   sourceLocation?: SourceLocation;
   noteUnderCursor?: boolean;
   isPlayingNow?: boolean;
