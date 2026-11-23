@@ -181,16 +181,17 @@ function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatB
   }
   const actualEvents = keyMarkers(tonic, changes);
   const events = actualEvents.map((marker, index) => {
-    var _a2, _b2, _c;
+    var _a2, _b2, _c, _d, _e;
     const onsetOverride = (_a2 = marker.onsetOverride) != null ? _a2 : explicit ? !explicit.some((measure) => Math.abs(measure.start - marker.beat) < EPS) : Math.abs(marker.beat / barBeats - Math.round(marker.beat / barBeats)) > EPS;
     if (modulationMarkerPlacement === "following-measure" && explicit && onsetOverride && marker.onsetOverride !== true && marker.delta !== null) {
       const next = explicit.find((measure) => measure.start > marker.beat + EPS);
       if (next && ((_c = (_b2 = actualEvents[index + 1]) == null ? void 0 : _b2.beat) != null ? _c : Infinity) > next.start + EPS) {
-        return { ...marker, beat: next.start, originBeat: marker.beat, number: next.sourceNumber, onsetOverride: false };
+        return { ...marker, beat: next.start, originBeat: marker.beat, measureBeat: next.start, number: next.sourceNumber, onsetOverride: false };
       }
     }
+    const measureBeat = (_e = marker.measureBeat) != null ? _e : explicit ? (_d = explicit.findLast((measure) => measure.start <= marker.beat + EPS)) == null ? void 0 : _d.start : Math.floor((marker.beat + EPS) / barBeats) * barBeats;
     const number = marker.measureBeat == null ? marker.number : numberAt(marker.measureBeat);
-    return { ...marker, onsetOverride, number };
+    return { ...marker, measureBeat, onsetOverride, number };
   });
   const displacedOnsets = new Set(events.map((marker) => marker.originBeat).filter(Number.isFinite));
   const localChanges = displacedOnsets.size ? changes.filter((change) => !displacedOnsets.has(change.beat)) : changes;
@@ -467,6 +468,7 @@ var measureDigits = {
   top: -measureNumberTop,
   width: "max-content"
 };
+var clickableMarker = { pointerEvents: "auto", cursor: "pointer" };
 var cssLength = (value) => typeof value === "number" ? value + "px" : value;
 var offsetLeft = (left, offset) => typeof left === "number" ? left + offset : offset < 0 ? `calc(${left} - ${-offset}px)` : offset > 0 ? `calc(${left} + ${offset}px)` : left;
 function arrow({ direction }) {
@@ -539,6 +541,19 @@ function releaseMeasureFocus(element) {
   const position = element == null ? void 0 : element.closest(".rawln-measure-position");
   const active2 = position == null ? void 0 : position.ownerDocument.activeElement;
   if (position == null ? void 0 : position.contains(active2)) active2.blur();
+}
+function forwardMarkerClick(event, marker, header) {
+  var _a;
+  const scoreRoot = ".rawln, .Rawl";
+  const score = header.closest(scoreRoot);
+  const matches = (control2) => marker.measureBeat != null ? sameBeat(Number(control2.dataset.beat), marker.measureBeat) : marker.number != null ? control2.dataset.scoreMeasure === String(marker.number) : sameBeat(Number(control2.dataset.beat), marker.beat);
+  const selector = '.rawln-measure-number[role="button"]';
+  const control = (_a = [...header.querySelectorAll(selector)].find(matches)) != null ? _a : score && [...score.querySelectorAll(selector)].find((candidate) => candidate.closest(scoreRoot) === score && matches(candidate));
+  if (!control) return;
+  event.stopPropagation();
+  control.focus({ preventScroll: true });
+  const { MouseEvent } = control.ownerDocument.defaultView;
+  control.dispatchEvent(new MouseEvent("click", event.nativeEvent));
 }
 function RawlMeasureHeader({
   row,
@@ -665,6 +680,8 @@ function RawlMeasureHeader({
       const interval = marker.delta == null ? null : mod(marker.delta);
       const initial2 = (_a = marker.initial) != null ? _a : marker.previousTonic === null;
       const showTonicName = !marker.continued && (initial2 || showModulationTonics && interval != null);
+      const clickable = onMeasureSelect && interval != null && !marker.continued;
+      const hitStyle = clickable ? clickableMarker : void 0;
       return /* @__PURE__ */ React2.createElement(
         "div",
         {
@@ -677,7 +694,8 @@ function RawlMeasureHeader({
           "data-origin-beat": marker.originBeat,
           "data-continued": marker.continued || void 0,
           style: { left: marker.left },
-          title: marker.name
+          title: marker.name,
+          onClick: clickable ? (event) => forwardMarkerClick(event, marker, element.current) : void 0
         },
         /* @__PURE__ */ React2.createElement(
           TonicSymbol,
@@ -693,8 +711,8 @@ function RawlMeasureHeader({
             flagClassName: "rawln-modulation-flag",
             showLabel: !marker.continued && (showTonicName || interval != null),
             showTonicName,
-            labelAttributes: { style: { left: 0, top: 0, lineHeight: MODULATION_BADGE_HEIGHT + "px" } },
-            flagAttributes: { "data-degree": interval != null ? interval : void 0, style: { background: (_b = RAWL_COLORS[interval]) == null ? void 0 : _b.background } },
+            labelAttributes: { style: { left: 0, top: 0, lineHeight: MODULATION_BADGE_HEIGHT + "px", ...hitStyle } },
+            flagAttributes: { "data-degree": interval != null ? interval : void 0, style: { background: (_b = RAWL_COLORS[interval]) == null ? void 0 : _b.background, ...hitStyle } },
             renderArrow: arrow
           }
         )

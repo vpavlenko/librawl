@@ -64,6 +64,8 @@ export interface PositionedMeasure {
 export interface KeyMarker {
  beat:number; tonic:number; previousTonic:number|null; delta:number|null;
  number?:number|string|null; onsetOverride?:boolean; name?:string; join?:boolean;
+ /** Beat of the measure number this modulation controls. */
+ measureBeat?:number;
 }
 export interface RowKeyMarker extends KeyMarker {
  originBeat?:number; continued:boolean; initial:boolean; pixelOffset:number; labelOffset:number;

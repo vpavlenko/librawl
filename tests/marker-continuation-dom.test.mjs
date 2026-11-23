@@ -43,7 +43,7 @@ test('a positioned header places attached intervals beside digits and moves only
   beats: [],
   markers: [
    {beat:0,left:0,tonic:1,previousTonic:null,delta:null,initial:true},
-   {beat:3.9,left:60,tonic:2,previousTonic:1,delta:1,onsetOverride:true},
+   {beat:3.9,left:60,tonic:2,previousTonic:1,delta:1,number:26,onsetOverride:true},
    {beat:4,left:59,tonic:3,previousTonic:2,delta:1},
   ],
  };
@@ -58,7 +58,22 @@ test('a positioned header places attached intervals beside digits and moves only
   assert.equal(shift(4),21);
   assert.equal(marker(3.9).style.left,'60px');
   assert.equal(shift(3.9),-10);
-  assert.equal(marker(3.9).querySelector('.rawln-modulation-flag').style.left,'0px');
+  const flag = marker(3.9).querySelector('.rawln-modulation-flag');
+  assert.equal(flag.style.left,'0px');
+  assert.equal(flag.style.pointerEvents,'none');
+
+  const selected = [];
+  const onMeasureSelect = (...args) => selected.push(args);
+  flushSync(() => root.render(React.createElement(RawlMeasureHeader,{layout,onMeasureSelect})));
+  const control = host.querySelector('.rawln-measure-number[data-beat="4"]');
+  assert.equal(flag.style.pointerEvents,'auto');
+  flushSync(() => {
+   flag.click();
+   label(3.9).querySelector('path').dispatchEvent(new window.MouseEvent('click',{bubbles:true}));
+   control.click();
+  });
+  assert.deepEqual(selected, Array(3).fill([4,layout.measures[1],control]));
+  assert.equal(document.activeElement,control);
  } finally {
   flushSync(() => root.unmount());
   await new Promise(resolve => setTimeout(resolve, 20));

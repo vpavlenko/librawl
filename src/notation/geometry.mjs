@@ -75,11 +75,14 @@ export function measureHeaderLayout({row,tonic=0,changes=[],barBeats=4,beatBeats
    // that bar, keep this marker at its own onset so the flags do not coincide.
    const next=explicit.find(measure=>measure.start>marker.beat+EPS);
    if(next&&(actualEvents[index+1]?.beat??Infinity)>next.start+EPS){
-    return {...marker,beat:next.start,originBeat:marker.beat,number:next.sourceNumber,onsetOverride:false};
+    return {...marker,beat:next.start,originBeat:marker.beat,measureBeat:next.start,number:next.sourceNumber,onsetOverride:false};
    }
   }
+  const measureBeat=marker.measureBeat??(explicit
+   ? explicit.findLast(measure=>measure.start<=marker.beat+EPS)?.start
+   : Math.floor((marker.beat+EPS)/barBeats)*barBeats);
   const number=marker.measureBeat==null?marker.number:numberAt(marker.measureBeat);
-  return {...marker,onsetOverride,number};
+  return {...marker,measureBeat,onsetOverride,number};
  });
  // A displaced onset is editable from the header that displays the flag.
  const displacedOnsets=new Set(events.map(marker=>marker.originBeat).filter(Number.isFinite));

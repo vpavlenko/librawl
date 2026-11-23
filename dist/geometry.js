@@ -175,16 +175,17 @@ function measureHeaderLayout({ row, tonic = 0, changes = [], barBeats = 4, beatB
   }
   const actualEvents = keyMarkers(tonic, changes);
   const events = actualEvents.map((marker, index) => {
-    var _a2, _b2, _c;
+    var _a2, _b2, _c, _d, _e;
     const onsetOverride = (_a2 = marker.onsetOverride) != null ? _a2 : explicit ? !explicit.some((measure) => Math.abs(measure.start - marker.beat) < EPS) : Math.abs(marker.beat / barBeats - Math.round(marker.beat / barBeats)) > EPS;
     if (modulationMarkerPlacement === "following-measure" && explicit && onsetOverride && marker.onsetOverride !== true && marker.delta !== null) {
       const next = explicit.find((measure) => measure.start > marker.beat + EPS);
       if (next && ((_c = (_b2 = actualEvents[index + 1]) == null ? void 0 : _b2.beat) != null ? _c : Infinity) > next.start + EPS) {
-        return { ...marker, beat: next.start, originBeat: marker.beat, number: next.sourceNumber, onsetOverride: false };
+        return { ...marker, beat: next.start, originBeat: marker.beat, measureBeat: next.start, number: next.sourceNumber, onsetOverride: false };
       }
     }
+    const measureBeat = (_e = marker.measureBeat) != null ? _e : explicit ? (_d = explicit.findLast((measure) => measure.start <= marker.beat + EPS)) == null ? void 0 : _d.start : Math.floor((marker.beat + EPS) / barBeats) * barBeats;
     const number = marker.measureBeat == null ? marker.number : numberAt(marker.measureBeat);
-    return { ...marker, onsetOverride, number };
+    return { ...marker, measureBeat, onsetOverride, number };
   });
   const displacedOnsets = new Set(events.map((marker) => marker.originBeat).filter(Number.isFinite));
   const localChanges = displacedOnsets.size ? changes.filter((change) => !displacedOnsets.has(change.beat)) : changes;

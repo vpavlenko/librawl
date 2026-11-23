@@ -52,7 +52,9 @@ test('default notation previews and moves a modulation across a row boundary', a
       beats: 12, rows: [{start: 0, end: 5}, {start: 5, end: 12}], notes, measureMap, changes,
       onChangesChange: value => saved.push(value), onSeek: beat => seeks.push(beat),
     })));
-    click(measure(5));
+    click(marker(5).querySelector('.rawln-modulation-flag'));
+    assert.equal(measure(5).getAttribute('aria-pressed'), 'true');
+    assert.equal(document.activeElement, measure(5));
     await hover(note('across'));
     assert.equal(marker(5).dataset.tonic, '4');
     shift(true);
@@ -79,7 +81,9 @@ test('default notation previews and moves a modulation across a row boundary', a
     shift(true);
     assert.equal(isEditing(), false, 'The preceding measure does not acquire the modulation');
     shift(false);
-    click(measure(5));
+    click(marker(4.75).querySelector('.rawln-modulation-label'));
+    assert.equal(measure(5).getAttribute('aria-pressed'), 'true');
+    assert.equal(document.activeElement, measure(5));
     shift(true);
     await hover(note('current'));
     assert.equal(marker(7).dataset.tonic, '7', 'The same measure can move the modulation again');

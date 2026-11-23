@@ -210,6 +210,10 @@ With a measure map, `modulationMarkerPlacement="following-measure"` can display
 an unpinned mid-measure flag at the following barline. Explicit onset overrides
 keep the flag at the sounding onset.
 
+When measure selection is enabled, clicking a modulation flag or its interval
+forwards the click to the associated measure number. In positioned headers, set
+the marker's `measureBeat` or `number` when it differs from the sounding onset.
+
 `TonalGrid` takes positioned key regions and the host pitch axis.
 
 Plain DOM hosts load `librawl/browser/score-grid.js`. Its `TonalGrid` global

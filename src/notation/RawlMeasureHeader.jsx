@@ -1,7 +1,7 @@
 import React, {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {CornerDownLeft, CornerRightUp} from 'lucide-react';
 import {MODULATION_BADGE_HEIGHT, TonicSymbol} from '../components/TonicSymbol.jsx';
-import {measureHeaderLayout, mod} from './geometry.mjs';
+import {measureHeaderLayout, mod, sameBeat} from './geometry.mjs';
 import {RAWL_COLORS} from './palette.mjs';
 
 const EMPTY_CHANGES = [];
@@ -9,6 +9,7 @@ const measureNumberTop = -4;
 const measureDigits = {
   display: 'block', lineHeight: MODULATION_BADGE_HEIGHT + 'px', position: 'relative', top: -measureNumberTop, width: 'max-content',
 };
+const clickableMarker = {pointerEvents: 'auto', cursor: 'pointer'};
 const cssLength = value => typeof value === 'number' ? value + 'px' : value;
 const offsetLeft = (left, offset) => typeof left === 'number'
   ? left + offset
@@ -92,6 +93,23 @@ function releaseMeasureFocus(element) {
   const position = element?.closest('.rawln-measure-position');
   const active = position?.ownerDocument.activeElement;
   if (position?.contains(active)) active.blur();
+}
+
+function forwardMarkerClick(event, marker, header) {
+  const scoreRoot = '.rawln, .Rawl';
+  const score = header.closest(scoreRoot);
+  const matches = control => marker.measureBeat != null
+    ? sameBeat(Number(control.dataset.beat), marker.measureBeat)
+    : marker.number != null ? control.dataset.scoreMeasure === String(marker.number)
+      : sameBeat(Number(control.dataset.beat), marker.beat);
+  const selector = '.rawln-measure-number[role="button"]';
+  const control = [...header.querySelectorAll(selector)].find(matches) ??
+    (score && [...score.querySelectorAll(selector)].find(candidate => candidate.closest(scoreRoot) === score && matches(candidate)));
+  if (!control) return;
+  event.stopPropagation();
+  control.focus({preventScroll: true});
+  const {MouseEvent} = control.ownerDocument.defaultView;
+  control.dispatchEvent(new MouseEvent('click', event.nativeEvent));
 }
 
 /** A shared score header, with an optional prepositioned ruler for hosts
@@ -180,18 +198,21 @@ export function RawlMeasureHeader({
           const interval = marker.delta == null ? null : mod(marker.delta);
           const initial = marker.initial ?? marker.previousTonic === null;
           const showTonicName = !marker.continued && (initial || (showModulationTonics && interval != null));
+          const clickable = onMeasureSelect && interval != null && !marker.continued;
+          const hitStyle = clickable ? clickableMarker : undefined;
           return <div key={marker.beat} className="rawln-modulation"
             data-beat={marker.beat} data-tonic={marker.tonic} data-join={marker.join ? marker.name : undefined}
             data-onset-override={marker.onsetOverride || undefined} data-origin-beat={marker.originBeat}
-            data-continued={marker.continued || undefined} style={{left: marker.left}} title={marker.name}>
+            data-continued={marker.continued || undefined} style={{left: marker.left}} title={marker.name}
+            onClick={clickable ? event => forwardMarkerClick(event, marker, element.current) : undefined}>
             <TonicSymbol left={0} number={marker.number}
               previousTonic={marker.previousTonic} modulationDiff={interval}
               tonicStart={marker.tonic} transpose={transpose}
               alignToOnset={marker.onsetOverride && !marker.continued}
               labelClassName="rawln-modulation-label" flagClassName="rawln-modulation-flag"
               showLabel={!marker.continued && (showTonicName || interval != null)} showTonicName={showTonicName}
-              labelAttributes={{style: {left: 0, top: 0, lineHeight: MODULATION_BADGE_HEIGHT + 'px'}}}
-              flagAttributes={{'data-degree': interval ?? undefined, style: {background: RAWL_COLORS[interval]?.background}}}
+              labelAttributes={{style: {left: 0, top: 0, lineHeight: MODULATION_BADGE_HEIGHT + 'px', ...hitStyle}}}
+              flagAttributes={{'data-degree': interval ?? undefined, style: {background: RAWL_COLORS[interval]?.background, ...hitStyle}}}
               renderArrow={arrow} />
           </div>;
         })}
