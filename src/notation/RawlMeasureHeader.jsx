@@ -136,7 +136,7 @@ export function RawlMeasureHeader({
   row, layout: positioned, height = '100%', tonic = 0, changes = EMPTY_CHANGES,
   barBeats = 4, beatBeats = 1, phraseStarts, measureMap, selectedMeasure = null,
   onMeasureSelect, hideInitialTonic = false, showModulationTonics = false, showContinuedTonic = false, showHeader = true, transpose = 0,
-  renderMeasureExtras, modulationMarkerPlacement, sectionEditing, onPhraseShift, rhythmEditing,
+  renderMeasureExtras, modulationMarkerPlacement, sectionEditing, onPhraseShift, phraseShiftHints, rhythmEditing,
 }) {
   const element = useRef(null);
   const previousSelection = useRef(selectedMeasure);
@@ -240,6 +240,7 @@ export function RawlMeasureHeader({
         {measures.filter(measure => !measure.terminal && measure.showLabel !== false).map(measure => {
           const labelLeft = offsetLeft(measure.left, measure.labelOffset ?? 6);
           const isSelected = selectedMeasure === measure.beat;
+          const shiftKey = phraseShiftHints?.get(measure.beat);
           const action = isSelected ? measureSectionAction(sectionEditing, measure) : undefined;
           const CommandIcon = action?.kind === 'merge' ? CornerRightUp : CornerDownLeft;
           const commandName = action?.kind === 'merge' ? 'Merge' : 'Split';
@@ -282,6 +283,7 @@ export function RawlMeasureHeader({
                 cursor: onMeasureSelect ? 'pointer' : undefined}}>
               {renderMeasureExtras?.(measure, sectionEditing && isSelected
                 ? event => editSection(event, measure, action) : undefined, action?.kind)}
+              {shiftKey && <span className="rawln-phrase-shift-key" aria-hidden="true">{shiftKey}</span>}
               <span className="rawln-measure-digits" style={measureDigits}>{measure.number}</span>
               {isSelected && rhythmEditing && <div className="rawln-rhythm-editor">
                 <MeasureRhythmInput key={measure.beat}

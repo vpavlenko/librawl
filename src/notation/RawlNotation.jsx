@@ -7,6 +7,7 @@ import {PlaybackMeasureBorders} from './PlaybackMeasureBorders.jsx';
 import {NoteLayer,NotePlaybackContext,PlaybackSectionContext,createSectionPlaybackClock,ModulationOnsetEditingContext,getStaticPitchBend,interpolatedPitchColor} from 'librawl/native';
 
 import {useTonicRecoloring} from './recolor.jsx';
+import {PHRASE_SHIFT_KEYS} from './phrase-keys.mjs';
 import {MODULATION_SNAP_CURSOR,TONIC_CURSOR} from '../rawlnative/note-cursors.mjs';
 
 const EMPTY_CHANGES=[];
@@ -203,18 +204,32 @@ function usePhraseStarts({phraseStarts, measureMap, notes, beats, rows, barBeats
   {length:Math.ceil(beats/barBeats)},(_,index)=>index*barBeats,
  ),[measureMap,beats,barBeats]);
 
- function shift(beat,offset,navigate) {
-  const index=grid.findIndex(start=>sameBeat(start,beat));
+ const starts=current??grid.filter(start=>sameBeat(start,Math.round(start/(4*barBeats))*4*barBeats));
+ const measureIndex=beat=>grid.findIndex(start=>sameBeat(start,beat));
+ const phraseIndex=beat=>starts.findIndex(start=>sameBeat(start,beat));
+ function destinationAt(index,offset,previous) {
   const destination=grid[index+offset];
-  if(index<0||destination===undefined||destination<from-1e-7||destination>=to-1e-7)return false;
-  const starts=current??grid.filter(start=>sameBeat(start,Math.round(start/(4*barBeats))*4*barBeats));
-  const phrase=starts.findIndex(start=>sameBeat(start,beat));
+  if(index<0||destination===undefined||destination<from-1e-7||destination>=to-1e-7||
+     (previous!==undefined&&destination<previous-1e-7))return undefined;
+  return destination;
+ }
+ function hints(beat) {
+  const phrase=phraseIndex(beat);
+  if(phrase<0)return undefined;
+  const index=measureIndex(beat);
+  return new Map(Object.entries(PHRASE_SHIFT_KEYS).flatMap(([key,offset])=>{
+   const destination=destinationAt(index,offset,starts[phrase-1]);
+   return destination===undefined?[]:[[destination,key]];
+  }));
+ }
+ function shift(beat,offset,navigate) {
+  const phrase=phraseIndex(beat);
+  const destination=destinationAt(measureIndex(beat),offset,starts[phrase-1]);
+  if(destination===undefined)return false;
   if(phrase<0){
    navigate(destination);
    return false;
   }
-  const previous=starts[phrase-1];
-  if(previous!==undefined&&destination<=previous+1e-7)return false;
 
   // Preserve the opening and closing rulers and shift the following phrase starts
   // in this score group by source-measure count, including variable meter.
@@ -231,7 +246,7 @@ function usePhraseStarts({phraseStarts, measureMap, notes, beats, rows, barBeats
   else setEdit({notes,source:phraseStarts,starts:updated});
   return true;
  }
- return {phraseStarts:current,shift};
+ return {phraseStarts:current,shift,hints};
 }
 
 /** A host-independent Rawl score. Times are quarter-note beats, pitches MIDI. */
@@ -258,6 +273,7 @@ export function RawlNotation({notes,beats,rows,tonic=0,changes=EMPTY_CHANGES,bar
   });
   if(changed)ownsSelection?.cancel();
  };
+ const phraseShiftHints=onPhraseShift?phrasing.hints(selectedMeasure):undefined;
  const rhythm=rhythmEditing&&{
   ...rhythmEditing,
   onBeatsPerMeasure(measure,beats){
@@ -293,7 +309,7 @@ export function RawlNotation({notes,beats,rows,tonic=0,changes=EMPTY_CHANGES,bar
       regions={showTonalGuides?regions.map(region=>({...region,left:x(region.start)+'%',width:(region.end-region.start)/span*100+'%'})):[]}
      />
      {renderUnderlay?.(row,axis)}
-     <RawlMeasureHeader row={row} height={axis.notesBottom} tonic={tonic} changes={changes} barBeats={barBeats} beatBeats={beatBeats} phraseStarts={phraseStarts} measureMap={measureMap} selectedMeasure={selectedMeasure} onMeasureSelect={onMeasureSelect} hideInitialTonic={hideInitialTonic} showModulationTonics={showModulationTonics} showContinuedTonic={showContinuedTonic} modulationMarkerPlacement={modulationMarkerPlacement} sectionEditing={editing} onPhraseShift={onPhraseShift} rhythmEditing={rhythm} renderMeasureExtras={renderMeasureExtras}/>
+     <RawlMeasureHeader row={row} height={axis.notesBottom} tonic={tonic} changes={changes} barBeats={barBeats} beatBeats={beatBeats} phraseStarts={phraseStarts} measureMap={measureMap} selectedMeasure={selectedMeasure} onMeasureSelect={onMeasureSelect} hideInitialTonic={hideInitialTonic} showModulationTonics={showModulationTonics} showContinuedTonic={showContinuedTonic} modulationMarkerPlacement={modulationMarkerPlacement} sectionEditing={editing} onPhraseShift={onPhraseShift} phraseShiftHints={phraseShiftHints} rhythmEditing={rhythm} renderMeasureExtras={renderMeasureExtras}/>
      <BeatNoteLayer visible={visible} row={row} axis={axis} tonic={tonic} changes={changes} regions={regions} mutedVoices={mutedVoices} onNote={(note,event)=>{if(editor?.chooseNote(note,event))return;if(onNote)onNote(note,event);else if(selectedMeasure===null)seek(Math.max(row.start,note.start));}} onNoteAudition={audition} auditionEnabled={selectedMeasure==null} onNoteHover={onNoteHover} clock={clock} onsetEditing={onsetEditing} noteCursor={selectedMeasure==null?'pointer':TONIC_CURSOR}/>
     </div>
     {renderFooter&&<div className="rawln-footer">{renderFooter(row,{changes,selectedMeasure})}</div>}

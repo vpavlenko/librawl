@@ -686,6 +686,7 @@ function RawlMeasureHeader({
   modulationMarkerPlacement,
   sectionEditing,
   onPhraseShift,
+  phraseShiftHints,
   rhythmEditing
 }) {
   const element = (0, import_react4.useRef)(null);
@@ -836,6 +837,7 @@ function RawlMeasureHeader({
       var _a, _b;
       const labelLeft = offsetLeft(measure.left, (_a = measure.labelOffset) != null ? _a : 6);
       const isSelected = selectedMeasure === measure.beat;
+      const shiftKey = phraseShiftHints == null ? void 0 : phraseShiftHints.get(measure.beat);
       const action = isSelected ? measureSectionAction(sectionEditing, measure) : void 0;
       const CommandIcon = (action == null ? void 0 : action.kind) === "merge" ? CornerRightUp : CornerDownLeft;
       const commandName = (action == null ? void 0 : action.kind) === "merge" ? "Merge" : "Split";
@@ -898,6 +900,7 @@ function RawlMeasureHeader({
             }
           },
           renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && isSelected ? (event) => editSection(event, measure, action) : void 0, action == null ? void 0 : action.kind),
+          shiftKey && /* @__PURE__ */ import_react4.default.createElement("span", { className: "rawln-phrase-shift-key", "aria-hidden": "true" }, shiftKey),
           /* @__PURE__ */ import_react4.default.createElement("span", { className: "rawln-measure-digits", style: measureDigits }, measure.number),
           isSelected && rhythmEditing && /* @__PURE__ */ import_react4.default.createElement("div", { className: "rawln-rhythm-editor" }, /* @__PURE__ */ import_react4.default.createElement(
             MeasureRhythmInput,

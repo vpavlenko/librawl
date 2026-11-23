@@ -292,11 +292,15 @@ test('selected-measure phrase shortcuts count measures and keep fixed boundaries
     flushSync(() => root.render(React.createElement(Score)));
     assert.equal(press(control(15), ','), false);
     assert.ok(press(control(15), 'Enter'));
+    const hints = [...element.querySelectorAll('.rawln-phrase-shift-key')].map(hint =>
+      [Number(hint.parentElement.dataset.beat), hint.textContent]);
+    assert.deepEqual(hints, [[0, 'z'], [3, 'x'], [8, 'c'], [11, 'v'], [21, 'b'], [24, 'n'], [28, 'm'], [31, ',']]);
     assert.equal(press(control(15), ',', {ctrlKey: true}), false);
     assert.equal(press(control(15), ',', {isComposing: true}), false);
     assert.ok(press(control(15), ','));
     assert.deepEqual(edits, [[0, 31, 44, 48]]);
     assert.equal(control(15).getAttribute('aria-pressed'), 'false');
+    assert.equal(element.querySelector('.rawln-phrase-shift-key'), null);
     assert.ok(element.querySelector('.rawln-phrase-bar[data-beat="31"]'));
     assert.ok(element.querySelector('.rawln-phrase-bar[data-beat="48"][data-terminal]'));
 

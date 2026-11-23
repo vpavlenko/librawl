@@ -112,6 +112,7 @@ export type RawlMeasureHeaderProps = ({
  showContinuedTonic?:boolean;
  showHeader?:boolean; transpose?:number; sectionEditing?:MeasureSectionEditing; renderMeasureExtras?:RenderMeasureExtras;
  onPhraseShift?:(measure:PositionedMeasure,offset:number)=>void;
+ phraseShiftHints?:ReadonlyMap<number,string>;
  rhythmEditing?:MeasureRhythmEditing;
 };
 export const RawlMeasureHeader:React.FC<RawlMeasureHeaderProps>;
