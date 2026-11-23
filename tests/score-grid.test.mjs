@@ -49,24 +49,28 @@ test('scores can opt into naming modulation destinations independently of the op
   assert.deepEqual(labels({showModulationTonics:true, hideInitialTonic:true}), ['5 G', '6 D♭']);
 });
 
-test('an editor layout keeps positioned bars and controls without repeating the carried tonic', () => {
+test('a positioned editor header retains the preceding flag and its own controls', () => {
   const events = tonicMarkers([{beat:0,tonic:0},{beat:1.5,tonic:7,onsetOverride:true}]);
   const markers = markersForRow(events, {start:2,end:5,toPixels:beat => 55 + beat * 50,numberAt:() => 8});
-  assert.equal(markers.length, 1);
-  assert.equal(markers[0].originBeat, 1.5);
-  assert.equal(markers[0].delta, null);
+  assert.equal(markers.length, 2);
+  assert.equal(markers[0].overflowCopy, true);
+  assert.equal(markers[1].originBeat, 1.5);
+  assert.equal(markers[1].delta, null);
   const measures = [{beat:2,number:8,left:55,width:150,isPhraseStart:true, labelOffset:7}];
   const beatTimes = measureSubdivisionBeats(2, 5, 1);
   const beats = visibleBeatLines([2,5], beatTimes, beat => beat * 50)
     .map(beat => ({beat,left:55 + (beat - 2) * 50}));
-  const layout = {measures, beats, markers:markers.map(marker => ({...marker,left:55 + marker.pixelOffset}))};
+  const layout = {measures, beats, markers:markers.map(marker => ({...marker,left:55 + (marker.beat - 2) * 50 + marker.pixelOffset}))};
   const props = {layout, renderMeasureExtras:() => React.createElement('input', {type:'text'})};
   const doc = new JSDOM(renderToStaticMarkup(React.createElement(RawlMeasureHeader, props))).window.document;
   assert.equal(doc.querySelector('.rawln-bar').style.left,'55px');
   assert.equal(doc.querySelector('.rawln-measure-number span').textContent,'8');
   assert(doc.querySelector('[data-score-measure="8"] input'));
-  assert.equal(doc.querySelector('.rawln-modulation svg'),null);
-  assert.equal(doc.querySelector('.rawln-modulation-label'),null);
+  const repeat = doc.querySelector('.rawln-modulation[data-overflow-copy]');
+  assert.equal(repeat.style.left,'30px');
+  assert.equal(repeat.querySelector('.rawln-modulation-label').textContent,'5');
+  assert.ok(repeat.querySelector('svg'));
+  assert.equal(doc.querySelector('.rawln-modulation[data-continued] .rawln-modulation-label'),null);
   assert.deepEqual([...doc.querySelectorAll('.rawln-beat-bar')].map(el=>el.style.left),['105px','155px']);
 
   const score = doc.createElement('div');

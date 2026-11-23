@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {keyMarkers,measureHeaderLayout,tonalSegments} from '../src/notation/geometry.mjs';
 const fixtures=[273,303].map(id=>JSON.parse(fs.readFileSync(new URL('./fixtures/marker-continuation/'+id+'.json',import.meta.url),'utf8')));
-const actual=markers=>markers.filter(marker=>marker.delta!==null).map(({beat,tonic,delta})=>({beat,tonic,delta}));
+const actual=markers=>markers.filter(marker=>marker.delta!==null&&!marker.overflowCopy).map(({beat,tonic,delta})=>({beat,tonic,delta}));
 for(const fixture of fixtures)test(fixture.index+' source/performance and aligned rows render every actual key change exactly once',()=>{
  const expected=actual(keyMarkers(fixture.tonic,fixture.changes)).filter(marker=>marker.delta!==0),before=JSON.stringify(fixture);
  assert.deepEqual(fixture.sourceRows,fixture.performanceRows.map(({start,end})=>({start,end})));
@@ -16,18 +16,27 @@ for(const fixture of fixtures)test(fixture.index+' source/performance and aligne
  }
  assert.equal(JSON.stringify(fixture),before);
 });
-test('a midmeasure modulation belongs to its actual onset; the next row carries only tonic context',()=>{
+test('an overlapping flag repeats at its original onset to the left of the following row',()=>{
  const props={tonic:0,changes:[{beat:3.5,tonic:9}],barBeats:4,width:320},first=measureHeaderLayout({...props,row:{start:0,end:4}}),next=measureHeaderLayout({...props,row:{start:4,end:8}});
  assert.deepEqual(actual(first.markers),[{beat:3.5,tonic:9,delta:-3}]);const onset=first.markers.find(m=>m.beat===3.5);assert.equal(onset.onsetOverride,true);assert.equal(onset.pixelOffset,0);assert.equal(onset.labelOffset,0);
- assert.deepEqual(actual(next.markers),[]);assert.equal(next.markers.length,1);const context=next.markers[0];assert.equal(context.tonic,9);assert.equal(context.originBeat,3.5);assert.equal(context.number,2);assert.equal(context.labelOffset,18);assert.equal(next.measures[0].number,2);assert.equal(next.measures[0].color,'#666');assert.equal(next.measures[0].hasModulation,false);
+ assert.deepEqual(actual(next.markers),[]);
+ const repeat=next.markers.find(m=>m.overflowCopy);
+ assert.deepEqual(repeat,{...onset,overflowCopy:true,left:-12.5});
+ const context=next.markers.find(m=>m.continued);
+ assert.equal(context.tonic,9);assert.equal(context.originBeat,3.5);assert.equal(context.number,2);assert.equal(context.labelOffset,18);
+ assert.equal(next.measures[0].number,2);assert.equal(next.measures[0].color,'#666');assert.equal(next.measures[0].hasModulation,false);
+ const atEdge=measureHeaderLayout({...props,row:{start:4,end:8},width:640});
+ assert.ok(!atEdge.markers.some(m=>m.overflowCopy),'a flag ending exactly at the break does not repeat');
 });
 test('an actual boundary change supersedes carried context and same-beat normalization retains the final actual tonic',()=>{
  const row={start:4,end:8},changes=[{beat:3.5,tonic:9},{beat:4,tonic:9},{beat:4,tonic:2}];
- const layout=measureHeaderLayout({row,width:320,changes});assert.deepEqual(actual(layout.markers),[{beat:4,tonic:2,delta:5}]);assert.equal(layout.markers.length,1);assert.equal(layout.markers[0].continued,false);assert.equal(layout.measures[0].color,'black');assert.equal(layout.measures[0].hasModulation,true);
+ const layout=measureHeaderLayout({row,width:320,changes});assert.deepEqual(actual(layout.markers),[{beat:4,tonic:2,delta:5}]);assert.deepEqual(layout.markers.map(m=>[m.beat,m.overflowCopy??false]),[[3.5,true],[4,false]]);assert.ok(!layout.markers.some(m=>m.continued));assert.equal(layout.measures[0].color,'black');assert.equal(layout.measures[0].hasModulation,true);
 });
 test('only the currently active tonic can carry; later actual changes stay visible and zero joins stay silent',()=>{
  const changes=[{beat:3.25,tonic:7},{beat:3.5,tonic:9},{beat:4,tonic:9},{beat:6,tonic:2},{beat:7,tonic:2}],layout=measureHeaderLayout({row:{start:4,end:8},width:160,changes});
- assert.equal(layout.markers.filter(m=>m.continued).length,1);assert.equal(layout.markers[0].tonic,9);assert.equal(layout.markers[0].originBeat,3.5);assert.deepEqual(actual(layout.markers),[{beat:6,tonic:2,delta:5}]);assert.equal(layout.markers.find(m=>m.beat===6).onsetOverride,true);
+ assert.deepEqual(layout.markers.filter(m=>m.overflowCopy).map(m=>m.beat),[3.25,3.5]);
+ const context=layout.markers.filter(m=>m.continued);
+ assert.equal(context.length,1);assert.equal(context[0].tonic,9);assert.equal(context[0].originBeat,3.5);assert.deepEqual(actual(layout.markers),[{beat:6,tonic:2,delta:5}]);assert.equal(layout.markers.find(m=>m.beat===6).onsetOverride,true);
  const initial=measureHeaderLayout({row:{start:0,end:4},width:320,changes:[{beat:0,tonic:0}]});assert.equal(initial.markers.length,1);assert.equal(initial.markers[0].initial,true);assert.equal(initial.markers[0].tonic,0);assert.equal(initial.markers[0].delta,null);
  assert.equal(measureHeaderLayout({row:{start:.1,end:4},width:320,changes:[],hideInitialTonic:true}).markers.length,0);
 });
@@ -55,8 +64,9 @@ test('a displaced flag crossing a row is drawn once at the next row opening and 
  assert.equal(rows[1].markers.length,1);
  assert.equal(rows[1].markers[0].originBeat,2.5);
  const clipped=measureHeaderLayout({...props,row:{start:3.125,end:7}});
- assert.equal(clipped.markers.length,1);assert.equal(clipped.markers[0].originBeat,2.5);
- assert.equal(clipped.markers[0].continued,true);assert.equal(clipped.markers[0].delta,null);
+ const repeat=clipped.markers.find(m=>m.overflowCopy),context=clipped.markers.find(m=>m.continued);
+ assert.equal(repeat.beat,3);assert.equal(repeat.originBeat,2.5);assert.equal(repeat.delta,-5);
+ assert.equal(context.originBeat,2.5);assert.equal(context.delta,null);
 });
 
 test('the last relevant change gets the following bar; actual bar, explicit and terminal flags keep their positions',()=>{

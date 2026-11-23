@@ -49,8 +49,8 @@ export function visibleBeatLines(barTimes, beatTimes, toPixels) {
     ? beatTimes : [];
 }
 
-// A flag crossing the left edge of a row supplies the active key only.
-// The source onset and arrow stay with the row where they start.
+// Project the entire flag through a row break at its original onset.
+// The host viewport decides how much of the overflow is visible.
 export function markersForRow(events, {start, end, toPixels, numberAt, hideInitialTonic = false}) {
   const firstTonic = events.find(marker => marker.tonic != null);
   const activeAtStart = events.findLast(marker => marker.beat <= start);
@@ -59,19 +59,20 @@ export function markersForRow(events, {start, end, toPixels, numberAt, hideIniti
     if (marker.tonic == null || marker.delta === 0 || (!initial && marker.delta == null) || marker.beat >= end || (hideInitialTonic && initial)) return [];
     const onsetOverride = !initial && marker.onsetOverride === true;
     const pixelOffset = onsetOverride ? 0 : -1;
-    if (marker.beat >= start) {
-      const number = marker.number ?? numberAt(marker.beat);
-      return [{...marker, number, initial, onsetOverride, continued: false, pixelOffset,
-        labelOffset: onsetOverride ? 0 : initial ? String(number).length * 8 + 10 : 30}];
-    }
+    const number = marker.number ?? numberAt(marker.beat);
+    const flag = {...marker, number, initial, onsetOverride, continued: false, pixelOffset,
+      labelOffset: onsetOverride ? 0 : initial ? String(number).length * 8 + 10 : 30};
+    if (marker.beat >= start) return [flag];
 
-    const intersects = marker === activeAtStart && toPixels &&
-      toPixels(marker.beat) - toPixels(start) + pixelOffset + MODULATION_BADGE_WIDTH > 0;
-    if (!intersects) return [];
-    const number = numberAt(start);
-    return [{...marker, originBeat: marker.originBeat ?? marker.beat, beat: start, number, previousTonic: null, delta: null,
-      join: false, name: undefined, initial: true, onsetOverride: false, continued: true,
-      pixelOffset: -1, labelOffset: String(number).length * 8 + 10}];
+    if (!toPixels || toPixels(start) - toPixels(marker.beat) >= MODULATION_BADGE_WIDTH + pixelOffset) return [];
+    const copies = initial ? [] : [{...flag, overflowCopy: true}];
+    if (marker === activeAtStart) {
+      const openingNumber = numberAt(start);
+      copies.push({...marker, originBeat: marker.originBeat ?? marker.beat, beat: start, number: openingNumber,
+        previousTonic: null, delta: null, join: false, name: undefined, initial: true, onsetOverride: false,
+        continued: true, pixelOffset: -1, labelOffset: String(openingNumber).length * 8 + 10});
+    }
+    return copies;
   });
 }
 

@@ -74,10 +74,10 @@ export interface KeyMarker {
  measureBeat?:number;
 }
 export interface RowKeyMarker extends KeyMarker {
- originBeat?:number; continued:boolean; initial:boolean; pixelOffset:number; labelOffset:number;
+ originBeat?:number; overflowCopy?:boolean; continued:boolean; initial:boolean; pixelOffset:number; labelOffset:number;
 }
 export interface PositionedKeyMarker extends KeyMarker {
- left:number|string; continued?:boolean; initial?:boolean; originBeat?:number; labelOffset?:number;
+ left:number|string; continued?:boolean; initial?:boolean; originBeat?:number; labelOffset?:number; overflowCopy?:boolean;
 }
 export interface MeasureHeaderLayout {
  measures:readonly PositionedMeasure[];

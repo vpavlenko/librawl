@@ -12,9 +12,10 @@ test('source pickup and final partial boundaries use true beat positions and sou
  assert.equal(result.measures.find(m=>m.beat===1).isPhraseStart,true);
  assert.deepEqual(input.measureMap,pickup);
 });
-test('partial-row carried context retains the tonic without repeating a modulation',()=>{
+test('partial-row carried context still uses the row opening',()=>{
  const result=measureHeaderLayout({row:{start:5.1,end:9},barBeats:4,width:390,measureMap:pickup,changes:[{beat:5,tonic:7}]});
- assert.equal(result.markers[0].continued,true);assert.equal(result.markers[0].left,0);assert.equal(result.markers[0].labelOffset,18);assert.equal(result.markers[0].delta,null);assert.equal(result.markers[0].previousTonic,null);assert.equal(result.markers[0].originBeat,5);assert.equal(result.markers[0].beat,5.1);
+ const context=result.markers.find(marker=>marker.continued);
+ assert.equal(context.left,0);assert.equal(context.labelOffset,18);assert.equal(context.delta,null);assert.equal(context.previousTonic,null);assert.equal(context.originBeat,5);assert.equal(context.beat,5.1);
 });
 test('regular authored boundaries have identical header geometry to default grid',()=>{
  const map=Array.from({length:16},(_,i)=>({start:i*4,duration:4,sourceNumber:i+1}));

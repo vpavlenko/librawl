@@ -97,36 +97,38 @@ function markersForRow(events, { start, end, toPixels, numberAt, hideInitialToni
     if (marker.tonic == null || marker.delta === 0 || !initial && marker.delta == null || marker.beat >= end || hideInitialTonic && initial) return [];
     const onsetOverride = !initial && marker.onsetOverride === true;
     const pixelOffset = onsetOverride ? 0 : -1;
-    if (marker.beat >= start) {
-      const number2 = (_a = marker.number) != null ? _a : numberAt(marker.beat);
-      return [{
-        ...marker,
-        number: number2,
-        initial,
-        onsetOverride,
-        continued: false,
-        pixelOffset,
-        labelOffset: onsetOverride ? 0 : initial ? String(number2).length * 8 + 10 : 30
-      }];
-    }
-    const intersects = marker === activeAtStart && toPixels && toPixels(marker.beat) - toPixels(start) + pixelOffset + MODULATION_BADGE_WIDTH > 0;
-    if (!intersects) return [];
-    const number = numberAt(start);
-    return [{
+    const number = (_a = marker.number) != null ? _a : numberAt(marker.beat);
+    const flag = {
       ...marker,
-      originBeat: (_b = marker.originBeat) != null ? _b : marker.beat,
-      beat: start,
       number,
-      previousTonic: null,
-      delta: null,
-      join: false,
-      name: void 0,
-      initial: true,
-      onsetOverride: false,
-      continued: true,
-      pixelOffset: -1,
-      labelOffset: String(number).length * 8 + 10
-    }];
+      initial,
+      onsetOverride,
+      continued: false,
+      pixelOffset,
+      labelOffset: onsetOverride ? 0 : initial ? String(number).length * 8 + 10 : 30
+    };
+    if (marker.beat >= start) return [flag];
+    if (!toPixels || toPixels(start) - toPixels(marker.beat) >= MODULATION_BADGE_WIDTH + pixelOffset) return [];
+    const copies = initial ? [] : [{ ...flag, overflowCopy: true }];
+    if (marker === activeAtStart) {
+      const openingNumber = numberAt(start);
+      copies.push({
+        ...marker,
+        originBeat: (_b = marker.originBeat) != null ? _b : marker.beat,
+        beat: start,
+        number: openingNumber,
+        previousTonic: null,
+        delta: null,
+        join: false,
+        name: void 0,
+        initial: true,
+        onsetOverride: false,
+        continued: true,
+        pixelOffset: -1,
+        labelOffset: String(openingNumber).length * 8 + 10
+      });
+    }
+    return copies;
   });
 }
 function guidePitches(low, high, tonic, fifthInterval = 5) {

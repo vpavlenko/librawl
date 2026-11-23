@@ -110,36 +110,38 @@ function markersForRow(events, { start, end, toPixels, numberAt, hideInitialToni
     if (marker.tonic == null || marker.delta === 0 || !initial2 && marker.delta == null || marker.beat >= end || hideInitialTonic && initial2) return [];
     const onsetOverride = !initial2 && marker.onsetOverride === true;
     const pixelOffset = onsetOverride ? 0 : -1;
-    if (marker.beat >= start) {
-      const number2 = (_a = marker.number) != null ? _a : numberAt(marker.beat);
-      return [{
-        ...marker,
-        number: number2,
-        initial: initial2,
-        onsetOverride,
-        continued: false,
-        pixelOffset,
-        labelOffset: onsetOverride ? 0 : initial2 ? String(number2).length * 8 + 10 : 30
-      }];
-    }
-    const intersects = marker === activeAtStart && toPixels && toPixels(marker.beat) - toPixels(start) + pixelOffset + MODULATION_BADGE_WIDTH > 0;
-    if (!intersects) return [];
-    const number = numberAt(start);
-    return [{
+    const number = (_a = marker.number) != null ? _a : numberAt(marker.beat);
+    const flag = {
       ...marker,
-      originBeat: (_b = marker.originBeat) != null ? _b : marker.beat,
-      beat: start,
       number,
-      previousTonic: null,
-      delta: null,
-      join: false,
-      name: void 0,
-      initial: true,
-      onsetOverride: false,
-      continued: true,
-      pixelOffset: -1,
-      labelOffset: String(number).length * 8 + 10
-    }];
+      initial: initial2,
+      onsetOverride,
+      continued: false,
+      pixelOffset,
+      labelOffset: onsetOverride ? 0 : initial2 ? String(number).length * 8 + 10 : 30
+    };
+    if (marker.beat >= start) return [flag];
+    if (!toPixels || toPixels(start) - toPixels(marker.beat) >= MODULATION_BADGE_WIDTH + pixelOffset) return [];
+    const copies = initial2 ? [] : [{ ...flag, overflowCopy: true }];
+    if (marker === activeAtStart) {
+      const openingNumber = numberAt(start);
+      copies.push({
+        ...marker,
+        originBeat: (_b = marker.originBeat) != null ? _b : marker.beat,
+        beat: start,
+        number: openingNumber,
+        previousTonic: null,
+        delta: null,
+        join: false,
+        name: void 0,
+        initial: true,
+        onsetOverride: false,
+        continued: true,
+        pixelOffset: -1,
+        labelOffset: String(openingNumber).length * 8 + 10
+      });
+    }
+    return copies;
   });
 }
 function guidePitches(low, high, tonic, fifthInterval = 5) {
@@ -559,11 +561,12 @@ function fitModulationLabels(header, digits, labels, commands) {
     const marker = label.parentElement;
     const anchor = marker.getBoundingClientRect().left;
     const width2 = label.getBoundingClientRect().width;
-    const digit = marker.dataset.onsetOverride ? null : digitRects.get(marker.dataset.beat);
-    return { label, anchor, width: width2, digit };
+    const overflow = marker.hasAttribute("data-overflow-copy");
+    const digit = overflow || marker.dataset.onsetOverride ? null : digitRects.get(marker.dataset.beat);
+    return { label, anchor, width: width2, digit, overflow };
   });
   function place({ label, anchor, width: width2 }, left) {
-    label.style.setProperty("--rawln-label-shift", (left - anchor) / scale + "px");
+    label.style.setProperty("--rawln-label-shift", (left - anchor) / scale - parseFloat(label.style.left) + "px");
     occupied.push({ left, right: left + width2 });
   }
   for (const position of positions) {
@@ -573,7 +576,14 @@ function fitModulationLabels(header, digits, labels, commands) {
     place(position, touchesCommand ? nearestLabelLeft(left, position.width, bounds, occupied) : left);
   }
   for (const position of positions) {
-    if (!position.digit) place(position, nearestLabelLeft(position.anchor, position.width, bounds, occupied));
+    if (!position.overflow) continue;
+    const left = position.anchor + parseFloat(position.label.style.left) * scale;
+    const overlaps = occupied.some((box) => box.left < left + position.width && box.right > left);
+    const extended = { left: Math.min(bounds.left, left - position.width), right: bounds.right };
+    place(position, overlaps ? nearestLabelLeft(left, position.width, extended, occupied) : left);
+  }
+  for (const position of positions) {
+    if (!position.digit && !position.overflow) place(position, nearestLabelLeft(position.anchor, position.width, bounds, occupied));
   }
 }
 function rowLayout(options) {
@@ -741,11 +751,11 @@ function RawlMeasureHeader({
     }),
     beats.map(({ beat, left }) => /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-beat-bar", key: beat, "data-beat": beat, style: { left } })),
     showHeader && /* @__PURE__ */ import_react3.default.createElement(import_react3.default.Fragment, null, /* @__PURE__ */ import_react3.default.createElement("div", { className: "rawln-modulations" }, markers.map((marker) => {
-      var _a, _b;
+      var _a, _b, _c;
       const interval = marker.delta == null ? null : mod(marker.delta);
       const initial2 = (_a = marker.initial) != null ? _a : marker.previousTonic === null;
       const showTonicName = marker.continued ? showContinuedTonic : initial2 || showModulationTonics && interval != null;
-      const clickable = onMeasureSelect && interval != null && !marker.continued;
+      const clickable = onMeasureSelect && interval != null && !marker.continued && !marker.overflowCopy;
       const hitStyle = clickable ? clickableMarker : void 0;
       return /* @__PURE__ */ import_react3.default.createElement(
         "div",
@@ -758,8 +768,10 @@ function RawlMeasureHeader({
           "data-onset-override": marker.onsetOverride || void 0,
           "data-origin-beat": marker.originBeat,
           "data-continued": marker.continued || void 0,
+          "data-overflow-copy": marker.overflowCopy || void 0,
+          "aria-hidden": marker.overflowCopy || void 0,
           style: { left: marker.left },
-          title: marker.name,
+          title: marker.overflowCopy ? void 0 : marker.name,
           onClick: clickable ? (event) => forwardMarkerClick(event, marker, element.current) : void 0
         },
         /* @__PURE__ */ import_react3.default.createElement(
@@ -776,8 +788,8 @@ function RawlMeasureHeader({
             flagClassName: "rawln-modulation-flag",
             showLabel: showTonicName || !marker.continued && interval != null,
             showTonicName,
-            labelAttributes: { style: { left: 0, top: 0, lineHeight: MODULATION_BADGE_HEIGHT + "px", ...hitStyle } },
-            flagAttributes: { "data-degree": interval != null ? interval : void 0, style: { background: (_b = RAWL_COLORS[interval]) == null ? void 0 : _b.background, ...hitStyle } },
+            labelAttributes: { style: { left: marker.overflowCopy ? (_b = marker.labelOffset) != null ? _b : 0 : 0, top: 0, lineHeight: MODULATION_BADGE_HEIGHT + "px", ...hitStyle } },
+            flagAttributes: { "data-degree": interval != null ? interval : void 0, style: { background: (_c = RAWL_COLORS[interval]) == null ? void 0 : _c.background, ...hitStyle } },
             renderArrow: arrow
           }
         )

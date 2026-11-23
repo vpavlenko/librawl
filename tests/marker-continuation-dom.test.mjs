@@ -8,13 +8,23 @@ import {JSDOM} from 'jsdom';
 const require=createRequire(import.meta.url),root=fileURLToPath(new URL('../',import.meta.url));
 const React=require('react'),{createRoot}=require('react-dom/client'),{flushSync}=require('react-dom');
 const bundle=await build({stdin:{contents:"export {RawlMeasureHeader} from './src/notation/RawlNotation.jsx';",resolveDir:root,loader:'jsx'},bundle:true,write:false,format:'cjs',platform:'browser',jsx:'transform',external:['react','librawl/native']});
-test('React 19 can name the destination once without repeating it on the carried flag',async()=>{
+test('a repeated flag keeps its full label, color and negative beat position',async()=>{
  const dom=new JSDOM('<!doctype html><body><div id="root"></div></body>',{url:'http://localhost/',pretendToBeVisual:true}),w=dom.window,saved=Object.getOwnPropertyDescriptors(globalThis),keys=['window','document','navigator','HTMLElement'];Object.assign(globalThis,{window:w,document:w.document,HTMLElement:w.HTMLElement});Object.defineProperty(globalThis,'navigator',{value:w.navigator,configurable:true});w.HTMLElement.prototype.getBoundingClientRect=()=>({width:800,left:0,right:800,top:0,bottom:100,height:100});
  const module={exports:{}};new Function('module','exports','require',bundle.outputFiles[0].text)(module,module.exports,name=>name==='react'?React:name==='librawl/native'?{}:require(name));const {RawlMeasureHeader}=module.exports;
  const fixture=JSON.parse(fs.readFileSync(new URL('./fixtures/marker-continuation/273.json',import.meta.url),'utf8')),rows=fixture.alignedRows.slice(1,3),host=w.document.querySelector('#root'),renderer=createRoot(host);
  try{
   flushSync(()=>renderer.render(React.createElement(React.Fragment,null,...rows.map(row=>React.createElement(RawlMeasureHeader,{key:row.start,row,changes:fixture.changes,tonic:fixture.tonic,barBeats:fixture.barBeats,showModulationTonics:true})))));
   const onset=host.querySelector('.rawln-modulation[data-beat="62"]'),carry=host.querySelector('.rawln-modulation[data-origin-beat="62"]');assert.ok(onset);assert.equal(onset.querySelectorAll('svg').length,1);assert.equal(onset.querySelector('.rawln-modulation-label').textContent,'3 A');assert.equal(onset.getAttribute('data-onset-override'),'true');assert.ok(carry);assert.equal(carry.getAttribute('data-beat'),'64');assert.equal(carry.getAttribute('data-continued'),'true');assert.equal(carry.querySelectorAll('svg').length,0);assert.equal(carry.querySelector('.rawln-modulation-label'),null);assert.equal(carry.querySelector('.rawln-modulation-flag').hasAttribute('data-degree'),false);assert.equal(carry.querySelector('.rawln-modulation-flag').style.background,'');assert.equal(carry.hasAttribute('data-join'),false);
+  const repeat=host.querySelector('.rawln-modulation[data-overflow-copy]');
+  assert.equal(repeat.dataset.beat,onset.dataset.beat);
+  assert.equal(repeat.getAttribute('aria-hidden'),'true');
+  assert.ok(parseFloat(repeat.style.left)<0);
+  const flag=marker=>marker.querySelector('.rawln-modulation-flag');
+  assert.equal(flag(repeat).style.width,flag(onset).style.width);
+  assert.equal(flag(repeat).style.background,flag(onset).style.background);
+  assert.equal(flag(repeat).style.maskImage,flag(onset).style.maskImage);
+  assert.equal(flag(repeat).style.pointerEvents,'none');
+  assert.equal(repeat.querySelector('.rawln-modulation-label').innerHTML,onset.querySelector('.rawln-modulation-label').innerHTML);
   const measure=host.querySelectorAll('.rawln-measure-grid')[1].querySelector('.rawln-measure-number[data-beat="64"]');assert.equal(measure.textContent,'17');assert.equal(measure.getAttribute('data-modulation'),null);assert.equal(measure.style.color,'rgb(102, 102, 102)');assert.equal(onset.querySelector('.rawln-modulation-label').style.left,'0px');
  }finally{flushSync(()=>renderer.unmount());await new Promise(resolve=>setTimeout(resolve,20));w.close();for(const key of keys){if(saved[key])Object.defineProperty(globalThis,key,saved[key]);else delete globalThis[key];}}
 });

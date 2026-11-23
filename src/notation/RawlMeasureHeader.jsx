@@ -53,11 +53,12 @@ function fitModulationLabels(header, digits, labels, commands) {
     const marker = label.parentElement;
     const anchor = marker.getBoundingClientRect().left;
     const width = label.getBoundingClientRect().width;
-    const digit = marker.dataset.onsetOverride ? null : digitRects.get(marker.dataset.beat);
-    return {label, anchor, width, digit};
+    const overflow = marker.hasAttribute('data-overflow-copy');
+    const digit = overflow || marker.dataset.onsetOverride ? null : digitRects.get(marker.dataset.beat);
+    return {label, anchor, width, digit, overflow};
   });
   function place({label, anchor, width}, left) {
-    label.style.setProperty('--rawln-label-shift', (left - anchor) / scale + 'px');
+    label.style.setProperty('--rawln-label-shift', (left - anchor) / scale - parseFloat(label.style.left) + 'px');
     occupied.push({left, right: left + width});
   }
   for (const position of positions) {
@@ -67,7 +68,15 @@ function fitModulationLabels(header, digits, labels, commands) {
     place(position, touchesCommand ? nearestLabelLeft(left, position.width, bounds, occupied) : left);
   }
   for (const position of positions) {
-    if (!position.digit) place(position, nearestLabelLeft(position.anchor, position.width, bounds, occupied));
+    if (!position.overflow) continue;
+    const left = position.anchor + parseFloat(position.label.style.left) * scale;
+    const overlaps = occupied.some(box => box.left < left + position.width && box.right > left);
+    // Keep the flag anchored; only move its text if it covers a control.
+    const extended = {left: Math.min(bounds.left, left - position.width), right: bounds.right};
+    place(position, overlaps ? nearestLabelLeft(left, position.width, extended, occupied) : left);
+  }
+  for (const position of positions) {
+    if (!position.digit && !position.overflow) place(position, nearestLabelLeft(position.anchor, position.width, bounds, occupied));
   }
 }
 
@@ -205,12 +214,13 @@ export function RawlMeasureHeader({
           const interval = marker.delta == null ? null : mod(marker.delta);
           const initial = marker.initial ?? marker.previousTonic === null;
           const showTonicName = marker.continued ? showContinuedTonic : initial || (showModulationTonics && interval != null);
-          const clickable = onMeasureSelect && interval != null && !marker.continued;
+          const clickable = onMeasureSelect && interval != null && !marker.continued && !marker.overflowCopy;
           const hitStyle = clickable ? clickableMarker : undefined;
           return <div key={marker.beat} className="rawln-modulation"
             data-beat={marker.beat} data-tonic={marker.tonic} data-join={marker.join ? marker.name : undefined}
             data-onset-override={marker.onsetOverride || undefined} data-origin-beat={marker.originBeat}
-            data-continued={marker.continued || undefined} style={{left: marker.left}} title={marker.name}
+            data-continued={marker.continued || undefined} data-overflow-copy={marker.overflowCopy || undefined}
+            aria-hidden={marker.overflowCopy || undefined} style={{left: marker.left}} title={marker.overflowCopy ? undefined : marker.name}
             onClick={clickable ? event => forwardMarkerClick(event, marker, element.current) : undefined}>
             <TonicSymbol left={0} number={marker.number}
               previousTonic={marker.previousTonic} modulationDiff={interval}
@@ -218,7 +228,7 @@ export function RawlMeasureHeader({
               alignToOnset={marker.onsetOverride && !marker.continued}
               labelClassName="rawln-modulation-label" flagClassName="rawln-modulation-flag"
               showLabel={showTonicName || (!marker.continued && interval != null)} showTonicName={showTonicName}
-              labelAttributes={{style: {left: 0, top: 0, lineHeight: MODULATION_BADGE_HEIGHT + 'px', ...hitStyle}}}
+              labelAttributes={{style: {left: marker.overflowCopy ? marker.labelOffset ?? 0 : 0, top: 0, lineHeight: MODULATION_BADGE_HEIGHT + 'px', ...hitStyle}}}
               flagAttributes={{'data-degree': interval ?? undefined, style: {background: RAWL_COLORS[interval]?.background, ...hitStyle}}}
               renderArrow={arrow} />
           </div>;
