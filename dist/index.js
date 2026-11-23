@@ -620,7 +620,11 @@ function RawlMeasureHeader({
   }, [markers, measures, renderMeasureExtras, showHeader]);
   const select = (event, measure) => {
     event.stopPropagation();
-    onMeasureSelect(measure.beat, measure, event.currentTarget);
+    const control = event.currentTarget;
+    if (event.type === "click" && event.detail > 0 && control.ownerDocument.activeElement === control) {
+      control.dataset.pointerFocused = "true";
+    }
+    onMeasureSelect(measure.beat, measure, control);
   };
   const applySection = (event, measure, action) => {
     releaseMeasureFocus(event.currentTarget);
@@ -735,6 +739,9 @@ function RawlMeasureHeader({
             tabIndex: onMeasureSelect ? 0 : void 0,
             "aria-pressed": onMeasureSelect ? isSelected : void 0,
             onClick: onMeasureSelect ? (event) => select(event, measure) : void 0,
+            onBlur: onMeasureSelect ? (event) => {
+              if (event.target === event.currentTarget) delete event.currentTarget.dataset.pointerFocused;
+            } : void 0,
             onKeyDown: onMeasureSelect ? (event) => {
               if (event.target !== event.currentTarget) return;
               if (isSelected && sectionEditing && event.key === "Enter") {

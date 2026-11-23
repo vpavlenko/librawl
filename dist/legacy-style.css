@@ -14,6 +14,7 @@
 .rawln-section-command svg{display:block}
 .rawln-section-command:focus-visible{outline:1px solid #ddd;outline-offset:2px}
 .rawln-measure-number:focus-visible{outline:1px solid #ddd;outline-offset:2px}
+.rawln-measure-number[data-pointer-focused]{outline:none}
 
   :root {
     --pitch-color-0: white;
