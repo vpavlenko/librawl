@@ -29,7 +29,7 @@ test('a repeated flag keeps its full label, color and negative beat position',as
  }finally{flushSync(()=>renderer.unmount());await new Promise(resolve=>setTimeout(resolve,20));w.close();for(const key of keys){if(saved[key])Object.defineProperty(globalThis,key,saved[key]);else delete globalThis[key];}}
 });
 
-test('a positioned header places attached intervals beside digits and moves only colliding snapped text', async () => {
+test('a positioned header leaves a gap between measure digits and modulation arrows', async () => {
  const dom = new JSDOM('<style>.rawln-measure-grid{width:160px}</style><main></main>', {pretendToBeVisual:true});
  const {window} = dom;
  const globals = {window:globalThis.window,document:globalThis.document};
@@ -65,9 +65,9 @@ test('a positioned header places attached intervals beside digits and moves only
   assert.equal(label(0).textContent,'D♭');
   assert.equal(shift(0),20);
   assert.equal(label(4).textContent,'1');
-  assert.equal(shift(4),21);
+  assert.equal(shift(4),24);
   assert.equal(marker(3.9).style.left,'60px');
-  assert.equal(shift(3.9),-10);
+  assert.equal(shift(3.9),-13);
   const flag = marker(3.9).querySelector('.rawln-modulation-flag');
   assert.equal(flag.style.left,'0px');
   assert.equal(flag.style.pointerEvents,'none');

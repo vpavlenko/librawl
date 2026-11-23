@@ -8,6 +8,7 @@ import {MeasureRhythmInput} from './MeasureRhythmInput.jsx';
 
 const EMPTY_CHANGES = [];
 const measureNumberTop = -4;
+const modulationLabelGap = 3;
 const measureDigits = {
   display: 'block', lineHeight: MODULATION_BADGE_HEIGHT + 'px', position: 'relative', top: -measureNumberTop, width: 'max-content',
 };
@@ -48,37 +49,43 @@ function fitModulationLabels(header, digits, labels, commands) {
   const width = parseFloat(header.ownerDocument.defaultView.getComputedStyle(header).width);
   if (!width || !bounds.width) return;
   const scale = bounds.width / width;
+  const gap = modulationLabelGap * scale;
   const digitRects = new Map(digits.map(digit => [digit.parentElement.dataset.beat, digit.getBoundingClientRect()]));
-  const commandRects = commands.map(command => command.getBoundingClientRect());
-  const occupied = [...digitRects.values(), ...commandRects];
+  const digitBoxes = [...digitRects.values()];
+  const spacedDigitBoxes = digitBoxes.map(({left, right}) => ({left: left - gap, right: right + gap}));
+  const occupied = commands.map(command => command.getBoundingClientRect());
   const positions = labels.map(label => {
     const marker = label.parentElement;
     const anchor = marker.getBoundingClientRect().left;
     const width = label.getBoundingClientRect().width;
     const overflow = marker.hasAttribute('data-overflow-copy');
     const digit = overflow || marker.dataset.onsetOverride ? null : digitRects.get(marker.dataset.beat);
-    return {label, anchor, width, digit, overflow};
+    const hasArrow = !!label.querySelector('svg');
+    return {label, anchor, width, digit, overflow, hasArrow};
   });
+  const blockers = ({hasArrow}) => [...(hasArrow ? spacedDigitBoxes : digitBoxes), ...occupied];
   function place({label, anchor, width}, left) {
     label.style.setProperty('--rawln-label-shift', (left - anchor) / scale - parseFloat(label.style.left) + 'px');
     occupied.push({left, right: left + width});
   }
   for (const position of positions) {
     if (!position.digit) continue;
-    const left = position.digit.right;
-    const touchesCommand = commandRects.some(box => box.left < left + position.width && box.right > left);
-    place(position, touchesCommand ? nearestLabelLeft(left, position.width, bounds, occupied) : left);
+    const left = position.digit.right + (position.hasArrow ? gap : 0);
+    const boxes = blockers(position);
+    const overlaps = boxes.some(box => box.left < left + position.width && box.right > left);
+    place(position, overlaps ? nearestLabelLeft(left, position.width, bounds, boxes) : left);
   }
   for (const position of positions) {
     if (!position.overflow) continue;
     const left = position.anchor + parseFloat(position.label.style.left) * scale;
-    const overlaps = occupied.some(box => box.left < left + position.width && box.right > left);
+    const boxes = blockers(position);
+    const overlaps = boxes.some(box => box.left < left + position.width && box.right > left);
     // Keep the flag anchored; only move its text if it covers a control.
     const extended = {left: Math.min(bounds.left, left - position.width), right: bounds.right};
-    place(position, overlaps ? nearestLabelLeft(left, position.width, extended, occupied) : left);
+    place(position, overlaps ? nearestLabelLeft(left, position.width, extended, boxes) : left);
   }
   for (const position of positions) {
-    if (!position.digit && !position.overflow) place(position, nearestLabelLeft(position.anchor, position.width, bounds, occupied));
+    if (!position.digit && !position.overflow) place(position, nearestLabelLeft(position.anchor, position.width, bounds, blockers(position)));
   }
 }
 
