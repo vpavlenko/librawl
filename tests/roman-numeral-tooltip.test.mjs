@@ -43,6 +43,38 @@ test('Jazz tooltip preserves explicit extensions and bass while avoiding figured
   assert.equal(romanNumeralTooltipModel(notation, options, {pitches: [99999999999]}), null);
 });
 
+test('An annotated non-chord bass appears in the Jazz tooltip heading and caption', () => {
+  const notation = '♯IV+', options = {jazz: true, rootPitch: 6};
+  const model = romanNumeralTooltipModel(notation, options, {
+    pitches: [-5, 6, 10, 14], rootPitches: [6, 10, 14], rootNotation: notation,
+    bass: {label: '⑤', pitch: 7, caption: 'A♭ bass'},
+  });
+  const document = parse(romanNumeralTooltipHTML(notation, options, model));
+  assert.deepEqual(notePitches(document), [-5, 6, 10, 14]);
+  const label = document.querySelector('.rawln-rn-tooltip-label .rawln-roman');
+  assert.equal(label.textContent, '♯IV+/⑤');
+  assert.equal(label.querySelector('.chord-bass').dataset.root, '7');
+  assert.equal(document.querySelector('.rawln-rn-tooltip-kind').textContent, 'triad');
+  assert.equal(document.querySelector('.rawln-rn-tooltip-inversion'), null);
+  assert.equal(document.querySelector('.rawln-rn-tooltip-bass').textContent, 'A♭ bass');
+});
+
+test('An annotated inversion adds the bass only to its actual voicing', () => {
+  const notation = 'I', options = {jazz: true};
+  const model = romanNumeralTooltipModel(notation, options, {
+    pitches: [4, 7, 12], rootPitches: [0, 4, 7], rootNotation: notation, inversion: 1,
+    bass: {label: '③', pitch: 4, caption: '<b>E</b> bass'},
+  });
+  const document = parse(romanNumeralTooltipHTML(notation, options, model));
+  const [root, inversion] = document.querySelectorAll('.rawln-rn-tooltip-column');
+  assert.equal(root.querySelector('.rawln-rn-tooltip-label').textContent, 'I');
+  assert.equal(root.querySelector('.rawln-rn-tooltip-bass'), null);
+  assert.equal(inversion.querySelector('.rawln-rn-tooltip-label').textContent, 'I/③');
+  assert.equal(inversion.querySelector('.rawln-rn-tooltip-inversion').textContent, 'first inversion');
+  assert.equal(inversion.querySelector('.rawln-rn-tooltip-bass').textContent, '<b>E</b> bass');
+  assert.equal(inversion.querySelector('.rawln-rn-tooltip-bass b'), null);
+});
+
 test('Jazz ninths use the seventh-chord caption and preserve the supplied voicing', () => {
   for (const [notation, rootPitches, pitches] of [
     ['♭II9', [1, 5, 8, 11, 15], [8, 11, 13, 15, 17]],

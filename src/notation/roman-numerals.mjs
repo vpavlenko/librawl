@@ -215,7 +215,8 @@ function jazzMarkup(notation, options, guitar = false) {
       ? `<span class="chord-figure colored" data-figure="${digits}" ${colorStyle(mod(pitch))}>${escape(label)}</span>`
       : escape(label);
   }).join('');
-  const bass = slash < 0 ? '' : `<span class="chord-slash">/</span><span class="chord-bass${options.colorRoots?' colored':''}" ${colorStyle(mod(options.bassPitch))}>${escape(bassLabel)}</span>`;
+  const displayedBass = options.tooltipBass ?? (slash < 0 ? null : {label: bassLabel, pitch: options.bassPitch});
+  const bass = displayedBass ? `<span class="chord-slash">/</span><span class="chord-bass${options.colorRoots?' colored':''}" ${colorStyle(mod(displayedBass.pitch))}>${escape(displayedBass.label)}</span>` : '';
   const suffixMarkup = guitar || !figures ? figures : `<sup class="roman-jazz-figures">${figures}</sup>`;
   return `${rootMarkup}${qualityMarkup}${suffixMarkup}${bass}`;
 }

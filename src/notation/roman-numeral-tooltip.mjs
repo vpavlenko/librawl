@@ -23,7 +23,7 @@ function stack(pitches) {
 }
 
 function explicitModel(tooltip) {
-  const {pitches, rootPitches, rootNotation, inversion} = tooltip;
+  const {pitches, rootPitches, rootNotation, inversion, bass} = tooltip;
   const validPitch = pitch => Number.isInteger(pitch) && Math.abs(pitch) <= 127;
   if (!pitches?.length || !pitches.every(validPitch)) return null;
   const root = rootPitches?.length && rootPitches.every(validPitch)
@@ -33,6 +33,7 @@ function explicitModel(tooltip) {
     rootPitches: root,
     rootNotation,
     inversion,
+    ...(bass && validPitch(bass.pitch) && typeof bass.label === 'string' && typeof bass.caption === 'string' ? {bass} : {}),
     seventh: (root ?? pitches).length === 4,
   };
 }
@@ -287,8 +288,9 @@ function caption(column, options) {
   const inversion = column.inversion;
   if (options.jazz) {
     if (jazzNinthChord.test(column.notation)) return ['seventh chord'];
-    const third = column.pitches.length === 3 && !/(?:sus|add|omit|no)/i.test(column.notation);
-    const seventh = column.pitches.length === 4 && /7/.test(column.notation);
+    const tones = column.bass && column.rootPitches ? column.rootPitches : column.pitches;
+    const third = tones.length === 3 && !/(?:sus|add|omit|no)/i.test(column.notation);
+    const seventh = tones.length === 4 && /7/.test(column.notation);
     return [third ? 'triad' : seventh ? 'seventh chord' : '',
       typeof inversion === 'number' ? englishInversions[inversion] : ''];
   }
@@ -310,7 +312,7 @@ export function romanNumeralDiagramColumns(columns, options = {}) {
     const context = {mode, seventhInterval, cadentialSixFour, colorOffset, rootPitch};
     const supplied = Object.fromEntries(Object.entries(context).filter(([, value]) => value !== undefined));
     const label = romanNumeralHTML(notation, {...options, ...supplied, theme: 'dark', colorRoots: true,
-      ...column.labelOptions});
+      ...column.labelOptions, tooltipBass: column.bass});
     const notes = column.pitches.map(pitch => {
       const degree = colorIndex(pitch);
       return `<span class="rawln-rn-tooltip-note" data-degree="${degree}" data-pitch="${pitch}" style="top:${geometry.y(pitch)}px;background:${RAWL_COLORS[degree].background}">${degreeNames[degree]}</span>`;
@@ -322,7 +324,8 @@ export function romanNumeralDiagramColumns(columns, options = {}) {
     const [kind, inversion] = options.sequence ? [] : caption({...column, notation}, options);
     const kindHTML = kind ? `<div class="rawln-rn-tooltip-kind">${kind}</div>` : '';
     const inversionHTML = inversion ? `<div class="rawln-rn-tooltip-inversion">${inversion}</div>` : '';
-    return `<section class="rawln-rn-tooltip-column" data-chord="${escape(notation)}"><div class="rawln-rn-tooltip-label">${label}</div><div class="rawln-rn-tooltip-grid" style="height:${geometry.gridHeight}px">${guides}${notes}${intervals}</div>${kindHTML}${inversionHTML}</section>`;
+    const bassHTML = !options.sequence && column.bass ? `<div class="rawln-rn-tooltip-bass">${escape(column.bass.caption)}</div>` : '';
+    return `<section class="rawln-rn-tooltip-column" data-chord="${escape(notation)}"><div class="rawln-rn-tooltip-label">${label}</div><div class="rawln-rn-tooltip-grid" style="height:${geometry.gridHeight}px">${guides}${notes}${intervals}</div>${kindHTML}${inversionHTML}${bassHTML}</section>`;
   }).join(options.sequence ? '<span class="cadence-sequence-arrow" aria-hidden="true">→</span>' : '');
   return `<div class="rawln-rn-tooltip-columns${options.sequence ? ' cadence-sequence' : ''}">${diagram}</div>`;
 }
@@ -331,7 +334,7 @@ export function romanNumeralTooltipHTML(notation, options, model) {
   const showInversion = model.inversion && !model.special && !(options.jazz && jazzNinthChord.test(notation));
   const columns = [
     ...(showInversion && model.rootPitches && model.rootNotation
-      ? [{...model, pitches: model.rootPitches, notation: model.rootNotation, inversion: 0, cadentialSixFour: false, labelOptions: {bassPitch: null}}] : []),
+      ? [{...model, pitches: model.rootPitches, notation: model.rootNotation, inversion: 0, bass: undefined, cadentialSixFour: false, labelOptions: {bassPitch: null}}] : []),
     {...model, notation},
   ];
   const copy = !options.jazz && model.token ? romanNumeralExplanations({

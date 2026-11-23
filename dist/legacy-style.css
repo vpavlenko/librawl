@@ -363,7 +363,7 @@ body.harmony-rn .harmony-rns{visibility:visible}
 }
 
 .rawln-rn-tooltip-kind { font-size: 14px; }
-.rawln-rn-tooltip-inversion { margin-top: 3px; color: #bbb; }
+.rawln-rn-tooltip-inversion, .rawln-rn-tooltip-bass { margin-top: 3px; color: #bbb; }
 
 .rawln-rn-tooltip:has(.rawln-rn-explanations) { width: 360px; }
 
@@ -415,7 +415,7 @@ body.harmony-rn .harmony-rns{visibility:visible}
   .rawln-rn-tooltip-columns { gap: 10px; }
   .rawln-rn-tooltip-grid { width: 106px; }
   .rawln-rn-tooltip-kind { font-size: 12px; }
-  .rawln-rn-tooltip-inversion { font-size: 11px; }
+  .rawln-rn-tooltip-inversion, .rawln-rn-tooltip-bass { font-size: 11px; }
 }
 .rawln-harmony-lane {
   position: relative;

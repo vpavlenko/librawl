@@ -35,6 +35,8 @@ export interface RomanNumeralTooltipOptions {
   rootPitches?: readonly number[];
   rootNotation?: string;
   inversion?: number;
+  /** Explicit slash bass shown in the tooltip label and caption. Pitch is tonic-relative. */
+  bass?: { label: string; pitch: number; caption: string };
 }
 export function romanNumeralHTML(notation: string, options?: RomanNumeralOptions): string;
 export function romanNumeralContent(notation: string, options?: RomanNumeralOptions): string;

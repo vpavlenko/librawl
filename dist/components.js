@@ -1292,7 +1292,7 @@ var majorSeventh = /^(?:maj|M(?=\d)|[△Δ])/;
 var jazzFigures = /([b#♭♯]*)(13|11|[1-9])|(?:maj|dim|sus|add|alt|no|omit|aug)|[^]/gu;
 var jazzIntervals = { 1: 0, 2: 2, 4: 5, 6: 9, 8: 12, 9: 14, 11: 17, 13: 21 };
 function jazzMarkup(notation, options, guitar = false) {
-  var _a, _b, _c;
+  var _a, _b, _c, _d;
   const hasBass = options.bassPitch !== void 0 && options.bassPitch !== null;
   const slash = hasBass ? notation.lastIndexOf("/") : -1;
   const symbol = slash < 0 ? notation : notation.slice(0, slash);
@@ -1325,7 +1325,7 @@ function jazzMarkup(notation, options, guitar = false) {
   const rootMarkup = `<span class="chord-root${color2}${tonicGlyph ? " data-roman-tonic" : ""}>${rootLabel}</span>`;
   const qualityIntervals = guitar ? { m: 3, "+": 8 } : { "\u0394": 4, "+": 8 };
   const figures = [...suffix.matchAll(jazzFigures)].map(([token, signs, digits], index) => {
-    var _a2, _b2, _c2, _d;
+    var _a2, _b2, _c2, _d2;
     if (!digits) {
       const label2 = escape(prettyAccidental(token));
       if (index !== 0 || !((_a2 = options.colorQuality) != null ? _a2 : options.colorRoots)) return label2;
@@ -1336,9 +1336,10 @@ function jazzMarkup(notation, options, guitar = false) {
     const interval = n === 7 ? dim ? 9 : majorSeventh.test(suffix) ? 11 : 10 : n === 3 ? minor ? 3 : 4 : n === 5 ? quality ? 6 : /^(?:\+|aug)/.test(suffix) ? 8 : 7 : jazzIntervals[n];
     const label = prettyAccidental(signs) + digits;
     const pitch = (_c2 = (_b2 = options.figurePitches) == null ? void 0 : _b2[label]) != null ? _c2 : interval === void 0 ? null : mod2(root + interval + alteration(signs));
-    return ((_d = options.colorFigures) != null ? _d : options.colorRoots) && pitch !== null ? `<span class="chord-figure colored" data-figure="${digits}" ${colorStyle(mod2(pitch))}>${escape(label)}</span>` : escape(label);
+    return ((_d2 = options.colorFigures) != null ? _d2 : options.colorRoots) && pitch !== null ? `<span class="chord-figure colored" data-figure="${digits}" ${colorStyle(mod2(pitch))}>${escape(label)}</span>` : escape(label);
   }).join("");
-  const bass = slash < 0 ? "" : `<span class="chord-slash">/</span><span class="chord-bass${options.colorRoots ? " colored" : ""}" ${colorStyle(mod2(options.bassPitch))}>${escape(bassLabel)}</span>`;
+  const displayedBass = (_d = options.tooltipBass) != null ? _d : slash < 0 ? null : { label: bassLabel, pitch: options.bassPitch };
+  const bass = displayedBass ? `<span class="chord-slash">/</span><span class="chord-bass${options.colorRoots ? " colored" : ""}" ${colorStyle(mod2(displayedBass.pitch))}>${escape(displayedBass.label)}</span>` : "";
   const suffixMarkup = guitar || !figures ? figures : `<sup class="roman-jazz-figures">${figures}</sup>`;
   return `${rootMarkup}${qualityMarkup}${suffixMarkup}${bass}`;
 }
@@ -1378,7 +1379,7 @@ function stack(pitches) {
   return ordered;
 }
 function explicitModel(tooltip) {
-  const { pitches, rootPitches, rootNotation, inversion } = tooltip;
+  const { pitches, rootPitches, rootNotation, inversion, bass } = tooltip;
   const validPitch = (pitch) => Number.isInteger(pitch) && Math.abs(pitch) <= 127;
   if (!(pitches == null ? void 0 : pitches.length) || !pitches.every(validPitch)) return null;
   const root = (rootPitches == null ? void 0 : rootPitches.length) && rootPitches.every(validPitch) ? [...new Set(rootPitches)].sort((a, b) => a - b) : void 0;
@@ -1387,6 +1388,7 @@ function explicitModel(tooltip) {
     rootPitches: root,
     rootNotation,
     inversion,
+    ...bass && validPitch(bass.pitch) && typeof bass.label === "string" && typeof bass.caption === "string" ? { bass } : {},
     seventh: (root != null ? root : pitches).length === 4
   };
 }
@@ -1600,8 +1602,9 @@ function caption(column, options) {
   const inversion = column.inversion;
   if (options.jazz) {
     if (jazzNinthChord.test(column.notation)) return ["seventh chord"];
-    const third = column.pitches.length === 3 && !/(?:sus|add|omit|no)/i.test(column.notation);
-    const seventh = column.pitches.length === 4 && /7/.test(column.notation);
+    const tones = column.bass && column.rootPitches ? column.rootPitches : column.pitches;
+    const third = tones.length === 3 && !/(?:sus|add|omit|no)/i.test(column.notation);
+    const seventh = tones.length === 4 && /7/.test(column.notation);
     return [
       third ? "triad" : seventh ? "seventh chord" : "",
       typeof inversion === "number" ? englishInversions[inversion] : ""
@@ -1627,7 +1630,8 @@ function romanNumeralDiagramColumns(columns, options = {}) {
       ...supplied,
       theme: "dark",
       colorRoots: true,
-      ...column.labelOptions
+      ...column.labelOptions,
+      tooltipBass: column.bass
     });
     const notes = column.pitches.map((pitch) => {
       const degree = colorIndex(pitch);
@@ -1640,14 +1644,15 @@ function romanNumeralDiagramColumns(columns, options = {}) {
     const [kind, inversion] = options.sequence ? [] : caption({ ...column, notation }, options);
     const kindHTML = kind ? `<div class="rawln-rn-tooltip-kind">${kind}</div>` : "";
     const inversionHTML = inversion ? `<div class="rawln-rn-tooltip-inversion">${inversion}</div>` : "";
-    return `<section class="rawln-rn-tooltip-column" data-chord="${escape2(notation)}"><div class="rawln-rn-tooltip-label">${label}</div><div class="rawln-rn-tooltip-grid" style="height:${geometry.gridHeight}px">${guides}${notes}${intervals}</div>${kindHTML}${inversionHTML}</section>`;
+    const bassHTML = !options.sequence && column.bass ? `<div class="rawln-rn-tooltip-bass">${escape2(column.bass.caption)}</div>` : "";
+    return `<section class="rawln-rn-tooltip-column" data-chord="${escape2(notation)}"><div class="rawln-rn-tooltip-label">${label}</div><div class="rawln-rn-tooltip-grid" style="height:${geometry.gridHeight}px">${guides}${notes}${intervals}</div>${kindHTML}${inversionHTML}${bassHTML}</section>`;
   }).join(options.sequence ? '<span class="cadence-sequence-arrow" aria-hidden="true">\u2192</span>' : "");
   return `<div class="rawln-rn-tooltip-columns${options.sequence ? " cadence-sequence" : ""}">${diagram}</div>`;
 }
 function romanNumeralTooltipHTML(notation, options, model) {
   const showInversion = model.inversion && !model.special && !(options.jazz && jazzNinthChord.test(notation));
   const columns = [
-    ...showInversion && model.rootPitches && model.rootNotation ? [{ ...model, pitches: model.rootPitches, notation: model.rootNotation, inversion: 0, cadentialSixFour: false, labelOptions: { bassPitch: null } }] : [],
+    ...showInversion && model.rootPitches && model.rootNotation ? [{ ...model, pitches: model.rootPitches, notation: model.rootNotation, inversion: 0, bass: void 0, cadentialSixFour: false, labelOptions: { bassPitch: null } }] : [],
     { ...model, notation }
   ];
   const copy = !options.jazz && model.token ? romanNumeralExplanations({
