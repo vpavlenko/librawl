@@ -15882,6 +15882,7 @@ var LibrawlCaplinNotes = (() => {
     onMeasureSelect,
     hideInitialTonic = false,
     showModulationTonics = false,
+    showContinuedTonic = false,
     showHeader = true,
     transpose = 0,
     renderMeasureExtras,
@@ -15992,7 +15993,7 @@ var LibrawlCaplinNotes = (() => {
         var _a, _b;
         const interval = marker.delta == null ? null : mod(marker.delta);
         const initial2 = (_a = marker.initial) != null ? _a : marker.previousTonic === null;
-        const showTonicName = !marker.continued && (initial2 || showModulationTonics && interval != null);
+        const showTonicName = marker.continued ? showContinuedTonic : initial2 || showModulationTonics && interval != null;
         const clickable = onMeasureSelect && interval != null && !marker.continued;
         const hitStyle = clickable ? clickableMarker : void 0;
         return /* @__PURE__ */ import_react9.default.createElement(
@@ -16022,7 +16023,7 @@ var LibrawlCaplinNotes = (() => {
               alignToOnset: marker.onsetOverride && !marker.continued,
               labelClassName: "rawln-modulation-label",
               flagClassName: "rawln-modulation-flag",
-              showLabel: !marker.continued && (showTonicName || interval != null),
+              showLabel: showTonicName || !marker.continued && interval != null,
               showTonicName,
               labelAttributes: { style: { left: 0, top: 0, lineHeight: MODULATION_BADGE_HEIGHT + "px", ...hitStyle } },
               flagAttributes: { "data-degree": interval != null ? interval : void 0, style: { background: (_b = RAWL_COLORS[interval]) == null ? void 0 : _b.background, ...hitStyle } },

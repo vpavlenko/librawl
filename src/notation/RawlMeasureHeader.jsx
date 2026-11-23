@@ -124,7 +124,7 @@ function forwardMarkerClick(event, marker, header) {
 export function RawlMeasureHeader({
   row, layout: positioned, height = '100%', tonic = 0, changes = EMPTY_CHANGES,
   barBeats = 4, beatBeats = 1, phraseStarts, measureMap, selectedMeasure = null,
-  onMeasureSelect, hideInitialTonic = false, showModulationTonics = false, showHeader = true, transpose = 0,
+  onMeasureSelect, hideInitialTonic = false, showModulationTonics = false, showContinuedTonic = false, showHeader = true, transpose = 0,
   renderMeasureExtras, modulationMarkerPlacement, sectionEditing,
 }) {
   const element = useRef(null);
@@ -204,7 +204,7 @@ export function RawlMeasureHeader({
         {markers.map(marker => {
           const interval = marker.delta == null ? null : mod(marker.delta);
           const initial = marker.initial ?? marker.previousTonic === null;
-          const showTonicName = !marker.continued && (initial || (showModulationTonics && interval != null));
+          const showTonicName = marker.continued ? showContinuedTonic : initial || (showModulationTonics && interval != null);
           const clickable = onMeasureSelect && interval != null && !marker.continued;
           const hitStyle = clickable ? clickableMarker : undefined;
           return <div key={marker.beat} className="rawln-modulation"
@@ -217,7 +217,7 @@ export function RawlMeasureHeader({
               tonicStart={marker.tonic} transpose={transpose}
               alignToOnset={marker.onsetOverride && !marker.continued}
               labelClassName="rawln-modulation-label" flagClassName="rawln-modulation-flag"
-              showLabel={!marker.continued && (showTonicName || interval != null)} showTonicName={showTonicName}
+              showLabel={showTonicName || (!marker.continued && interval != null)} showTonicName={showTonicName}
               labelAttributes={{style: {left: 0, top: 0, lineHeight: MODULATION_BADGE_HEIGHT + 'px', ...hitStyle}}}
               flagAttributes={{'data-degree': interval ?? undefined, style: {background: RAWL_COLORS[interval]?.background, ...hitStyle}}}
               renderArrow={arrow} />

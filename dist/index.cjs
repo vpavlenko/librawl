@@ -633,6 +633,7 @@ function RawlMeasureHeader({
   onMeasureSelect,
   hideInitialTonic = false,
   showModulationTonics = false,
+  showContinuedTonic = false,
   showHeader = true,
   transpose = 0,
   renderMeasureExtras,
@@ -743,7 +744,7 @@ function RawlMeasureHeader({
       var _a, _b;
       const interval = marker.delta == null ? null : mod(marker.delta);
       const initial2 = (_a = marker.initial) != null ? _a : marker.previousTonic === null;
-      const showTonicName = !marker.continued && (initial2 || showModulationTonics && interval != null);
+      const showTonicName = marker.continued ? showContinuedTonic : initial2 || showModulationTonics && interval != null;
       const clickable = onMeasureSelect && interval != null && !marker.continued;
       const hitStyle = clickable ? clickableMarker : void 0;
       return /* @__PURE__ */ import_react3.default.createElement(
@@ -773,7 +774,7 @@ function RawlMeasureHeader({
             alignToOnset: marker.onsetOverride && !marker.continued,
             labelClassName: "rawln-modulation-label",
             flagClassName: "rawln-modulation-flag",
-            showLabel: !marker.continued && (showTonicName || interval != null),
+            showLabel: showTonicName || !marker.continued && interval != null,
             showTonicName,
             labelAttributes: { style: { left: 0, top: 0, lineHeight: MODULATION_BADGE_HEIGHT + "px", ...hitStyle } },
             flagAttributes: { "data-degree": interval != null ? interval : void 0, style: { background: (_b = RAWL_COLORS[interval]) == null ? void 0 : _b.background, ...hitStyle } },
@@ -1207,7 +1208,7 @@ function useSectionRows({ notes, rows, beats, sectionStarts, phraseStarts, barBe
   }
   return { spans, editing: editingForRow(), hasEditedRows: !!editedRows };
 }
-function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, showModulationTonics = false, modulationMarkerPlacement, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = EMPTY_MUTED_VOICES, onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, recoloring, sectionEditing, sectionStarts, onSectionRowsChange, onSectionEdit, renderMeasureExtras, renderHeader, renderUnderlay, renderFooter, className = "", style, ref }) {
+function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2, barBeats = 4, beatBeats = 1, phraseStarts, measureMap, hideInitialTonic = false, showModulationTonics = false, showContinuedTonic = false, modulationMarkerPlacement, showTonalGuides = true, noteScale = 1, position, playbackClock, mutedVoices = EMPTY_MUTED_VOICES, onSeek, onNote, onNoteAudition, onNoteHover, onMeasureSelect, selectedMeasure = null, onChangesChange, recolorable = true, recoloring, sectionEditing, sectionStarts, onSectionRowsChange, onSectionEdit, renderMeasureExtras, renderHeader, renderUnderlay, renderFooter, className = "", style, ref }) {
   var _a;
   const root = (0, import_react8.useRef)(null), ownClock = (0, import_react8.useMemo)(import_native.createSectionPlaybackClock, []), clock = playbackClock != null ? playbackClock : ownClock;
   const audition = onNoteAudition != null ? onNoteAudition : onNote;
@@ -1255,7 +1256,7 @@ function RawlNotation({ notes, beats, rows, tonic = 0, changes = EMPTY_CHANGES2,
         pitchToY: (pitch) => axis.pitchToY(pitch) + axis.pitchStep,
         regions: regions.map((region) => ({ ...region, left: x(region.start) + "%", width: (region.end - region.start) / span * 100 + "%" }))
       }
-    ), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ import_react8.default.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic, showModulationTonics, modulationMarkerPlacement, sectionEditing: editing, renderMeasureExtras }), /* @__PURE__ */ import_react8.default.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, onNote: (note, event) => {
+    ), renderUnderlay == null ? void 0 : renderUnderlay(row, axis), /* @__PURE__ */ import_react8.default.createElement(RawlMeasureHeader, { row, height: axis.notesBottom, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, selectedMeasure, onMeasureSelect, hideInitialTonic, showModulationTonics, showContinuedTonic, modulationMarkerPlacement, sectionEditing: editing, renderMeasureExtras }), /* @__PURE__ */ import_react8.default.createElement(BeatNoteLayer, { visible, row, axis, tonic, changes, mutedVoices, onNote: (note, event) => {
       if (editor == null ? void 0 : editor.chooseNote(note, event)) return;
       if (onNote) onNote(note, event);
       else if (selectedMeasure === null) seek(Math.max(row.start, note.start));
