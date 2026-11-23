@@ -127,7 +127,9 @@ var TonalGrid = (() => {
     return tonicRegions(timeline(options), 0, options.beats).map(({ start, ...region }) => ({ ...region, beat: start }));
   }
   function keyMarkers(options) {
-    return tonicMarkers(timeline(options)).map(({ delta, ...marker }) => marker);
+    const events = timeline(options);
+    const firstTonic = events.findIndex((event) => event.tonic != null);
+    return tonicMarkers(events).map(({ delta, ...marker }, index) => ({ ...marker, initial: index === firstTonic }));
   }
   function tonicAtBeat(options, beat, includeBoundary = false) {
     var _a, _b;
@@ -188,11 +190,11 @@ var TonalGrid = (() => {
   }
   function arrow(direction) {
     const paths = direction === "down" ? ["M12 5v14", "m19 12-7 7-7-7"] : ["m5 12 7-7 7 7", "M12 19V5"];
-    const content = paths.map((path) => `<path d="${path}" />`).join(" ");
-    return `<svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-arrow-${direction}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${content}</svg>`;
+    const content = paths.map((path) => `<path d="${path}" />`).join("");
+    return `<svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-arrow-${direction}" width="9" height="9" viewBox="4 4 16 16" style="vertical-align:baseline" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${content}</svg>`;
   }
   function mount(score, options) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f;
     const document = score.ownerDocument;
     const existingGrid = options.reuse ? score.querySelector(":scope > .tonal-grid") : null;
     const existingMarkers = options.reuse ? score.querySelector(":scope > .tonal-grid-markers") : null;
@@ -228,8 +230,10 @@ var TonalGrid = (() => {
       grid.append(line);
     }
     for (const region of (_c = options.markerEvents) != null ? _c : keyMarkers(options)) {
+      if (region.continued) continue;
       const { tonic, delta } = tonicMarkers([{ tonic: (_d = region.previousTonic) != null ? _d : null }, region]).at(-1);
-      if (!showTonicMarkers || tonic == null || region.beat < start || region.beat >= end) continue;
+      const showTonicName = (_e = region.initial) != null ? _e : delta == null;
+      if (!showTonicMarkers || tonic == null || !showTonicName && (delta == null || delta === 0) || region.beat < start || region.beat >= end) continue;
       const left = percent(region.beat), offset = delta == null ? 18 : 30;
       if (delta != null) {
         const badge = document.createElement("div");
@@ -246,9 +250,9 @@ var TonalGrid = (() => {
       label.dataset.offset = offset;
       if (delta != null) {
         label.innerHTML = arrow(delta < 0 ? "down" : "up");
-        label.append(document.createTextNode(`${Math.abs(delta)} `));
+        label.append(document.createTextNode(String(Math.abs(delta))));
       }
-      label.append(document.createTextNode((_e = region.label) != null ? _e : TONIC_NAMES[tonic]));
+      if (showTonicName) label.append(document.createTextNode((_f = region.label) != null ? _f : TONIC_NAMES[tonic]));
       label.style.cssText = `position:absolute;top:-2px;left:calc(${left} + ${offset}px);font:700 12px/16px sans-serif;color:#fff;white-space:nowrap;user-select:none;pointer-events:none;z-index:1`;
       markers.append(label);
     }

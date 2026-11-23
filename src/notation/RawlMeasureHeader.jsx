@@ -6,8 +6,8 @@ import {RAWL_COLORS} from './palette.mjs';
 
 const EMPTY_CHANGES = [];
 const measureNumberTop = -4;
-const numberOnFlag = {
-  display: 'block', lineHeight: MODULATION_BADGE_HEIGHT + 'px', position: 'relative', top: -measureNumberTop,
+const measureDigits = {
+  display: 'block', lineHeight: MODULATION_BADGE_HEIGHT + 'px', position: 'relative', top: -measureNumberTop, width: 'max-content',
 };
 const cssLength = value => typeof value === 'number' ? value + 'px' : value;
 const offsetLeft = (left, offset) => typeof left === 'number'
@@ -15,10 +15,55 @@ const offsetLeft = (left, offset) => typeof left === 'number'
   : offset < 0 ? `calc(${left} - ${-offset}px)` : offset > 0 ? `calc(${left} + ${offset}px)` : left;
 
 function arrow({direction}) {
-  return <svg viewBox="0 0 24 24" aria-hidden="true">
+  return <svg viewBox="4 4 16 16" aria-hidden="true">
     {direction === 'down' ? <><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></>
       : <><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></>}
   </svg>;
+}
+
+function nearestLabelLeft(anchor, width, bounds, occupied) {
+  let start = bounds.left;
+  let nearest = null;
+  for (const item of [...occupied, {left: bounds.right, right: bounds.right}].sort((a, b) => a.left - b.left)) {
+    const end = Math.min(item.left, bounds.right);
+    if (start + width <= end) {
+      const candidate = Math.max(start, Math.min(end - width, anchor));
+      if (nearest === null || Math.abs(candidate - anchor) < Math.abs(nearest - anchor)) nearest = candidate;
+    }
+    start = Math.max(start, item.right);
+  }
+  if (nearest !== null) return nearest;
+  // If a tightly zoomed-out row has no gap, keep the text clear at its edge.
+  const left = Math.min(bounds.left, ...occupied.map(item => item.left)) - width;
+  const right = Math.max(bounds.right, ...occupied.map(item => item.right));
+  return Math.abs(left - anchor) <= Math.abs(right - anchor) ? left : right;
+}
+
+// Place the text independently so the flag can still start exactly at the note.
+function fitModulationLabels(header, digits, labels, commands) {
+  const bounds = header.getBoundingClientRect();
+  const width = parseFloat(header.ownerDocument.defaultView.getComputedStyle(header).width);
+  if (!width || !bounds.width) return;
+  const scale = bounds.width / width;
+  const digitRects = new Map(digits.map(digit => [digit.parentElement.dataset.beat, digit.getBoundingClientRect()]));
+  const occupied = [...digitRects.values(), ...commands.map(command => command.getBoundingClientRect())];
+  const positions = labels.map(label => {
+    const marker = label.parentElement;
+    const anchor = marker.getBoundingClientRect().left;
+    const width = label.getBoundingClientRect().width;
+    const digit = marker.dataset.onsetOverride ? null : digitRects.get(marker.dataset.beat);
+    return {label, anchor, width, digit};
+  });
+  function place({label, anchor, width}, left) {
+    label.style.setProperty('--rawln-label-shift', (left - anchor) / scale + 'px');
+    occupied.push({left, right: left + width});
+  }
+  for (const position of positions) {
+    if (position.digit) place(position, position.digit.right);
+  }
+  for (const position of positions) {
+    if (!position.digit) place(position, nearestLabelLeft(position.anchor, position.width, bounds, occupied));
+  }
 }
 
 function rowLayout(options) {
@@ -81,6 +126,25 @@ export function RawlMeasureHeader({
   const {measures, beats, markers} = useMemo(() => positioned ?? rowLayout({
     row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic, modulationMarkerPlacement,
   }), [positioned, row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic, modulationMarkerPlacement]);
+  useLayoutEffect(() => {
+    if (!showHeader) return;
+    const header = element.current;
+    const labels = [...header.querySelectorAll('.rawln-modulation-label')];
+    if (!labels.length) return;
+    const digits = [...header.querySelectorAll('.rawln-measure-digits')];
+    const commands = [...header.querySelectorAll('.rawln-section-command')];
+    const view = header.ownerDocument.defaultView;
+    const fit = () => fitModulationLabels(header, digits, labels, commands);
+    fit();
+    const Observer = view.ResizeObserver ?? globalThis.ResizeObserver;
+    const observer = Observer ? new Observer(fit) : null;
+    for (const node of [header, ...digits, ...labels, ...commands]) observer?.observe(node);
+    view.addEventListener('resize', fit);
+    return () => {
+      observer?.disconnect();
+      view.removeEventListener('resize', fit);
+    };
+  }, [markers, measures, renderMeasureExtras, showHeader]);
   const select = (event, measure) => {
     event.stopPropagation();
     onMeasureSelect(measure.beat, measure, event.currentTarget);
@@ -108,6 +172,7 @@ export function RawlMeasureHeader({
       <div className="rawln-modulations">
         {markers.map(marker => {
           const interval = marker.delta == null ? null : mod(marker.delta);
+          const showTonicName = !marker.continued && (marker.initial ?? marker.previousTonic === null);
           return <div key={marker.beat} className="rawln-modulation"
             data-beat={marker.beat} data-tonic={marker.tonic} data-join={marker.join ? marker.name : undefined}
             data-onset-override={marker.onsetOverride || undefined} data-origin-beat={marker.originBeat}
@@ -117,7 +182,8 @@ export function RawlMeasureHeader({
               tonicStart={marker.tonic} transpose={transpose}
               alignToOnset={marker.onsetOverride && !marker.continued}
               labelClassName="rawln-modulation-label" flagClassName="rawln-modulation-flag"
-              labelAttributes={{style: {left: marker.labelOffset}}}
+              showLabel={!marker.continued && (showTonicName || interval != null)} showTonicName={showTonicName}
+              labelAttributes={{style: {left: 0, top: 0, lineHeight: MODULATION_BADGE_HEIGHT + 'px'}}}
               flagAttributes={{'data-degree': interval ?? undefined, style: {background: RAWL_COLORS[interval]?.background}}}
               renderArrow={arrow} />
           </div>;
@@ -163,7 +229,7 @@ export function RawlMeasureHeader({
                 cursor: onMeasureSelect ? 'pointer' : undefined}}>
               {renderMeasureExtras?.(measure, sectionEditing && isSelected
                 ? event => editSection(event, measure, action) : undefined)}
-              <span style={measure.hasModulation ? numberOnFlag : undefined}>{measure.number}</span>
+              <span className="rawln-measure-digits" style={measureDigits}>{measure.number}</span>
             </div>
             {menu != null && <div className="rawln-measure-menu">{menu}</div>}
           </div>;

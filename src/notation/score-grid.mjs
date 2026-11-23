@@ -52,10 +52,11 @@ export function visibleBeatLines(barTimes, beatTimes, toPixels) {
 // A flag crossing the left edge of a row supplies the active key only.
 // The source onset and arrow stay with the row where they start.
 export function markersForRow(events, {start, end, toPixels, numberAt, hideInitialTonic = false}) {
+  const firstTonic = events.find(marker => marker.tonic != null);
   const activeAtStart = events.findLast(marker => marker.beat <= start);
   return events.flatMap(marker => {
-    const initial = marker.previousTonic === null;
-    if (marker.tonic == null || marker.delta === 0 || marker.beat >= end || (hideInitialTonic && initial)) return [];
+    const initial = marker === firstTonic;
+    if (marker.tonic == null || marker.delta === 0 || (!initial && marker.delta == null) || marker.beat >= end || (hideInitialTonic && initial)) return [];
     const onsetOverride = !initial && marker.onsetOverride === true;
     const pixelOffset = onsetOverride ? 0 : -1;
     if (marker.beat >= start) {

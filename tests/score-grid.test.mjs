@@ -22,13 +22,14 @@ test('React and standalone score guides share pitch, placement and tonic regions
   const properties = nodes => [...nodes].map(({dataset,style}) => [dataset.pitch,dataset.tonic,style.left,style.top,style.width]);
   assert.deepEqual(properties(reactGrid.children), properties(score.querySelector('.tonal-grid').children));
   assert.equal(score.querySelector('.tonal-grid-key-badge').style.left, '50%');
+  assert.deepEqual([...score.querySelectorAll('.tonal-grid-key')].map(label => label.textContent), ['C', '5']);
   assert.equal(browserGrid.tonicAtBeat(options, 4), 0);
   assert.equal(browserGrid.tonicAtBeat(options, 4, true), 7);
   mounted.destroy();
   assert.equal(score.childElementCount, 0);
 });
 
-test('an editor layout supplies positioned bars and controls while carrying tonic without a second arrow', () => {
+test('an editor layout keeps positioned bars and controls without repeating the carried tonic', () => {
   const events = tonicMarkers([{beat:0,tonic:0},{beat:1.5,tonic:7,onsetOverride:true}]);
   const markers = markersForRow(events, {start:2,end:5,toPixels:beat => 55 + beat * 50,numberAt:() => 8});
   assert.equal(markers.length, 1);
@@ -45,7 +46,7 @@ test('an editor layout supplies positioned bars and controls while carrying toni
   assert.equal(doc.querySelector('.rawln-measure-number span').textContent,'8');
   assert(doc.querySelector('[data-score-measure="8"] input'));
   assert.equal(doc.querySelector('.rawln-modulation svg'),null);
-  assert.equal(doc.querySelector('.rawln-modulation-label').textContent,'G');
+  assert.equal(doc.querySelector('.rawln-modulation-label'),null);
   assert.deepEqual([...doc.querySelectorAll('.rawln-beat-bar')].map(el=>el.style.left),['105px','155px']);
 
   const score = doc.createElement('div');
@@ -57,7 +58,7 @@ test('an editor layout supplies positioned bars and controls while carrying toni
   assert.equal(dom.beatLines[0].style.bottom,'auto');
 });
 
-test('a temporary modulation moves the digits into the flag and leaves measure controls anchored', () => {
+test('modulation labels and measure digits share the flag line height with anchored controls', () => {
   const header = hasModulation => React.createElement(RawlMeasureHeader, {
     layout: {
       measures: [{beat: 4, number: 5, left: 100, hasModulation}],
@@ -77,4 +78,8 @@ test('a temporary modulation moves the digits into the flag and leaves measure c
   const digits = modulated.querySelector('span');
   assert.equal(parseFloat(modulated.style.top) + parseFloat(digits.style.top), 0);
   assert.equal(digits.style.lineHeight, document.querySelector('.rawln-modulation-flag').style.height);
+  assert.equal(digits.style.top, plain.querySelector('span').style.top);
+  const interval = document.querySelector('.rawln-modulation-label');
+  assert.equal(interval.style.lineHeight, digits.style.lineHeight);
+  assert.equal(interval.textContent, '2');
 });

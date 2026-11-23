@@ -42,11 +42,12 @@ function visibleBeatLines(barTimes, beatTimes, toPixels) {
   return (toPixels(relevant.at(-1)) - toPixels(relevant[0])) / (relevant.length + 1) >= 10 ? beatTimes : [];
 }
 function markersForRow(events, { start, end, toPixels, numberAt, hideInitialTonic = false }) {
+  const firstTonic = events.find((marker) => marker.tonic != null);
   const activeAtStart = events.findLast((marker) => marker.beat <= start);
   return events.flatMap((marker) => {
     var _a, _b;
-    const initial = marker.previousTonic === null;
-    if (marker.tonic == null || marker.delta === 0 || marker.beat >= end || hideInitialTonic && initial) return [];
+    const initial = marker === firstTonic;
+    if (marker.tonic == null || marker.delta === 0 || !initial && marker.delta == null || marker.beat >= end || hideInitialTonic && initial) return [];
     const onsetOverride = !initial && marker.onsetOverride === true;
     const pixelOffset = onsetOverride ? 0 : -1;
     if (marker.beat >= start) {

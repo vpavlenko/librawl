@@ -5,14 +5,14 @@ import {MODULATION_BADGE_WIDTH, TONIC_NAMES} from '../notation/score-grid.mjs';
 
 export const MODULATION_BADGE_HEIGHT = 12;
 
-export function TonicSymbol({left,number,previousTonic,modulationDiff,tonicStart,alignToOnset=false,transpose=0,renderArrow,flagClassName,labelClassName,flagAttributes,labelAttributes}){
+export function TonicSymbol({left,number,previousTonic,modulationDiff,tonicStart,alignToOnset=false,transpose=0,renderArrow,flagClassName,labelClassName,flagAttributes,labelAttributes,showLabel=true,showTonicName=true}){
  const displayedTonic=tonicStart==null?tonicStart:((tonicStart+transpose)%12+12)%12;
  const {style:labelStyle,className:attributeLabelClass,...labelRest}=labelAttributes??{};
  const {style:flagStyle,className:attributeFlagClass,...flagRest}=flagAttributes??{};
  const labelClass=[attributeLabelClass,labelClassName].filter(Boolean).join(' ')||undefined;
  const flagClass=[`noteColor_${modulationDiff}_colors`,attributeFlagClass,flagClassName].filter(Boolean).join(' ');
  return <>
-  <span
+  {showLabel && <span
    {...labelRest}
    className={labelClass}
    style={{
@@ -30,9 +30,9 @@ export function TonicSymbol({left,number,previousTonic,modulationDiff,tonicStart
     ...labelStyle,
    }}
   >
-   {previousTonic!==null&&(renderArrow?<>{renderArrow({direction:modulationDiff>6?'down':'up',semitones:modulationDiff>6?Math.abs(modulationDiff-12):modulationDiff,modulationDiff})}{modulationDiff>6?Math.abs(modulationDiff-12):modulationDiff} </>:<>{`${modulationDiff>6?`↓${Math.abs(modulationDiff-12)}`:`↑${modulationDiff}`} `}</>)}
-   {TONIC_NAMES[displayedTonic]}
-  </span>
+   {previousTonic!==null&&(renderArrow?<>{renderArrow({direction:modulationDiff>6?'down':'up',semitones:modulationDiff>6?Math.abs(modulationDiff-12):modulationDiff,modulationDiff})}{modulationDiff>6?Math.abs(modulationDiff-12):modulationDiff}{showTonicName?' ':''}</>:<>{`${modulationDiff>6?`↓${Math.abs(modulationDiff-12)}`:`↑${modulationDiff}`}${showTonicName?' ':''}`}</>)}
+   {showTonicName&&TONIC_NAMES[displayedTonic]}
+  </span>}
   <div
    {...flagRest}
    className={flagClass}

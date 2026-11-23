@@ -18,7 +18,9 @@ export function segments(options) {
 }
 
 export function keyMarkers(options) {
-  return tonicMarkers(timeline(options)).map(({delta, ...marker}) => marker);
+  const events = timeline(options);
+  const firstTonic = events.findIndex(event => event.tonic != null);
+  return tonicMarkers(events).map(({delta, ...marker}, index) => ({...marker, initial: index === firstTonic}));
 }
 
 export function tonicAtBeat(options, beat, includeBoundary = false) {
@@ -78,8 +80,8 @@ function layer(document, className, height, zIndex) {
 
 function arrow(direction) {
   const paths = direction === 'down' ? ['M12 5v14', 'm19 12-7 7-7-7'] : ['m5 12 7-7 7 7', 'M12 19V5'];
-  const content = paths.map(path => `<path d="${path}" />`).join(' ');
-  return `<svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-arrow-${direction}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${content}</svg>`;
+  const content = paths.map(path => `<path d="${path}" />`).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-arrow-${direction}" width="9" height="9" viewBox="4 4 16 16" style="vertical-align:baseline" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${content}</svg>`;
 }
 
 /** Mount the same guide model as the React TonalGrid. The caller owns the
@@ -121,8 +123,11 @@ export function mount(score, options) {
   }
 
   for (const region of options.markerEvents ?? keyMarkers(options)) {
+    if (region.continued) continue;
     const {tonic, delta} = tonicMarkers([{tonic: region.previousTonic ?? null}, region]).at(-1);
-    if (!showTonicMarkers || tonic == null || region.beat < start || region.beat >= end) continue;
+    const showTonicName = region.initial ?? delta == null;
+    if (!showTonicMarkers || tonic == null || (!showTonicName && (delta == null || delta === 0)) ||
+        region.beat < start || region.beat >= end) continue;
     const left = percent(region.beat), offset = delta == null ? 18 : 30;
     if (delta != null) {
       const badge = document.createElement('div');
@@ -139,9 +144,9 @@ export function mount(score, options) {
     label.dataset.offset = offset;
     if (delta != null) {
       label.innerHTML = arrow(delta < 0 ? 'down' : 'up');
-      label.append(document.createTextNode(`${Math.abs(delta)} `));
+      label.append(document.createTextNode(String(Math.abs(delta))));
     }
-    label.append(document.createTextNode(region.label ?? TONIC_NAMES[tonic]));
+    if (showTonicName) label.append(document.createTextNode(region.label ?? TONIC_NAMES[tonic]));
     label.style.cssText = `position:absolute;top:-2px;left:calc(${left} + ${offset}px);font:700 12px/16px sans-serif;color:#fff;white-space:nowrap;user-select:none;pointer-events:none;z-index:1`;
     markers.append(label);
   }

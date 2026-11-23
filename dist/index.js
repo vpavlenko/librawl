@@ -45,11 +45,12 @@ function visibleBeatLines(barTimes, beatTimes, toPixels) {
   return (toPixels(relevant.at(-1)) - toPixels(relevant[0])) / (relevant.length + 1) >= 10 ? beatTimes : [];
 }
 function markersForRow(events, { start, end, toPixels, numberAt, hideInitialTonic = false }) {
+  const firstTonic = events.find((marker) => marker.tonic != null);
   const activeAtStart = events.findLast((marker) => marker.beat <= start);
   return events.flatMap((marker) => {
     var _a, _b;
-    const initial2 = marker.previousTonic === null;
-    if (marker.tonic == null || marker.delta === 0 || marker.beat >= end || hideInitialTonic && initial2) return [];
+    const initial2 = marker === firstTonic;
+    if (marker.tonic == null || marker.delta === 0 || !initial2 && marker.delta == null || marker.beat >= end || hideInitialTonic && initial2) return [];
     const onsetOverride = !initial2 && marker.onsetOverride === true;
     const pixelOffset = onsetOverride ? 0 : -1;
     if (marker.beat >= start) {
@@ -406,13 +407,13 @@ var Guitar = createLucideIcon("guitar", __iconNode6);
 // src/components/TonicSymbol.jsx
 import * as React from "react";
 var MODULATION_BADGE_HEIGHT = 12;
-function TonicSymbol({ left, number, previousTonic, modulationDiff, tonicStart, alignToOnset = false, transpose = 0, renderArrow, flagClassName, labelClassName, flagAttributes, labelAttributes }) {
+function TonicSymbol({ left, number, previousTonic, modulationDiff, tonicStart, alignToOnset = false, transpose = 0, renderArrow, flagClassName, labelClassName, flagAttributes, labelAttributes, showLabel = true, showTonicName = true }) {
   const displayedTonic = tonicStart == null ? tonicStart : ((tonicStart + transpose) % 12 + 12) % 12;
   const { style: labelStyle, className: attributeLabelClass, ...labelRest } = labelAttributes != null ? labelAttributes : {};
   const { style: flagStyle, className: attributeFlagClass, ...flagRest } = flagAttributes != null ? flagAttributes : {};
   const labelClass = [attributeLabelClass, labelClassName].filter(Boolean).join(" ") || void 0;
   const flagClass = [`noteColor_${modulationDiff}_colors`, attributeFlagClass, flagClassName].filter(Boolean).join(" ");
-  return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement(React.Fragment, null, showLabel && /* @__PURE__ */ React.createElement(
     "span",
     {
       ...labelRest,
@@ -432,8 +433,8 @@ function TonicSymbol({ left, number, previousTonic, modulationDiff, tonicStart, 
         ...labelStyle
       }
     },
-    previousTonic !== null && (renderArrow ? /* @__PURE__ */ React.createElement(React.Fragment, null, renderArrow({ direction: modulationDiff > 6 ? "down" : "up", semitones: modulationDiff > 6 ? Math.abs(modulationDiff - 12) : modulationDiff, modulationDiff }), modulationDiff > 6 ? Math.abs(modulationDiff - 12) : modulationDiff, " ") : /* @__PURE__ */ React.createElement(React.Fragment, null, `${modulationDiff > 6 ? `\u2193${Math.abs(modulationDiff - 12)}` : `\u2191${modulationDiff}`} `)),
-    TONIC_NAMES[displayedTonic]
+    previousTonic !== null && (renderArrow ? /* @__PURE__ */ React.createElement(React.Fragment, null, renderArrow({ direction: modulationDiff > 6 ? "down" : "up", semitones: modulationDiff > 6 ? Math.abs(modulationDiff - 12) : modulationDiff, modulationDiff }), modulationDiff > 6 ? Math.abs(modulationDiff - 12) : modulationDiff, showTonicName ? " " : "") : /* @__PURE__ */ React.createElement(React.Fragment, null, `${modulationDiff > 6 ? `\u2193${Math.abs(modulationDiff - 12)}` : `\u2191${modulationDiff}`}${showTonicName ? " " : ""}`)),
+    showTonicName && TONIC_NAMES[displayedTonic]
   ), /* @__PURE__ */ React.createElement(
     "div",
     {
@@ -459,16 +460,58 @@ function TonicSymbol({ left, number, previousTonic, modulationDiff, tonicStart, 
 // src/notation/RawlMeasureHeader.jsx
 var EMPTY_CHANGES = [];
 var measureNumberTop = -4;
-var numberOnFlag = {
+var measureDigits = {
   display: "block",
   lineHeight: MODULATION_BADGE_HEIGHT + "px",
   position: "relative",
-  top: -measureNumberTop
+  top: -measureNumberTop,
+  width: "max-content"
 };
 var cssLength = (value) => typeof value === "number" ? value + "px" : value;
 var offsetLeft = (left, offset) => typeof left === "number" ? left + offset : offset < 0 ? `calc(${left} - ${-offset}px)` : offset > 0 ? `calc(${left} + ${offset}px)` : left;
 function arrow({ direction }) {
-  return /* @__PURE__ */ React2.createElement("svg", { viewBox: "0 0 24 24", "aria-hidden": "true" }, direction === "down" ? /* @__PURE__ */ React2.createElement(React2.Fragment, null, /* @__PURE__ */ React2.createElement("path", { d: "M12 5v14" }), /* @__PURE__ */ React2.createElement("path", { d: "m19 12-7 7-7-7" })) : /* @__PURE__ */ React2.createElement(React2.Fragment, null, /* @__PURE__ */ React2.createElement("path", { d: "m5 12 7-7 7 7" }), /* @__PURE__ */ React2.createElement("path", { d: "M12 19V5" })));
+  return /* @__PURE__ */ React2.createElement("svg", { viewBox: "4 4 16 16", "aria-hidden": "true" }, direction === "down" ? /* @__PURE__ */ React2.createElement(React2.Fragment, null, /* @__PURE__ */ React2.createElement("path", { d: "M12 5v14" }), /* @__PURE__ */ React2.createElement("path", { d: "m19 12-7 7-7-7" })) : /* @__PURE__ */ React2.createElement(React2.Fragment, null, /* @__PURE__ */ React2.createElement("path", { d: "m5 12 7-7 7 7" }), /* @__PURE__ */ React2.createElement("path", { d: "M12 19V5" })));
+}
+function nearestLabelLeft(anchor, width, bounds, occupied) {
+  let start = bounds.left;
+  let nearest = null;
+  for (const item of [...occupied, { left: bounds.right, right: bounds.right }].sort((a, b) => a.left - b.left)) {
+    const end = Math.min(item.left, bounds.right);
+    if (start + width <= end) {
+      const candidate = Math.max(start, Math.min(end - width, anchor));
+      if (nearest === null || Math.abs(candidate - anchor) < Math.abs(nearest - anchor)) nearest = candidate;
+    }
+    start = Math.max(start, item.right);
+  }
+  if (nearest !== null) return nearest;
+  const left = Math.min(bounds.left, ...occupied.map((item) => item.left)) - width;
+  const right = Math.max(bounds.right, ...occupied.map((item) => item.right));
+  return Math.abs(left - anchor) <= Math.abs(right - anchor) ? left : right;
+}
+function fitModulationLabels(header, digits, labels, commands) {
+  const bounds = header.getBoundingClientRect();
+  const width = parseFloat(header.ownerDocument.defaultView.getComputedStyle(header).width);
+  if (!width || !bounds.width) return;
+  const scale = bounds.width / width;
+  const digitRects = new Map(digits.map((digit) => [digit.parentElement.dataset.beat, digit.getBoundingClientRect()]));
+  const occupied = [...digitRects.values(), ...commands.map((command) => command.getBoundingClientRect())];
+  const positions = labels.map((label) => {
+    const marker = label.parentElement;
+    const anchor = marker.getBoundingClientRect().left;
+    const width2 = label.getBoundingClientRect().width;
+    const digit = marker.dataset.onsetOverride ? null : digitRects.get(marker.dataset.beat);
+    return { label, anchor, width: width2, digit };
+  });
+  function place({ label, anchor, width: width2 }, left) {
+    label.style.setProperty("--rawln-label-shift", (left - anchor) / scale + "px");
+    occupied.push({ left, right: left + width2 });
+  }
+  for (const position of positions) {
+    if (position.digit) place(position, position.digit.right);
+  }
+  for (const position of positions) {
+    if (!position.digit) place(position, nearestLabelLeft(position.anchor, position.width, bounds, occupied));
+  }
 }
 function rowLayout(options) {
   const { row } = options;
@@ -554,6 +597,26 @@ function RawlMeasureHeader({
     hideInitialTonic,
     modulationMarkerPlacement
   }), [positioned, row, tonic, changes, barBeats, beatBeats, phraseStarts, measureMap, width, selectedMeasure, hideInitialTonic, modulationMarkerPlacement]);
+  useLayoutEffect(() => {
+    var _a;
+    if (!showHeader) return;
+    const header = element.current;
+    const labels = [...header.querySelectorAll(".rawln-modulation-label")];
+    if (!labels.length) return;
+    const digits = [...header.querySelectorAll(".rawln-measure-digits")];
+    const commands = [...header.querySelectorAll(".rawln-section-command")];
+    const view = header.ownerDocument.defaultView;
+    const fit = () => fitModulationLabels(header, digits, labels, commands);
+    fit();
+    const Observer = (_a = view.ResizeObserver) != null ? _a : globalThis.ResizeObserver;
+    const observer = Observer ? new Observer(fit) : null;
+    for (const node of [header, ...digits, ...labels, ...commands]) observer == null ? void 0 : observer.observe(node);
+    view.addEventListener("resize", fit);
+    return () => {
+      observer == null ? void 0 : observer.disconnect();
+      view.removeEventListener("resize", fit);
+    };
+  }, [markers, measures, renderMeasureExtras, showHeader]);
   const select = (event, measure) => {
     event.stopPropagation();
     onMeasureSelect(measure.beat, measure, event.currentTarget);
@@ -583,8 +646,9 @@ function RawlMeasureHeader({
       }
     );
   }), beats.map(({ beat, left }) => /* @__PURE__ */ React2.createElement("div", { className: "rawln-beat-bar", key: beat, "data-beat": beat, style: { left } })), showHeader && /* @__PURE__ */ React2.createElement(React2.Fragment, null, /* @__PURE__ */ React2.createElement("div", { className: "rawln-modulations" }, markers.map((marker) => {
-    var _a;
+    var _a, _b;
     const interval = marker.delta == null ? null : mod(marker.delta);
+    const showTonicName = !marker.continued && ((_a = marker.initial) != null ? _a : marker.previousTonic === null);
     return /* @__PURE__ */ React2.createElement(
       "div",
       {
@@ -611,8 +675,10 @@ function RawlMeasureHeader({
           alignToOnset: marker.onsetOverride && !marker.continued,
           labelClassName: "rawln-modulation-label",
           flagClassName: "rawln-modulation-flag",
-          labelAttributes: { style: { left: marker.labelOffset } },
-          flagAttributes: { "data-degree": interval != null ? interval : void 0, style: { background: (_a = RAWL_COLORS[interval]) == null ? void 0 : _a.background } },
+          showLabel: !marker.continued && (showTonicName || interval != null),
+          showTonicName,
+          labelAttributes: { style: { left: 0, top: 0, lineHeight: MODULATION_BADGE_HEIGHT + "px" } },
+          flagAttributes: { "data-degree": interval != null ? interval : void 0, style: { background: (_b = RAWL_COLORS[interval]) == null ? void 0 : _b.background } },
           renderArrow: arrow
         }
       )
@@ -677,7 +743,7 @@ function RawlMeasureHeader({
           }
         },
         renderMeasureExtras == null ? void 0 : renderMeasureExtras(measure, sectionEditing && isSelected ? (event) => editSection(event, measure, action) : void 0),
-        /* @__PURE__ */ React2.createElement("span", { style: measure.hasModulation ? numberOnFlag : void 0 }, measure.number)
+        /* @__PURE__ */ React2.createElement("span", { className: "rawln-measure-digits", style: measureDigits }, measure.number)
       ),
       menu != null && /* @__PURE__ */ React2.createElement("div", { className: "rawln-measure-menu" }, menu)
     );
