@@ -663,17 +663,17 @@ function fitModulationLabels(header, digits, labels, controls) {
     const width2 = label.getBoundingClientRect().width;
     const overflow = marker.hasAttribute("data-overflow-copy");
     const digit = overflow || marker.dataset.onsetOverride ? null : digitRects.get(marker.dataset.beat);
-    const hasArrow = !!label.querySelector("svg");
-    return { label, anchor, width: width2, digit, overflow, hasArrow };
+    const spaceFromDigits = !marker.hasAttribute("data-continued");
+    return { label, anchor, width: width2, digit, overflow, spaceFromDigits };
   });
-  const blockers = ({ hasArrow }) => [...hasArrow ? spacedDigitBoxes : digitBoxes, ...occupied];
+  const blockers = ({ spaceFromDigits }) => [...spaceFromDigits ? spacedDigitBoxes : digitBoxes, ...occupied];
   function place({ label, anchor, width: width2 }, left) {
     label.style.setProperty("--rawln-label-shift", (left - anchor) / scale - parseFloat(label.style.left) + "px");
     occupied.push({ left, right: left + width2 });
   }
   for (const position of positions) {
     if (!position.digit) continue;
-    const left = position.digit.right + (position.hasArrow ? gap : 0);
+    const left = position.digit.right + (position.spaceFromDigits ? gap : 0);
     const boxes = blockers(position);
     const overlaps = boxes.some((box) => box.left < left + position.width && box.right > left);
     place(position, overlaps ? nearestLabelLeft(left, position.width, bounds, boxes) : left);
