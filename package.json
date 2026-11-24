@@ -53,6 +53,7 @@
     "./score-size-sliders.css": "./dist/score-size-sliders.css",
     "./piano-legend.css": "./dist/piano-legend.css",
     "./playback-footer.css": "./dist/playback-footer.css",
+    "./transpose-control.css": "./dist/transpose-control.css",
     "./browser/*": "./dist/browser/*",
     "./legacy-style.css": "./dist/legacy-style.css",
     "./harmony.css": "./dist/harmony.css",

@@ -13,9 +13,9 @@
     "audio.cjs": "a84446056e5a8a1b5fb2a46a9c8c87fafe74a18e69090c34a28851d8ddba81be",
     "audio.d.ts": "d407f32b157103bfaafcd1ea56d11c5cec94c22f254ac13fd0e396dce45b077e",
     "audio.js": "3127a9923183d3cefcbe688bb85cbcaab71372e31fbf513ad20d7aa09f467545",
-    "components.cjs": "b96cc4bf85742c0e799b732f999f6189e17d58bb9259575f5af8a838093f7180",
-    "components.d.ts": "f2c818e9a18c5c721d431b4659ee06a72f2a66fd2f6e95a49a67476314da0b6b",
-    "components.js": "993938011428a9283fc0390a82a0c5305fea37724a82f2500678385fc9e2f5f7",
+    "components.cjs": "f9e7ade93633836cb8d939c426d504f0c3f4b3d02cbc36eac89bccf99a7f373a",
+    "components.d.ts": "ed1c31dd06ccde5173f4113bc0acb6f52bf4e0b7f8e41f2c1c7ae9ac6b050ad7",
+    "components.js": "c400aebfbfdf3be9c2da9408252732106f06ba6dc38813fd3164df1d8a514406",
     "geometry.cjs": "b6ba4ac202162aa1d008d1f1fb181f9ce25933e1605d08401ce9e296f2a93d62",
     "geometry.d.ts": "6d200ae5e08dcb76c8269f06e6215b50e748bfe768939cd768939ba226975575",
     "geometry.js": "23b997911106b7dbacd61905e527b7124a994714a4d1ffd7923039cef7a280fc",
@@ -24,9 +24,9 @@
     "harmony-annotations.d.ts": "68d74bcf5e2c033f2c9698ae1b2b69b8783800948088e08f02f9ae02ea594bce",
     "harmony-annotations.js": "c158ebf320f59f33ff19006ef8fb6df0c88dcc1fe6bfb8589d990ef516299f51",
     "harmony.css": "7b320ee9be4ab6120ff453907d830b9e5761db133f409e626c6aac3bb630c1ea",
-    "index.cjs": "e73c733317303202c36775605ebdcb481db94755bbf95322ea376cada7c895df",
-    "index.d.ts": "dff38773c0e171bac021ca9a726de1cd90e06070bdda5d9b65ff62bd3991cbd6",
-    "index.js": "d8e8bf93585fa1a10b7e801545ecf65d7d2a09962db647c5bc8fdfed2070d553",
+    "index.cjs": "e874fb5352371e242918757fcc56ebf29d338e1d8bec475c48a2c0dc0ecaabbb",
+    "index.d.ts": "106cbe917736dda78b79a0559f51f9b14ae32739fe17b82b8068519d07c61363",
+    "index.js": "01201b34b8a0d8017f464bdef8e679020459780f85f88bc0f3cbb7cbdedea2fc",
     "legacy-style.css": "40990c7dc077c4d8653aca16703b327e958be8f8f588a9f624f5fba23f1c19e2",
     "native-audio.cjs": "6a0f631fc7ed571f79b3647ada86cb5a5a00118fc882ec016dfc5887a11c0eb3",
     "native-audio.d.ts": "19da0d0bb1b0c4cd9b7e5cc5b41999039a23d3e2fd24a6a0d5705a2400b87633",
@@ -48,6 +48,7 @@
     "roman-numerals.js": "79f551db647ae6e24e7b75eccbe4908231fb983739f7ab8871727e88a5e226e1",
     "score-size-sliders.css": "18014f05416bb4d1a73b4211a8d1fc5fc79367dbeb7611ca851cff889fc1a7e5",
     "style.css": "2304cd28828f40637c7f2fb12900c1a57229329c3b8a8b4e8569dcb319b37047",
+    "transpose-control.css": "96828dd938e3063cbd5b1cab453b9c122543185f487e9fa0f3f413fbb9b055c4",
     "voice-shapes.css": "4855404bf970781af743c4ab84e2bfdcfeb63a77c8d4dd85cbdc5c1a2192f377"
   }
 }

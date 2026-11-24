@@ -2511,9 +2511,177 @@ function useScorePinch(containerRef, noteHeight, secondWidth, setNoteHeight, set
   }, [containerRef, enabled, setNoteHeight, setSecondWidth]);
   return activeRef;
 }
+
+// src/components/TransposeControl.jsx
+import React12, { useEffect as useEffect6, useRef as useRef8, useState as useState6 } from "react";
+var NOTE_NAMES = ["C", "D\u266D", "D", "E\u266D", "E", "F", "G\u266D", "G", "A\u266D", "A", "B\u266D", "B"];
+var MAX_TRANSPOSE_SEMITONES = 12;
+var OFFSETS = Array.from({ length: 2 * MAX_TRANSPOSE_SEMITONES + 1 }, (_, index) => index - MAX_TRANSPOSE_SEMITONES);
+var normalizeTonic = (value) => (value % 12 + 12) % 12;
+var signed = (value) => value < 0 ? `\u2212${Math.abs(value)}` : value > 0 ? `+${value}` : "0";
+function PitchLabel({ tonic, quarter }) {
+  var _a;
+  return /* @__PURE__ */ React12.createElement("span", { className: "rawlt-pitch", "aria-hidden": "true" }, (_a = tonic == null ? void 0 : tonic[0]) != null ? _a : "\u2013", ((tonic == null ? void 0 : tonic[1]) || quarter) && /* @__PURE__ */ React12.createElement("span", { className: "rawlt-accidental" }, tonic == null ? void 0 : tonic[1], quarter && "\u2191"));
+}
+function TransposeControl({
+  value,
+  onChange,
+  firstTonic,
+  persist,
+  onPersistChange,
+  placement = "bottom",
+  captureKeys = true
+}) {
+  const [open, setOpen] = useState6(false);
+  const [anchorBottom, setAnchorBottom] = useState6(0);
+  const containerRef = useRef8(null);
+  const valueRef = useRef8(null);
+  const selectedRef = useRef8(null);
+  useEffect6(() => {
+    var _a;
+    if (!open) return;
+    (_a = selectedRef.current) == null ? void 0 : _a.focus();
+    const dismiss = (event) => {
+      var _a2;
+      if (!((_a2 = containerRef.current) == null ? void 0 : _a2.contains(event.target))) setOpen(false);
+    };
+    document.addEventListener("pointerdown", dismiss);
+    return () => document.removeEventListener("pointerdown", dismiss);
+  }, [open]);
+  function closeAndRestoreFocus() {
+    var _a;
+    setOpen(false);
+    (_a = valueRef.current) == null ? void 0 : _a.focus();
+  }
+  return /* @__PURE__ */ React12.createElement(
+    "div",
+    {
+      className: "rawlt-control",
+      ref: containerRef,
+      onBlur: (event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+      },
+      onKeyDown: (event) => {
+        if (open || captureKeys) event.stopPropagation();
+        if (open && event.key === "Escape") {
+          event.preventDefault();
+          closeAndRestoreFocus();
+        }
+      }
+    },
+    /* @__PURE__ */ React12.createElement(
+      "button",
+      {
+        type: "button",
+        className: "rawlt-button",
+        onClick: () => onChange(value - 1),
+        disabled: value <= -MAX_TRANSPOSE_SEMITONES,
+        title: "Transpose down one semitone",
+        "aria-label": "Transpose down one semitone"
+      },
+      "\u25BC"
+    ),
+    /* @__PURE__ */ React12.createElement(
+      "button",
+      {
+        type: "button",
+        className: "rawlt-button rawlt-value",
+        ref: valueRef,
+        onClick: (event) => {
+          if (!open && placement === "top") setAnchorBottom(event.currentTarget.getBoundingClientRect().bottom);
+          setOpen(!open);
+        },
+        title: "Choose transposition (semitones)",
+        "aria-label": `Transpose: ${signed(value)} semitones`,
+        "aria-expanded": open,
+        "aria-haspopup": "dialog"
+      },
+      signed(value),
+      " st"
+    ),
+    /* @__PURE__ */ React12.createElement(
+      "button",
+      {
+        type: "button",
+        className: "rawlt-button",
+        onClick: () => onChange(value + 1),
+        disabled: value >= MAX_TRANSPOSE_SEMITONES,
+        title: "Transpose up one semitone",
+        "aria-label": "Transpose up one semitone"
+      },
+      "\u25B2"
+    ),
+    open && /* @__PURE__ */ React12.createElement(
+      "div",
+      {
+        className: "rawlt-picker",
+        "data-placement": placement,
+        style: placement === "top" ? { "--rawlt-anchor-bottom": `${anchorBottom}px` } : void 0,
+        role: "dialog",
+        "aria-label": "Transpose in semitones"
+      },
+      /* @__PURE__ */ React12.createElement("div", { className: "rawlt-heading" }, "Transpose \xB7 semitones"),
+      /* @__PURE__ */ React12.createElement(
+        "button",
+        {
+          type: "button",
+          className: "rawlt-button rawlt-close",
+          title: "Close transposition picker",
+          "aria-label": "Close transposition picker",
+          onClick: closeAndRestoreFocus
+        },
+        /* @__PURE__ */ React12.createElement(
+          "svg",
+          {
+            width: "16",
+            height: "16",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            "aria-hidden": "true",
+            focusable: "false"
+          },
+          /* @__PURE__ */ React12.createElement("path", { d: "M18 6 6 18M6 6l12 12" })
+        )
+      ),
+      /* @__PURE__ */ React12.createElement("div", { className: "rawlt-choices", role: "group", "aria-label": "Transposition in semitones" }, OFFSETS.map((offset) => {
+        const pitch = firstTonic == null ? null : normalizeTonic(firstTonic + offset);
+        const tonic = pitch === null ? null : NOTE_NAMES[Math.floor(pitch)];
+        const quarter = pitch !== null && pitch % 1 === 0.5;
+        const pitchName = tonic ? `${tonic}${quarter ? " +50\xA2" : ""}` : "";
+        return /* @__PURE__ */ React12.createElement(
+          "button",
+          {
+            type: "button",
+            className: "rawlt-choice",
+            key: offset,
+            ref: offset === value ? selectedRef : void 0,
+            title: `${signed(offset)} semitones${pitchName ? ` \xB7 ${pitchName}` : ""}`,
+            "aria-label": `${signed(offset)} semitones${pitchName ? `, tonic ${pitchName}` : ""}`,
+            "aria-pressed": offset === value,
+            onClick: () => onChange(offset)
+          },
+          /* @__PURE__ */ React12.createElement("span", null, signed(offset)),
+          /* @__PURE__ */ React12.createElement(PitchLabel, { tonic, quarter })
+        );
+      })),
+      onPersistChange && /* @__PURE__ */ React12.createElement("label", { className: "rawlt-persist", title: "Keep transposition when loading another song" }, /* @__PURE__ */ React12.createElement(
+        "input",
+        {
+          type: "checkbox",
+          checked: persist != null ? persist : false,
+          onChange: (event) => onPersistChange(event.target.checked)
+        }
+      ), "persist")
+    )
+  );
+}
 export {
   FoldablePianoLegend,
   InlinePianoLegend,
+  MAX_TRANSPOSE_SEMITONES,
   MeasureRhythmInput,
   PHRASE_SHIFT_KEYS,
   PianoLegend,
@@ -2526,6 +2694,7 @@ export {
   ScoreSizeSliders,
   TonalGrid,
   TonicSymbol,
+  TransposeControl,
   handlePhraseShiftKey,
   observePlaybackPosition,
   parseRhythmGrouping,

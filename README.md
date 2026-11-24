@@ -143,6 +143,19 @@ GPL-3.0-only for extracted Rawl code. This code is not public domain. SoundFont,
 
 ## Score controls
 
+```jsx
+import {TransposeControl} from 'librawl/components';
+import 'librawl/transpose-control.css';
+
+<TransposeControl value={transpose} onChange={setTranspose} firstTonic={tonic} />
+```
+
+`TransposeControl` offers one-semitone steps and a picker from −12 to +12.
+The host owns transposition and can add the saved setting with `persist` and
+`onPersistChange`. Use `placement="top"` for a toolbar above the instrument,
+`captureKeys={false}` to keep instrument shortcuts active while the picker is
+closed, and `--rawlt-focus-color` to match the host’s focus indicator.
+
 `ScoreSizeSliders` uses the lower-right corner by default. Connect
 `useScorePinch` to the scroll container, and wrap its score in
 `ScorePinchContent` with the returned ref. Touch gestures lock to one axis.

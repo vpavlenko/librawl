@@ -34,6 +34,20 @@ export interface PlaybackFooterProps {
   children?: React.ReactNode;
 }
 export const PlaybackFooter: React.FC<PlaybackFooterProps>;
+export const MAX_TRANSPOSE_SEMITONES: 12;
+export interface TransposeControlProps {
+  value: number;
+  onChange: (semitones: number) => void;
+  /** Untransposed tonic in semitones, optionally including a quarter tone. */
+  firstTonic?: number | null;
+  persist?: boolean;
+  onPersistChange?: (persist: boolean) => void;
+  /** Top controls open below the trigger. Bottom controls open above the footer. */
+  placement?: 'top' | 'bottom';
+  /** Keep host shortcuts active while the picker is closed when false. */
+  captureKeys?: boolean;
+}
+export const TransposeControl: React.FC<TransposeControlProps>;
 /** Read and paint immediately, then on each animation frame until disposed. */
 export function observePlaybackPosition(readPosition: () => number, paintPosition: (position: number) => void): () => void;
 

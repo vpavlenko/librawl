@@ -1,5 +1,7 @@
 # Source notices
 
+The transpose control adapts Rawl's `src/components/TransposeControl.tsx` at commit 1c62a261b201bc4ee17b1fb68c4a6f43ee6d9e49. Its close icon comes from Lucide under the terms below.
+
 The tonic-symbol implementation was extracted from vpavlenko/rawl, commit c5c9bb0407534d9b7eb9a8267078c006fa340ee6, `src/components/rawl/AnalysisGrid.tsx`. The exact source fixture and hashes are retained under `tests/fixtures`. GPLv3 terms are retained in LICENSE.
 
 The beat-based notation component, geometry and palette were extracted from the Lego Insights Roadmaps implementation at commit21eaa3601d9f974e3a046906a535c82fb753608f, itself based on Rawl and Caplin. Its limited view model is documented separately from Rawl's complete seconds-based renderer.

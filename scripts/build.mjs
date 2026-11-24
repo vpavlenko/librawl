@@ -14,7 +14,7 @@ const banner=`/*! librawl version: ${pkg.version}; audio source sha256: ${digest
 const modulePaths = {absWorkingDir: root, preserveSymlinks: true};
 for(const [name,entry] of Object.entries({index:'src/index.jsx',components:'src/components.jsx',geometry:'src/notation/geometry.mjs','roman-numerals':'src/notation/roman-numerals.mjs','harmony-annotations':'src/notation/harmony-annotations.mjs',palette:'src/notation/palette.mjs',audio:'src/audio.js',native:'src/rawlnative/index.ts','native-audio':'src/audio/native/index.ts'}))for(const [format,extension]of [['esm','js'],['cjs','cjs']])await build({...modulePaths,entryPoints:[path.join(root,entry)],outfile:path.join(out,`${name}.${extension}`),bundle:true,format,platform:'browser',target:'es2018',jsx:'transform',external:['react','react-dom','librawl/native'],banner:{js:banner},logLevel:'error'});
 for(const name of ['style.css','harmony.css','roman-numerals.css','harmony-annotations.css'])fs.copyFileSync(path.join(root,'src/notation',name),path.join(out,name));
-for(const name of ['playback-footer.css','score-size-sliders.css','piano-legend.css'])fs.copyFileSync(path.join(root,'src/components',name),path.join(out,name));
+for(const name of ['playback-footer.css','transpose-control.css','score-size-sliders.css','piano-legend.css'])fs.copyFileSync(path.join(root,'src/components',name),path.join(out,name));
 
 fs.copyFileSync(path.join(root,'src/notation/index.d.ts'),path.join(out,'notation.d.ts'));
 for(const name of ['index','components','audio','geometry','palette','native','native-audio','roman-numerals','piano-legend','harmony-annotations'])fs.copyFileSync(path.join(root,`types/${name}.d.ts`),path.join(out,`${name}.d.ts`));
