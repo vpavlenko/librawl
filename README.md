@@ -114,7 +114,9 @@ const audio=createSoundFontPlayback({assetBase:new URL('./',location.href).href}
 const engine=await audio.prepare(context);
 ```
 
-Assets remain explicitly host-owned. The default profile retains Caplin's bank and URLs. Additional banks and selectable audition programs are opt-in; the generated sax profile is used by Lego. No audio context is created merely by importing this library.
+The default profile retains Caplin's host-provided bank and URLs. Additional banks and selectable audition programs are opt-in. Lego uses the generated sax profile. No audio context is created merely by importing this library.
+
+The calibrated qanun bank used by Rawl is available from `librawl/soundfonts/qanun.sf2`. `librawl/soundfonts/qanun.json` exports its versioned filename, byte length and SHA-256. A host can resolve the binary at build time and copy it into its static assets under that filename. The bank retains the source program numbers and maps all melodic programs to the same qanun samples. See the [source notices](NOTICE.md) for sample credit.
 
 `createTransport` binds bare Space to pause the active transport in a browser. Focused controls and text editing keep their keyboard behavior. A fresh Space press when playback is idle uses the browser default. A host with its own shortcut can pass `keyboardTarget: false`. Call `destroy()` when removing a transport.
 

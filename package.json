@@ -37,6 +37,8 @@
       "import": "./dist/audio.js",
       "require": "./dist/audio.cjs"
     },
+    "./soundfonts/qanun.json": "./soundfonts/qanun.json",
+    "./soundfonts/qanun.sf2": "./soundfonts/rawl-qanun-0d39d9c6c2dc.sf2",
     "./style.css": "./dist/style.css",
     "./roman-numerals": {
       "types": "./dist/roman-numerals.d.ts",
@@ -73,6 +75,7 @@
   },
   "files": [
     "dist",
+    "soundfonts",
     "LICENSE",
     "NOTICE.md",
     "README.md",
