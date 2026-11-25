@@ -2,7 +2,7 @@
 
 Shared React notation and playback modules for [Rawl](https://github.com/vpavlenko/rawl), [Lego](https://github.com/vpavlenko/lego) and Caplin.
 
-The library owns the actual Rawl note renderer, tonic flags, palette, playback highlight clocks and configurable SoundFont playback. Hosts retain their data, navigation, analysis editing and synthesis assets.
+The library owns the Rawl note renderer, tonic flags, palette, playback highlight clocks, configurable SoundFont playback and the shared qanun bank. Hosts retain their data, navigation, analysis editing and other synthesis assets.
 
 ## Modules
 
@@ -141,7 +141,7 @@ Consumers should pin a reviewed commit or a checksummed package artifact. There 
 
 ## License
 
-GPL-3.0-only for extracted Rawl code. This code is not public domain. SoundFont, synthesizer and book/corpus assets are not included in the package; their existing licenses and notices remain with each host. See [NOTICE.md](NOTICE.md) and the recorded provenance under `docs/` and `tests/fixtures/`.
+The extracted Rawl code is GPL-3.0-only. The packaged qanun bank carries its sample credits in [NOTICE.md](NOTICE.md). The other synthesis and corpus assets retain their existing licenses and notices with each host. See the source provenance under `docs/` and `tests/fixtures/`.
 
 ## Score controls
 
@@ -168,12 +168,20 @@ Trackpad pinch changes time spacing, and Shift+pinch changes note height.
 to its host. Enable Caplin's pitch-diagram popup with `RomanNumeral`'s `tooltip`
 prop. Jazz hosts can provide an ordered voicing directly.
 
-The current measure keeps its top and bottom edges on pause, and notes at the
-paused position keep their doubled height. For an HTML media element, use
-`bindMediaPlaybackPosition` from `librawl/audio` to follow the playhead. When playback uses
-recording seconds, supply each visible measure's `playbackSpans`, including
-repetitions where they share an overlay. Custom layouts can use
-`PlaybackMeasureLayer` with their existing playback clock.
+Inside a score, melodic playback doubles the height of sounding notes upward
+from their resting bottom edge. The playback highlight ends with each note's
+sounding span and clears during rests. Keep the score plot free of a moving
+vertical playback line. Pausing keeps the notes and any current measure edges
+highlighted at the paused position.
+
+For an HTML media element, use `bindMediaPlaybackPosition` from `librawl/audio`
+to read the playback position. A native `NoteLayer` can use a
+`createNotePlaybackIndex` and `NotePlaybackContext` from `librawl/native`.
+Advance the index with the media position in the same time coordinates as the
+notes' sounding spans, and reset it when clearing the playback position.
+When playback uses recording seconds, supply each visible measure's
+`playbackSpans`, including repetitions where they share an overlay. Custom
+layouts can use `PlaybackMeasureLayer` with their existing playback clock.
 
 `RawlNotation` accepts a beat-based `onSeek` callback or `playbackClock.seek`.
 An unconnected score still moves its note highlight when clicked. An app can
