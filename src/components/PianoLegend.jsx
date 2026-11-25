@@ -28,6 +28,7 @@ const SCALES = [
   { label: 'major', color: 4, scales: [
     ['mixolydian', [0, 2, 4, 5, 7, 9, 10]], ['natural', WHITE_KEYS],
     ['lydian', [0, 2, 4, 6, 7, 9, 11]], ['hijaz', [0, 1, 4, 5, 7, 8, 10]],
+    ['hijazkar', [0, 1, 4, 5, 7, 8, 11]],
   ] },
 ];
 
