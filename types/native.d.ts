@@ -104,6 +104,7 @@ export function getNotePitchAtTime(note:Note,time?:number):number;
 export const RAWL_COLORS:ReadonlyArray<{background:string;foreground:string;dot?:{color:string;size:number}}>;
 export function pitchColor(pitch:number):string;
 export function interpolatedPitchColor(pitch:number):string;
+export function maqamTonicOffset(name:string):number;
 export function noteColorClass(pitch:number|'default'|'drum'):string;
 export function notePitchDotClass(pitch:number):string;
 export function noteLetterColors(prefix?:string):string;

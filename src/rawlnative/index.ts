@@ -9,6 +9,7 @@ export {VoiceZIndicesContext} from './voiceOrderContext';
 export * from './playbackIndex';
 export * from './pitchBend';
 export * from './colors';
+export {maqamTonicOffset} from './maqam';
 export {nativeColorStyles,modulationOnsetStyles} from './native-style.mjs';
 export {voiceHoverContains} from './voiceHover';
 export type {VoiceHover} from './voiceHover';

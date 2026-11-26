@@ -52,6 +52,7 @@ __export(index_exports, {
   interpolatedPitchColor: () => interpolatedPitchColor,
   isModulationOnsetAllowed: () => isModulationOnsetAllowed,
   isQuarterTonePitch: () => isQuarterTonePitch,
+  maqamTonicOffset: () => maqamTonicOffset,
   modulationOnsetStyles: () => modulationOnsetStyles,
   nativeColorStyles: () => nativeColorStyles,
   noteColorClass: () => noteColorClass,
@@ -1049,6 +1050,19 @@ function NoteLayer({ notes, midiNumberToY, noteHeight, handleNoteClick = null, h
     handleMouseLeave();
   };
   return /* @__PURE__ */ React2.createElement(React2.Fragment, null, getNoteRectangles(notes, midiNumberToY, noteHeight, handleNoteClick, enter, leave, secondsToX, enableManualRemeasuring, hoveredColors, showSourceLocation, drumNoteToY, hoveredVoiceIndex, sectionEndX, sectionStartX, getNoteAttributes));
+}
+
+// src/rawlnative/maqam.ts
+function maqamTonicOffset(name) {
+  switch (name.trim().toLowerCase()) {
+    case "huzzam":
+    case "huzam":
+    case "sikah":
+    case "rahat al-arwah":
+      return 3.5;
+    default:
+      return 0;
+  }
 }
 
 // src/rawlnative/native-style.mjs
