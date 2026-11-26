@@ -2,6 +2,7 @@ export {TonicSymbol} from './components/TonicSymbol.jsx';
 export {RawlMeasureHeader,TonalGrid,PlaybackMeasureBorders,PlaybackMeasureLayer} from './notation/RawlNotation.jsx';
 export {PlaybackFooter} from './components/PlaybackFooter.jsx';
 export {observePlaybackPosition} from './components/playback-position.js';
+export {MaqamScaleDiagram} from './components/MaqamScaleDiagram.jsx';
 
 export {RomanNumeral} from './components/RomanNumeral.jsx';
 export {ScoreSizeSliders} from './components/ScoreSizeSliders.jsx';

@@ -3,6 +3,18 @@ export type {MeasureHeaderLayout,PositionedMeasure,KeyMarker,RowKeyMarker,TonalG
 export {RawlMeasureHeader,TonalGrid,PlaybackMeasureBorders,PlaybackMeasureLayer,PHRASE_SHIFT_KEYS,handlePhraseShiftKey,MeasureRhythmInput,parseRhythmGrouping} from './notation';
 export type {MeasureSectionAction,MeasureSectionEditing,RenderMeasureExtras,MeasureRhythmEditing,MeasureRhythmInputProps} from './notation';
 export * from './piano-legend';
+export interface MaqamScaleDiagramProps {
+  name: string;
+  /** Semitone offsets below the first degree. */
+  lower?: readonly number[];
+  /** Semitone offsets from the first degree, including any extensions. */
+  scale: readonly number[];
+  /** Jins brackets use inclusive indices into scale. */
+  groups?: readonly {label: string; start: number; end: number; row?: number}[];
+  /** Named extensions use inclusive indices into scale. */
+  shoulders?: readonly {name: string; start: number; end: number}[];
+}
+export const MaqamScaleDiagram: React.FC<MaqamScaleDiagramProps>;
 export interface TonicSymbolProps {left:number;number:number;previousTonic:number|null;modulationDiff:number|null;tonicStart:number|null;alignToOnset?:boolean;transpose?:number;showLabel?:boolean;showTonicName?:boolean;renderArrow?:(shift:{direction:'up'|'down';semitones:number;modulationDiff:number})=>React.ReactNode;flagClassName?:string;labelClassName?:string;flagAttributes?:React.HTMLAttributes<HTMLDivElement>;labelAttributes?:React.HTMLAttributes<HTMLSpanElement>;}
 export const TonicSymbol:React.FC<TonicSymbolProps>;
 export interface PlaybackTimeline {

@@ -1246,8 +1246,97 @@ function PlaybackFooter({
   )), children));
 }
 
+// src/components/MaqamScaleDiagram.jsx
+import React8, { useLayoutEffect as useLayoutEffect4, useRef as useRef4, useState as useState4 } from "react";
+import { maqamTonicOffset, NoteLayer as NoteLayer2, NotePlaybackContext as NotePlaybackContext2, noteColorClass } from "librawl/native";
+var laneHeight = 19;
+function groupLanes(groups) {
+  var _a, _b, _c;
+  const lanes = [];
+  for (const group of groups) {
+    let row = (_a = group.row) != null ? _a : 0;
+    while ((_b = lanes[row]) == null ? void 0 : _b.some((other) => group.start < other.end && group.end > other.start)) row++;
+    ((_c = lanes[row]) != null ? _c : lanes[row] = []).push(group);
+  }
+  return lanes;
+}
+function MaqamScaleDiagram({ name, lower = [], scale, groups = [], shoulders = [] }) {
+  const root = useRef4(null);
+  const [width, setWidth] = useState4(0);
+  useLayoutEffect4(() => {
+    const element = root.current;
+    const view = element.ownerDocument.defaultView;
+    const update = () => setWidth(element.clientWidth);
+    update();
+    const observer = (view == null ? void 0 : view.ResizeObserver) && new view.ResizeObserver(update);
+    if (observer) observer.observe(element);
+    else view == null ? void 0 : view.addEventListener("resize", update);
+    return () => {
+      if (observer) observer.disconnect();
+      else view == null ? void 0 : view.removeEventListener("resize", update);
+    };
+  }, []);
+  const tonic = maqamTonicOffset(name);
+  const pitches = [...lower, ...scale];
+  const noteCount = Math.max(1, pitches.length);
+  const low = Math.min(tonic, ...pitches);
+  const high = Math.max(tonic, ...pitches);
+  const plotHeight = Math.round(Math.max(44, Math.min(84, width * 0.145)));
+  const noteHeight = Math.max(2.5, Math.min(5, width / 116));
+  const verticalInset = noteHeight + 4;
+  const pitchStep = (plotHeight - 2 * verticalInset) / Math.max(1, high - low);
+  const pitchToY = (pitch) => plotHeight / 2 + ((high + low) / 2 - pitch) * pitchStep;
+  const columnWidth = width / noteCount;
+  const horizontalInset = 0.07;
+  const notes = pitches.map((pitch, index) => {
+    const colorPitchClass = ((pitch - tonic) % 12 + 12) % 12;
+    return {
+      id: `maqam-scale-${index}`,
+      note: { midiNumber: pitch },
+      span: [index, index + 1],
+      displaySpan: [index + horizontalInset, index + 1 - horizontalInset],
+      voiceIndex: 0,
+      isDrum: false,
+      isActive: true,
+      color: noteColorClass(colorPitchClass),
+      colorPitchClass
+    };
+  });
+  const rootGroups = groups.filter((group) => group.start === 0);
+  const extensionLanes = groupLanes(groups.filter((group) => group.start !== 0));
+  const label = ({ label: text, start, end }, row, bracket) => {
+    const startColumn = lower.length + start + horizontalInset;
+    const columns = end - start + 1 - 2 * horizontalInset;
+    const size = Math.min(12, Math.max(8, columns * columnWidth / (text.length * 0.52)));
+    return /* @__PURE__ */ React8.createElement(
+      "span",
+      {
+        key: `${text}:${start}:${end}`,
+        className: bracket ? "rawln-maqam-label rawln-maqam-bracket" : "rawln-maqam-label",
+        style: {
+          left: `${100 * startColumn / noteCount}%`,
+          width: `${100 * columns / noteCount}%`,
+          top: row * laneHeight,
+          fontSize: size
+        }
+      },
+      text
+    );
+  };
+  return /* @__PURE__ */ React8.createElement("div", { ref: root, className: "rawln-maqam-scale", role: "img", "aria-label": name, "data-tonic-offset": tonic }, (rootGroups.length > 0 || shoulders.length > 0) && /* @__PURE__ */ React8.createElement("div", { className: "rawln-maqam-upper", style: { height: laneHeight } }, rootGroups.map((group) => label(group, 0, true)), shoulders.map(({ name: labelText, start, end }) => label({ label: labelText, start, end }, 0, false))), /* @__PURE__ */ React8.createElement("div", { className: "rawln-maqam-plot", style: { height: plotHeight } }, /* @__PURE__ */ React8.createElement(TonalGrid, { regions: [{ tonic, left: 0, width: "100%" }], range: { low, high }, pitchToY }), width > 0 && /* @__PURE__ */ React8.createElement(NotePlaybackContext2.Provider, { value: null }, /* @__PURE__ */ React8.createElement(
+    NoteLayer2,
+    {
+      notes,
+      midiNumberToY: pitchToY,
+      secondsToX: (column) => column * columnWidth,
+      noteHeight,
+      getNoteAttributes: (note) => ({ "data-maqam-pitch": note.note.midiNumber, "data-maqam-pitch-class": note.colorPitchClass })
+    }
+  ))), extensionLanes.length > 0 && /* @__PURE__ */ React8.createElement("div", { className: "rawln-maqam-lower", style: { height: extensionLanes.length * laneHeight } }, extensionLanes.flatMap((lane, row) => lane.map((group) => label(group, row, true)))));
+}
+
 // src/components/RomanNumeral.jsx
-import React8, { useEffect as useEffect2, useMemo as useMemo4, useRef as useRef4 } from "react";
+import React9, { useEffect as useEffect2, useMemo as useMemo4, useRef as useRef5 } from "react";
 
 // src/notation/roman-numerals.mjs
 var escape = (value) => String(value).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -1890,13 +1979,13 @@ function bindRomanNumeralTooltip(anchor, render) {
 
 // src/components/RomanNumeral.jsx
 function RomanNumeral({ notation, options, tooltip = false }) {
-  const ref = useRef4(null);
+  const ref = useRef5(null);
   const model = useMemo4(() => romanNumeralTooltipModel(notation, options, tooltip), [notation, options, tooltip]);
   useEffect2(() => {
     if (!model) return;
     return bindRomanNumeralTooltip(ref.current, () => romanNumeralTooltipHTML(notation, options != null ? options : {}, model));
   }, [notation, options, model]);
-  return /* @__PURE__ */ React8.createElement(
+  return /* @__PURE__ */ React9.createElement(
     "span",
     {
       ref,
@@ -1911,16 +2000,16 @@ function RomanNumeral({ notation, options, tooltip = false }) {
 }
 
 // src/components/ScoreSizeSliders.jsx
-import React9, { useEffect as useEffect3, useRef as useRef5, useState as useState4 } from "react";
+import React10, { useEffect as useEffect3, useRef as useRef6, useState as useState5 } from "react";
 var HEIGHT = { min: 1, max: 10 };
 var SPACING = { min: 2, max: 150 };
 var clamp2 = (value, { min, max }) => Math.min(max, Math.max(min, value));
 function SizeRange({ label, title = label, value, bounds, onChange, before, after, vertical = false }) {
-  const [draft, setDraft] = useState4(null);
-  const timer = useRef5(null);
+  const [draft, setDraft] = useState5(null);
+  const timer = useRef6(null);
   useEffect3(() => () => clearTimeout(timer.current), []);
   const displayValue = draft != null ? draft : value;
-  return /* @__PURE__ */ React9.createElement("label", { className: vertical ? "rawln-size-option rawln-size-option-height" : "rawln-size-option" }, /* @__PURE__ */ React9.createElement("span", { className: "rawln-size-key", "aria-hidden": "true" }, before), /* @__PURE__ */ React9.createElement(
+  return /* @__PURE__ */ React10.createElement("label", { className: vertical ? "rawln-size-option rawln-size-option-height" : "rawln-size-option" }, /* @__PURE__ */ React10.createElement("span", { className: "rawln-size-key", "aria-hidden": "true" }, before), /* @__PURE__ */ React10.createElement(
     "input",
     {
       type: "range",
@@ -1942,7 +2031,7 @@ function SizeRange({ label, title = label, value, bounds, onChange, before, afte
         }, 50);
       }
     }
-  ), /* @__PURE__ */ React9.createElement("span", { className: "rawln-size-key", "aria-hidden": "true" }, after));
+  ), /* @__PURE__ */ React10.createElement("span", { className: "rawln-size-key", "aria-hidden": "true" }, after));
 }
 function ScoreSizeSliders({ noteHeight, timeSpacing, onNoteHeightChange, onTimeSpacingChange, keyboardShortcuts = false, titles }) {
   useEffect3(() => {
@@ -1971,11 +2060,11 @@ function ScoreSizeSliders({ noteHeight, timeSpacing, onNoteHeightChange, onTimeS
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [keyboardShortcuts, noteHeight, timeSpacing, onNoteHeightChange, onTimeSpacingChange]);
-  return /* @__PURE__ */ React9.createElement("div", { className: "rawln-size-sliders" }, /* @__PURE__ */ React9.createElement(SizeRange, { label: "Time spacing", title: titles == null ? void 0 : titles.timeSpacing, value: timeSpacing, bounds: SPACING, onChange: onTimeSpacingChange, before: "a", after: "d" }), /* @__PURE__ */ React9.createElement(SizeRange, { label: "Note height", title: titles == null ? void 0 : titles.noteHeight, value: noteHeight, bounds: HEIGHT, onChange: onNoteHeightChange, before: "w", after: "s", vertical: true }));
+  return /* @__PURE__ */ React10.createElement("div", { className: "rawln-size-sliders" }, /* @__PURE__ */ React10.createElement(SizeRange, { label: "Time spacing", title: titles == null ? void 0 : titles.timeSpacing, value: timeSpacing, bounds: SPACING, onChange: onTimeSpacingChange, before: "a", after: "d" }), /* @__PURE__ */ React10.createElement(SizeRange, { label: "Note height", title: titles == null ? void 0 : titles.noteHeight, value: noteHeight, bounds: HEIGHT, onChange: onNoteHeightChange, before: "w", after: "s", vertical: true }));
 }
 
 // src/components/PianoLegend.jsx
-import React10, { useEffect as useEffect4, useRef as useRef6, useState as useState5 } from "react";
+import React11, { useEffect as useEffect4, useRef as useRef7, useState as useState6 } from "react";
 var WHITE_KEYS = [0, 2, 4, 5, 7, 9, 11];
 var BLACK_KEYS = [1, 3, null, 6, 8, 10, null];
 var BLACK_LABELS = ["\u266D2", "\u266D3", null, "\u266F4", "\u266D6", "\u266D7"];
@@ -2021,7 +2110,7 @@ var color = (degree) => RAWL_COLORS[colorIndex(degree)].background;
 function PitchDot({ pitch }) {
   const { dot } = RAWL_COLORS[colorIndex(pitch)];
   if (!dot) return null;
-  return /* @__PURE__ */ React10.createElement(
+  return /* @__PURE__ */ React11.createElement(
     "span",
     {
       className: "rawln-piano-pitch-dot",
@@ -2060,9 +2149,9 @@ function PianoLegend({
   activePitch = null,
   onAudition
 }) {
-  const [playing, setPlaying] = useState5(null);
-  const timer = useRef6(null);
-  const stop = useRef6(null);
+  const [playing, setPlaying] = useState6(null);
+  const timer = useRef7(null);
+  const stop = useRef7(null);
   useEffect4(() => () => {
     var _a;
     clearTimeout(timer.current);
@@ -2073,7 +2162,7 @@ function PianoLegend({
     const active2 = activePitch === pitch;
     const interactive = !inline && enabled && !!onAudition;
     const Element = interactive ? "button" : "span";
-    return /* @__PURE__ */ React10.createElement(
+    return /* @__PURE__ */ React11.createElement(
       Element,
       {
         key: pitch,
@@ -2092,19 +2181,19 @@ function PianoLegend({
         "data-playing": playing === pitch || void 0,
         style: { left: `${left * 100 / 7}%`, background: color(pitch) }
       },
-      /* @__PURE__ */ React10.createElement(PitchDot, { pitch }),
-      !inline && /* @__PURE__ */ React10.createElement(React10.Fragment, null, pitch === 0 && /* @__PURE__ */ React10.createElement("span", { className: "rawln-piano-tonic" }, tonicName(currentTonic)), label)
+      /* @__PURE__ */ React11.createElement(PitchDot, { pitch }),
+      !inline && /* @__PURE__ */ React11.createElement(React11.Fragment, null, pitch === 0 && /* @__PURE__ */ React11.createElement("span", { className: "rawln-piano-tonic" }, tonicName(currentTonic)), label)
     );
   }
-  return /* @__PURE__ */ React10.createElement("div", { className: `rawln-piano-keys${inline ? " rawln-piano-inline" : ""}` }, WHITE_KEYS.map((pitch, i) => renderKey(pitch, i + 1, i, false)), BLACK_KEYS.map((pitch, i) => pitch === null ? null : renderKey(pitch, BLACK_LABELS[i], i + 0.5, true)));
+  return /* @__PURE__ */ React11.createElement("div", { className: `rawln-piano-keys${inline ? " rawln-piano-inline" : ""}` }, WHITE_KEYS.map((pitch, i) => renderKey(pitch, i + 1, i, false)), BLACK_KEYS.map((pitch, i) => pitch === null ? null : renderKey(pitch, BLACK_LABELS[i], i + 0.5, true)));
 }
 function InlinePianoLegend(props) {
-  return /* @__PURE__ */ React10.createElement(PianoLegend, { ...props, inline: true });
+  return /* @__PURE__ */ React11.createElement(PianoLegend, { ...props, inline: true });
 }
 function ChordRow({ mode, tonic, guitar, onAudition, setHoveredColors }) {
   var _a, _b;
-  const [playing, setPlaying] = useState5(null);
-  const timer = useRef6(null);
+  const [playing, setPlaying] = useState6(null);
+  const timer = useRef7(null);
   useEffect4(() => () => clearTimeout(timer.current), []);
   const voiced = [];
   for (const chord of mode.chords) {
@@ -2128,7 +2217,7 @@ function ChordRow({ mode, tonic, guitar, onAudition, setHoveredColors }) {
   const bottom = Math.min(...voiced.flatMap((chord) => chord.positions));
   const tonicIndex = voiced.findIndex(({ name }) => name === "I" || name === "i");
   const minor = mode.title.toLowerCase().includes("minor") || voiced.some(({ name }) => name === "i");
-  return /* @__PURE__ */ React10.createElement("div", { className: "rawln-piano-mode" }, /* @__PURE__ */ React10.createElement("div", { className: "rawln-piano-chords", style: { "--rawln-piano-chord-count": voiced.length, height: (top - bottom) * 3 + 52 } }, voiced.map(({ name, pitches, positions, romanLabel }, i) => {
+  return /* @__PURE__ */ React11.createElement("div", { className: "rawln-piano-mode" }, /* @__PURE__ */ React11.createElement("div", { className: "rawln-piano-chords", style: { "--rawln-piano-chord-count": voiced.length, height: (top - bottom) * 3 + 52 } }, voiced.map(({ name, pitches, positions, romanLabel }, i) => {
     var _a2;
     const showAbove = i < tonicIndex;
     const alternateLabel = guitar ? guitarName(name, pitches, tonic, minor) : void 0;
@@ -2137,7 +2226,7 @@ function ChordRow({ mode, tonic, guitar, onAudition, setHoveredColors }) {
     const Element = onAudition ? "button" : "span";
     const clearHover = () => setHoveredColors == null ? void 0 : setHoveredColors(null);
     const preview = () => setHoveredColors == null ? void 0 : setHoveredColors(pitches.map((pitch) => `noteColor_${colorIndex(pitch)}_colors`));
-    return /* @__PURE__ */ React10.createElement(
+    return /* @__PURE__ */ React11.createElement(
       Element,
       {
         key: `${name}-${i}`,
@@ -2153,7 +2242,7 @@ function ChordRow({ mode, tonic, guitar, onAudition, setHoveredColors }) {
         onFocus: preview,
         onBlur: clearHover
       },
-      positions.map((position, j) => /* @__PURE__ */ React10.createElement(
+      positions.map((position, j) => /* @__PURE__ */ React11.createElement(
         "i",
         {
           key: `${j}-${(playing == null ? void 0 : playing.index) === i ? playing.serial : ""}`,
@@ -2161,11 +2250,11 @@ function ChordRow({ mode, tonic, guitar, onAudition, setHoveredColors }) {
           "data-playing": (playing == null ? void 0 : playing.index) === i || void 0,
           style: { top: 22 + (top - position) * 3, background: color(pitches[j]), animationDelay: `${ARPEGGIO_DELAY_MS * j}ms` }
         },
-        /* @__PURE__ */ React10.createElement(PitchDot, { pitch: pitches[j] })
+        /* @__PURE__ */ React11.createElement(PitchDot, { pitch: pitches[j] })
       )),
-      /* @__PURE__ */ React10.createElement("span", { style: { top: labelTop } }, (_a2 = alternateLabel != null ? alternateLabel : romanLabel) != null ? _a2 : label)
+      /* @__PURE__ */ React11.createElement("span", { style: { top: labelTop } }, (_a2 = alternateLabel != null ? alternateLabel : romanLabel) != null ? _a2 : label)
     );
-  })), mode.title && /* @__PURE__ */ React10.createElement("div", { className: "rawln-piano-mode-title" }, mode.title));
+  })), mode.title && /* @__PURE__ */ React11.createElement("div", { className: "rawln-piano-mode-title" }, mode.title));
 }
 function getMobile() {
   var _a;
@@ -2221,13 +2310,13 @@ function FoldablePianoLegend({
   setHoveredColors,
   storageKey = "showLegend"
 }) {
-  const [mobile, setMobile] = useState5(getMobile);
-  const [expanded, setExpanded] = useState5(() => storedExpansion(storageKey, mobile));
-  const [scale, setScale] = useState5(null);
-  const [highlight, setHighlight] = useState5(null);
-  const [guitar, setGuitar] = useState5(false);
-  const audition = useRef6(null);
-  const legend = useRef6(null);
+  const [mobile, setMobile] = useState6(getMobile);
+  const [expanded, setExpanded] = useState6(() => storedExpansion(storageKey, mobile));
+  const [scale, setScale] = useState6(null);
+  const [highlight, setHighlight] = useState6(null);
+  const [guitar, setGuitar] = useState6(false);
+  const audition = useRef7(null);
+  const legend = useRef7(null);
   useEffect4(() => {
     if (!expanded && legend.current) return reserveCollapsedLegendSpace(legend.current);
   }, [expanded]);
@@ -2281,7 +2370,7 @@ function FoldablePianoLegend({
   }
   const Chevron = expanded ? ChevronDown : ChevronUp;
   const chordNamesLabel = guitar ? "Show Roman numerals" : "Show guitar chords";
-  return /* @__PURE__ */ React10.createElement("aside", { ref: legend, className: "rawln-piano-legend", "data-expanded": expanded }, /* @__PURE__ */ React10.createElement("div", { className: "rawln-piano-header" }, /* @__PURE__ */ React10.createElement(
+  return /* @__PURE__ */ React11.createElement("aside", { ref: legend, className: "rawln-piano-legend", "data-expanded": expanded }, /* @__PURE__ */ React11.createElement("div", { className: "rawln-piano-header" }, /* @__PURE__ */ React11.createElement(
     "button",
     {
       type: "button",
@@ -2290,9 +2379,9 @@ function FoldablePianoLegend({
       "aria-label": "Piano legend",
       "aria-expanded": expanded
     },
-    /* @__PURE__ */ React10.createElement(Chevron, { size: 14, "aria-hidden": "true" }),
-    !expanded && /* @__PURE__ */ React10.createElement(InlinePianoLegend, null)
-  ), expanded && /* @__PURE__ */ React10.createElement(
+    /* @__PURE__ */ React11.createElement(Chevron, { size: 14, "aria-hidden": "true" }),
+    !expanded && /* @__PURE__ */ React11.createElement(InlinePianoLegend, null)
+  ), expanded && /* @__PURE__ */ React11.createElement(
     "button",
     {
       type: "button",
@@ -2302,10 +2391,10 @@ function FoldablePianoLegend({
       title: chordNamesLabel,
       onClick: () => setGuitar(!guitar)
     },
-    /* @__PURE__ */ React10.createElement(GraduationCap, { size: 14, className: "rawln-piano-name-roman", "aria-hidden": "true" }),
-    /* @__PURE__ */ React10.createElement("span", { className: "rawln-piano-name-track", "aria-hidden": "true" }),
-    /* @__PURE__ */ React10.createElement(Guitar, { size: 14, className: "rawln-piano-name-guitar", "aria-hidden": "true" })
-  )), /* @__PURE__ */ React10.createElement("div", { className: "rawln-piano-panel", hidden: !expanded }, expanded && /* @__PURE__ */ React10.createElement(React10.Fragment, null, modes.map((mode, i) => /* @__PURE__ */ React10.createElement(
+    /* @__PURE__ */ React11.createElement(GraduationCap, { size: 14, className: "rawln-piano-name-roman", "aria-hidden": "true" }),
+    /* @__PURE__ */ React11.createElement("span", { className: "rawln-piano-name-track", "aria-hidden": "true" }),
+    /* @__PURE__ */ React11.createElement(Guitar, { size: 14, className: "rawln-piano-name-guitar", "aria-hidden": "true" })
+  )), /* @__PURE__ */ React11.createElement("div", { className: "rawln-piano-panel", hidden: !expanded }, expanded && /* @__PURE__ */ React11.createElement(React11.Fragment, null, modes.map((mode, i) => /* @__PURE__ */ React11.createElement(
     ChordRow,
     {
       key: i,
@@ -2315,7 +2404,7 @@ function FoldablePianoLegend({
       onAudition: onAudition ? play : void 0,
       setHoveredColors
     }
-  )), /* @__PURE__ */ React10.createElement("div", { className: "rawln-piano-octaves" }, [0, 12].map((octave2) => /* @__PURE__ */ React10.createElement(
+  )), /* @__PURE__ */ React11.createElement("div", { className: "rawln-piano-octaves" }, [0, 12].map((octave2) => /* @__PURE__ */ React11.createElement(
     PianoLegend,
     {
       key: octave2,
@@ -2324,9 +2413,9 @@ function FoldablePianoLegend({
       activePitch: highlight == null ? null : highlight - octave2,
       onAudition: onAudition ? play : void 0
     }
-  ))), SCALES.map((group) => /* @__PURE__ */ React10.createElement("div", { key: group.label, className: "rawln-piano-scale-row" }, /* @__PURE__ */ React10.createElement("span", { style: { background: color(group.color), color: RAWL_COLORS[group.color].foreground } }, group.label), group.scales.map(([label, pitches]) => {
+  ))), SCALES.map((group) => /* @__PURE__ */ React11.createElement("div", { key: group.label, className: "rawln-piano-scale-row" }, /* @__PURE__ */ React11.createElement("span", { style: { background: color(group.color), color: RAWL_COLORS[group.color].foreground } }, group.label), group.scales.map(([label, pitches]) => {
     const Element = onAudition ? "button" : "span";
-    return /* @__PURE__ */ React10.createElement(
+    return /* @__PURE__ */ React11.createElement(
       Element,
       {
         key: label,
@@ -2350,19 +2439,19 @@ function FoldablePianoLegend({
 }
 
 // src/components/score-pinch.ts
-import React11, {
+import React12, {
   useEffect as useEffect5,
-  useLayoutEffect as useLayoutEffect4,
+  useLayoutEffect as useLayoutEffect5,
   useReducer,
-  useRef as useRef7
+  useRef as useRef8
 } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 var clamp3 = (value, min, max) => Math.min(max, Math.max(min, value));
-var ScorePinchContent = React11.memo(
+var ScorePinchContent = React12.memo(
   ({
     children,
     fitWidth = false
-  }) => React11.createElement(
+  }) => React12.createElement(
     "div",
     {
       "data-score-pinch-content": "",
@@ -2375,12 +2464,12 @@ var ScorePinchContent = React11.memo(
   (previous, next) => next.activeRef.current || previous.children === next.children && previous.fitWidth === next.fitWidth
 );
 function useScorePinch(containerRef, noteHeight, secondWidth, setNoteHeight, setSecondWidth, enabled = true) {
-  const dimensions = useRef7({ noteHeight, secondWidth });
+  const dimensions = useRef8({ noteHeight, secondWidth });
   dimensions.current = { noteHeight, secondWidth };
-  const activeRef = useRef7(false);
-  const clearPreviewRef = useRef7(null);
+  const activeRef = useRef8(false);
+  const clearPreviewRef = useRef8(null);
   const [, refreshScore] = useReducer((revision) => revision + 1, 0);
-  useLayoutEffect4(() => {
+  useLayoutEffect5(() => {
     var _a;
     if (!activeRef.current) (_a = clearPreviewRef.current) == null ? void 0 : _a.call(clearPreviewRef);
   });
@@ -2514,7 +2603,7 @@ function useScorePinch(containerRef, noteHeight, secondWidth, setNoteHeight, set
 }
 
 // src/components/TransposeControl.jsx
-import React12, { useEffect as useEffect6, useRef as useRef8, useState as useState6 } from "react";
+import React13, { useEffect as useEffect6, useRef as useRef9, useState as useState7 } from "react";
 var NOTE_NAMES = ["C", "D\u266D", "D", "E\u266D", "E", "F", "G\u266D", "G", "A\u266D", "A", "B\u266D", "B"];
 var MAX_TRANSPOSE_SEMITONES = 12;
 var OFFSETS = Array.from({ length: 2 * MAX_TRANSPOSE_SEMITONES + 1 }, (_, index) => index - MAX_TRANSPOSE_SEMITONES);
@@ -2522,7 +2611,7 @@ var normalizeTonic = (value) => (value % 12 + 12) % 12;
 var signed = (value) => value < 0 ? `\u2212${Math.abs(value)}` : value > 0 ? `+${value}` : "0";
 function PitchLabel({ tonic, quarter }) {
   var _a;
-  return /* @__PURE__ */ React12.createElement("span", { className: "rawlt-pitch", "aria-hidden": "true" }, (_a = tonic == null ? void 0 : tonic[0]) != null ? _a : "\u2013", ((tonic == null ? void 0 : tonic[1]) || quarter) && /* @__PURE__ */ React12.createElement("span", { className: "rawlt-accidental" }, tonic == null ? void 0 : tonic[1], quarter && "\u2191"));
+  return /* @__PURE__ */ React13.createElement("span", { className: "rawlt-pitch", "aria-hidden": "true" }, (_a = tonic == null ? void 0 : tonic[0]) != null ? _a : "\u2013", ((tonic == null ? void 0 : tonic[1]) || quarter) && /* @__PURE__ */ React13.createElement("span", { className: "rawlt-accidental" }, tonic == null ? void 0 : tonic[1], quarter && "\u2191"));
 }
 function TransposeControl({
   value,
@@ -2533,11 +2622,11 @@ function TransposeControl({
   placement = "bottom",
   captureKeys = true
 }) {
-  const [open, setOpen] = useState6(false);
-  const [anchorBottom, setAnchorBottom] = useState6(0);
-  const containerRef = useRef8(null);
-  const valueRef = useRef8(null);
-  const selectedRef = useRef8(null);
+  const [open, setOpen] = useState7(false);
+  const [anchorBottom, setAnchorBottom] = useState7(0);
+  const containerRef = useRef9(null);
+  const valueRef = useRef9(null);
+  const selectedRef = useRef9(null);
   useEffect6(() => {
     var _a;
     if (!open) return;
@@ -2554,7 +2643,7 @@ function TransposeControl({
     setOpen(false);
     (_a = valueRef.current) == null ? void 0 : _a.focus();
   }
-  return /* @__PURE__ */ React12.createElement(
+  return /* @__PURE__ */ React13.createElement(
     "div",
     {
       className: "rawlt-control",
@@ -2570,7 +2659,7 @@ function TransposeControl({
         }
       }
     },
-    /* @__PURE__ */ React12.createElement(
+    /* @__PURE__ */ React13.createElement(
       "button",
       {
         type: "button",
@@ -2582,7 +2671,7 @@ function TransposeControl({
       },
       "\u25BC"
     ),
-    /* @__PURE__ */ React12.createElement(
+    /* @__PURE__ */ React13.createElement(
       "button",
       {
         type: "button",
@@ -2600,7 +2689,7 @@ function TransposeControl({
       signed(value),
       " st"
     ),
-    /* @__PURE__ */ React12.createElement(
+    /* @__PURE__ */ React13.createElement(
       "button",
       {
         type: "button",
@@ -2612,7 +2701,7 @@ function TransposeControl({
       },
       "\u25B2"
     ),
-    open && /* @__PURE__ */ React12.createElement(
+    open && /* @__PURE__ */ React13.createElement(
       "div",
       {
         className: "rawlt-picker",
@@ -2621,8 +2710,8 @@ function TransposeControl({
         role: "dialog",
         "aria-label": "Transpose in semitones"
       },
-      /* @__PURE__ */ React12.createElement("div", { className: "rawlt-heading" }, "Transpose \xB7 semitones"),
-      /* @__PURE__ */ React12.createElement(
+      /* @__PURE__ */ React13.createElement("div", { className: "rawlt-heading" }, "Transpose \xB7 semitones"),
+      /* @__PURE__ */ React13.createElement(
         "button",
         {
           type: "button",
@@ -2631,7 +2720,7 @@ function TransposeControl({
           "aria-label": "Close transposition picker",
           onClick: closeAndRestoreFocus
         },
-        /* @__PURE__ */ React12.createElement(
+        /* @__PURE__ */ React13.createElement(
           "svg",
           {
             width: "16",
@@ -2644,15 +2733,15 @@ function TransposeControl({
             "aria-hidden": "true",
             focusable: "false"
           },
-          /* @__PURE__ */ React12.createElement("path", { d: "M18 6 6 18M6 6l12 12" })
+          /* @__PURE__ */ React13.createElement("path", { d: "M18 6 6 18M6 6l12 12" })
         )
       ),
-      /* @__PURE__ */ React12.createElement("div", { className: "rawlt-choices", role: "group", "aria-label": "Transposition in semitones" }, OFFSETS.map((offset) => {
+      /* @__PURE__ */ React13.createElement("div", { className: "rawlt-choices", role: "group", "aria-label": "Transposition in semitones" }, OFFSETS.map((offset) => {
         const pitch = firstTonic == null ? null : normalizeTonic(firstTonic + offset);
         const tonic = pitch === null ? null : NOTE_NAMES[Math.floor(pitch)];
         const quarter = pitch !== null && pitch % 1 === 0.5;
         const pitchName = tonic ? `${tonic}${quarter ? " +50\xA2" : ""}` : "";
-        return /* @__PURE__ */ React12.createElement(
+        return /* @__PURE__ */ React13.createElement(
           "button",
           {
             type: "button",
@@ -2664,11 +2753,11 @@ function TransposeControl({
             "aria-pressed": offset === value,
             onClick: () => onChange(offset)
           },
-          /* @__PURE__ */ React12.createElement("span", null, signed(offset)),
-          /* @__PURE__ */ React12.createElement(PitchLabel, { tonic, quarter })
+          /* @__PURE__ */ React13.createElement("span", null, signed(offset)),
+          /* @__PURE__ */ React13.createElement(PitchLabel, { tonic, quarter })
         );
       })),
-      onPersistChange && /* @__PURE__ */ React12.createElement("label", { className: "rawlt-persist", title: "Keep transposition when loading another song" }, /* @__PURE__ */ React12.createElement(
+      onPersistChange && /* @__PURE__ */ React13.createElement("label", { className: "rawlt-persist", title: "Keep transposition when loading another song" }, /* @__PURE__ */ React13.createElement(
         "input",
         {
           type: "checkbox",
@@ -2683,6 +2772,7 @@ export {
   FoldablePianoLegend,
   InlinePianoLegend,
   MAX_TRANSPOSE_SEMITONES,
+  MaqamScaleDiagram,
   MeasureRhythmInput,
   PHRASE_SHIFT_KEYS,
   PianoLegend,

@@ -29,3 +29,12 @@
 .rawln-rhythm-input:focus{border-color:#fff;outline:none}
 .rawln-rhythm-reset:focus-visible{outline:1px solid #ddd;outline-offset:2px}
 .rawln-measure-number>.rawln-phrase-shift-key{position:absolute;right:calc(100% + 1px);top:4px;color:orange;font:10px/12px sans-serif;pointer-events:none}
+
+.rawln-maqam-scale{width:100%;max-width:576px;min-width:0;direction:ltr}
+.rawln-maqam-upper,.rawln-maqam-lower,.rawln-maqam-plot{position:relative}
+.rawln-maqam-plot{isolation:isolate}
+.rawln-maqam-label{position:absolute;line-height:1.1;white-space:nowrap;text-align:center;color:#ccc}
+.rawln-maqam-bracket::before{content:"";position:absolute;inset-inline:0;height:3px;border-inline:1px solid #888}
+.rawln-maqam-upper .rawln-maqam-bracket::before{bottom:-5px;border-top:1px solid #888}
+.rawln-maqam-lower .rawln-maqam-bracket{padding-top:5px}
+.rawln-maqam-lower .rawln-maqam-bracket::before{top:0;border-bottom:1px solid #888}
